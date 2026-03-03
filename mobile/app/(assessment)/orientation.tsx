@@ -1,60 +1,90 @@
-import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
-import { colors, spacing } from '../../constants/theme';
+import { colors, spacing, layout } from '../../constants/theme';
 
 export default function OrientationScreen() {
   const router = useRouter();
+  const [checked, setChecked] = useState(false);
+
+  const handleContinue = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push('/(assessment)/written');
+  };
+
+  const toggleCheck = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setChecked((prev) => !prev);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.content}>
+      <View style={styles.content}>
+        <View style={styles.body}>
           <Typography variant="heading" style={styles.title}>
             Before we begin
           </Typography>
 
           <Typography variant="body" style={styles.paragraph}>
-            Find a quiet place where you can reflect without interruption.
-            The questions ahead are not tests -- they are invitations to
-            think carefully about what matters to you.
+            This is not a test. There are no right answers, no scores, and no
+            judgment. The questions ahead are invitations to think honestly about
+            what moves you, what frustrates you, and what you find yourself
+            returning to again and again.
           </Typography>
 
           <Typography variant="body" style={styles.paragraph}>
-            You may choose to respond by speaking aloud or by writing. Both
-            paths lead to the same destination.
+            Set aside roughly 30{'\u2013'}45 minutes. This is best done in a
+            quiet place, without distractions, when you can give your full
+            attention to the process.
           </Typography>
-
-          <View style={styles.divider} />
 
           <Typography
             variant="small"
             family="sans"
             color={colors.textSecondary}
-            style={styles.modeLabel}
+            style={styles.timeNote}
           >
-            Choose your mode
+            ~30{'\u2013'}45 minutes
           </Typography>
 
-          <View style={styles.actions}>
-            <Button
-              title="Conversation"
-              onPress={() => router.push('/(assessment)/conversation')}
-            />
-            <Button
-              title="Written reflection"
-              variant="secondary"
-              onPress={() => router.push('/(assessment)/written')}
-            />
-          </View>
+          <View style={styles.divider} />
+
+          <Pressable
+            onPress={toggleCheck}
+            style={styles.checkboxRow}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <View
+              style={[
+                styles.checkbox,
+                checked && styles.checkboxChecked,
+              ]}
+            >
+              {checked && (
+                <View style={styles.checkmark} />
+              )}
+            </View>
+            <Typography
+              variant="body"
+              style={styles.checkboxLabel}
+            >
+              I'm willing to answer honestly, not impressively.
+            </Typography>
+          </Pressable>
         </View>
-      </ScrollView>
+
+        <View style={styles.actions}>
+          <Button
+            title="Continue  \u2192"
+            onPress={handleContinue}
+            disabled={!checked}
+          />
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
@@ -64,31 +94,57 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-  },
   content: {
+    flex: 1,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xxl,
+    justifyContent: 'space-between',
+    paddingTop: spacing.section,
+    paddingBottom: spacing.xxl,
   },
+  body: {},
   title: {
     marginBottom: spacing.xl,
   },
   paragraph: {
     marginBottom: spacing.md,
   },
+  timeNote: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
+  },
   divider: {
     height: 1,
     backgroundColor: colors.divider,
-    marginVertical: spacing.xl,
+    marginVertical: spacing.lg,
   },
-  modeLabel: {
-    marginBottom: spacing.md,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    minHeight: layout.touchTarget,
+    paddingVertical: spacing.sm,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderWidth: 1.5,
+    borderColor: colors.text,
+    marginRight: spacing.md,
+    marginTop: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.text,
+  },
+  checkmark: {
+    width: 10,
+    height: 10,
+    backgroundColor: colors.background,
+  },
+  checkboxLabel: {
+    flex: 1,
   },
   actions: {
-    gap: spacing.md,
+    marginTop: spacing.xxl,
   },
 });
