@@ -27,6 +27,9 @@ export function useConversationFlow() {
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder, METERING_INTERVAL_MS);
   const ttsPlayer = useAudioPlayer(null, { updateInterval: 100 });
+  const ambientPlayer = useAudioPlayer(require('../assets/audio/zen-bed.m4a'), {
+    updateInterval: 500,
+  });
   const ttsStatus = useAudioPlayerStatus(ttsPlayer);
 
   const {
@@ -132,12 +135,12 @@ export function useConversationFlow() {
         const preferred =
           enhancedEnglishVoices.find(
             (voice) =>
-              /samantha|ava|allison|serena|zoe|daniel|lee|nicky|karen/i.test(voice.name ?? '')
+              /serena|allison|karen|samantha|ava|zoe/i.test(voice.name ?? '')
           ) ??
           enhancedEnglishVoices[0] ??
           englishVoices.find(
             (voice) =>
-              /premium|enhanced|samantha|ava|nicky|serena/i.test(voice.name ?? '')
+              /premium|enhanced|serena|allison|karen|samantha|ava/i.test(voice.name ?? '')
           ) ??
           voices.find((voice) => voice.language === 'en-US') ??
           englishVoices[0];
@@ -158,6 +161,26 @@ export function useConversationFlow() {
     return status.granted;
   }, []);
 
+  const startAmbientBed = useCallback(async () => {
+    try {
+      ambientPlayer.loop = true;
+      ambientPlayer.volume = 0.11;
+      await ambientPlayer.seekTo(0);
+      ambientPlayer.play();
+    } catch {
+      // best effort only
+    }
+  }, [ambientPlayer]);
+
+  const stopAmbientBed = useCallback(async () => {
+    try {
+      ambientPlayer.pause();
+      await ambientPlayer.seekTo(0);
+    } catch {
+      // best effort only
+    }
+  }, [ambientPlayer]);
+
   const clearSpeechCallbacks = useCallback(() => {
     onSpeechDoneRef.current = null;
     onSpeechErrorRef.current = null;
@@ -170,6 +193,7 @@ export function useConversationFlow() {
 
       clearSpeechCallbacks();
       speakingLevel.value = 0;
+      void stopAmbientBed();
 
       if (kind === 'done') {
         doneCallback?.();
@@ -178,7 +202,7 @@ export function useConversationFlow() {
 
       errorCallback?.();
     },
-    [clearSpeechCallbacks, speakingLevel]
+    [clearSpeechCallbacks, speakingLevel, stopAmbientBed]
   );
 
   const currentQuestionText =
@@ -193,6 +217,7 @@ export function useConversationFlow() {
 
       setConversationState('speaking');
       speakingLevel.value = 0.08;
+      await startAmbientBed();
 
       try {
         const speech = await assessmentApi.synthesizeConversationSpeech(text);
@@ -231,21 +256,22 @@ export function useConversationFlow() {
         Speech.speak(text, {
           language: 'en-US',
           voice: preferredVoiceRef.current,
-          rate: 0.94,
-          pitch: 1.0,
+          rate: 0.86,
+          pitch: 0.88,
           onDone: () => finalizeSpeech('done'),
           onError: () => finalizeSpeech('error'),
         });
       }
     },
-    [finalizeSpeech, setConversationState, speakingLevel, ttsPlayer]
+    [finalizeSpeech, preferredVoiceRef, setConversationState, speakingLevel, startAmbientBed, ttsPlayer]
   );
 
   const stopSpeaking = useCallback(() => {
     Speech.stop();
     ttsPlayer.pause();
+    void stopAmbientBed();
     finalizeSpeech('done');
-  }, [finalizeSpeech, ttsPlayer]);
+  }, [finalizeSpeech, stopAmbientBed, ttsPlayer]);
 
   useEffect(() => {
     if (ttsStatus.didJustFinish) {
@@ -284,6 +310,7 @@ export function useConversationFlow() {
         playsInSilentMode: true,
       });
 
+      void stopAmbientBed();
       await audioRecorder.prepareToRecordAsync();
       audioRecorder.record();
 
@@ -298,6 +325,7 @@ export function useConversationFlow() {
     sessionId,
     startConversationSession,
     currentQuestionText,
+    stopAmbientBed,
   ]);
 
   const stopRecording = useCallback(async () => {
@@ -391,11 +419,12 @@ export function useConversationFlow() {
     return () => {
       Speech.stop();
       ttsPlayer.pause();
+      ambientPlayer.pause();
       cancelAnimation(audioLevel);
       cancelAnimation(speakingLevel);
       clearSpeechCallbacks();
     };
-  }, [audioLevel, clearSpeechCallbacks, speakingLevel, ttsPlayer]);
+  }, [ambientPlayer, audioLevel, clearSpeechCallbacks, speakingLevel, ttsPlayer]);
 
   const isComplete = useAssessmentStore((s) => s.status === 'analyzing' || s.status === 'completed');
 

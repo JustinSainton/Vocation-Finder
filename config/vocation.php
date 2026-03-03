@@ -51,11 +51,15 @@ return [
         'tts_fallback_voice' => env('TTS_FALLBACK_VOICE', 'default-female'),
         'tts_instructions' => env(
             'TTS_INSTRUCTIONS',
-            'Warm, grounded, and conversational. Avoid robotic cadence.'
+            'Speak in a calm, grounded, lower register. Slow the pace slightly, with gentle pauses and a soothing, reassuring tone. Avoid corporate or sales-like cadence.'
         ),
         'tts_audio_disk' => env('TTS_AUDIO_DISK', 's3'),
         'tts_audio_fallback_disk' => env('TTS_AUDIO_FALLBACK_DISK', 'public'),
         'tts_audio_ttl_minutes' => env('TTS_AUDIO_TTL_MINUTES', 15),
+        'transcription_provider' => env('TRANSCRIPTION_PROVIDER', env('AI_TRANSCRIPTION_PROVIDER', 'openai')),
+        'transcription_model' => env('TRANSCRIPTION_MODEL'),
+        'transcription_fallback_provider' => env('TRANSCRIPTION_FALLBACK_PROVIDER'),
+        'transcription_fallback_model' => env('TRANSCRIPTION_FALLBACK_MODEL'),
         'recording_audio_disk' => env('RECORDING_AUDIO_DISK', 's3'),
         'recording_audio_fallback_disk' => env('RECORDING_AUDIO_FALLBACK_DISK', 'public'),
         'max_audio_size_kb' => 10240,

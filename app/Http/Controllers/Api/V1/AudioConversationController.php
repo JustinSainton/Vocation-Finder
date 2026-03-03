@@ -61,9 +61,7 @@ class AudioConversationController extends Controller
 
             $path = $request->file('audio')->store('conversation-audio', $activeDisk);
 
-            $transcriptionResponse = Transcription::fromUpload($request->file('audio'))
-                ->language('en')
-                ->generate();
+            $transcriptionResponse = $this->transcribeAudio($request);
 
             return response()->json([
                 'audio_path' => $path,
@@ -76,6 +74,12 @@ class AudioConversationController extends Controller
                 'session_id' => $session->id,
                 'message' => $e->getMessage(),
             ]);
+
+            if ($this->isRateLimitedException($e)) {
+                return response()->json([
+                    'message' => 'Speech recognition is busy right now. Please try again in a few seconds.',
+                ], 429);
+            }
 
             return response()->json([
                 'message' => 'Unable to process recorded audio right now.',
@@ -413,8 +417,57 @@ class AudioConversationController extends Controller
         }
     }
 
+    protected function transcribeAudio(Request $request)
+    {
+        $provider = (string) config('vocation.audio.transcription_provider', config('ai.default_for_transcription', 'openai'));
+        $model = config('vocation.audio.transcription_model');
+        $fallbackProvider = config('vocation.audio.transcription_fallback_provider');
+        $fallbackModel = config('vocation.audio.transcription_fallback_model');
+
+        $pending = Transcription::fromUpload($request->file('audio'))
+            ->language('en');
+
+        try {
+            return $pending->generate($provider, $model ?: null);
+        } catch (Throwable $primaryException) {
+            if (! $fallbackProvider) {
+                throw $primaryException;
+            }
+
+            Log::warning('conversation_transcription_primary_failed', [
+                'provider' => $provider,
+                'model' => $model,
+                'message' => $primaryException->getMessage(),
+            ]);
+
+            return $pending->generate((string) $fallbackProvider, $fallbackModel ?: null);
+        }
+    }
+
+    protected function isRateLimitedException(Throwable $e): bool
+    {
+        $message = strtolower($e->getMessage());
+
+        return $e->getCode() === 429
+            || str_contains($message, 'rate limit')
+            || str_contains($message, 'rate limited')
+            || str_contains($message, 'too many requests');
+    }
+
     protected function resolveTtsFilesystem(string $preferredDisk, string $fallbackDisk): array
     {
+        if ($preferredDisk === 's3' && ! $this->isS3DiskConfigured()) {
+            Log::info('conversation_storage_s3_unconfigured_fallback', [
+                'preferred_disk' => $preferredDisk,
+                'fallback_disk' => $fallbackDisk,
+            ]);
+
+            $filesystem = Storage::disk($fallbackDisk);
+            $filesystem->exists('__tts_healthcheck__');
+
+            return [$filesystem, $fallbackDisk];
+        }
+
         try {
             $filesystem = Storage::disk($preferredDisk);
             $filesystem->exists('__tts_healthcheck__');
@@ -432,6 +485,14 @@ class AudioConversationController extends Controller
 
             return [$filesystem, $fallbackDisk];
         }
+    }
+
+    protected function isS3DiskConfigured(): bool
+    {
+        $bucket = (string) config('filesystems.disks.s3.bucket', '');
+        $region = (string) config('filesystems.disks.s3.region', '');
+
+        return $bucket !== '' && $region !== '';
     }
 
     protected function ttsCachePath(
