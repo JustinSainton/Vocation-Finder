@@ -52,7 +52,11 @@ class AudioConversationController extends Controller
             'audio' => 'required|file|mimes:aac,m4a,mp3,wav|max:10240',
         ]);
 
-        $path = $request->file('audio')->store('conversation-audio', 's3');
+        $disk = (string) config('vocation.audio.recording_audio_disk', 's3');
+        $fallbackDisk = (string) config('vocation.audio.recording_audio_fallback_disk', 'public');
+        [, $activeDisk] = $this->resolveTtsFilesystem($disk, $fallbackDisk);
+
+        $path = $request->file('audio')->store('conversation-audio', $activeDisk);
 
         $transcriptionResponse = Transcription::fromUpload($request->file('audio'))
             ->language('en')
@@ -60,6 +64,7 @@ class AudioConversationController extends Controller
 
         return response()->json([
             'audio_path' => $path,
+            'audio_disk' => $activeDisk,
             'transcript' => $transcriptionResponse->text,
             'status' => 'transcribed',
         ]);
