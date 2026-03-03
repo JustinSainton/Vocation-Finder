@@ -54,6 +54,7 @@ return [
             'Warm, grounded, and conversational. Avoid robotic cadence.'
         ),
         'tts_audio_disk' => env('TTS_AUDIO_DISK', 's3'),
+        'tts_audio_fallback_disk' => env('TTS_AUDIO_FALLBACK_DISK', 'public'),
         'tts_audio_ttl_minutes' => env('TTS_AUDIO_TTL_MINUTES', 15),
         'max_audio_size_kb' => 10240,
         'recording_sample_rate' => 16000,
