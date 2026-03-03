@@ -29,7 +29,7 @@ export default function AssessmentLandingScreen() {
             text={HERO_HEADLINE}
             variant="headingLarge"
             style={styles.headline}
-            speedMs={16}
+            speedMs={30}
           />
 
           <Typography
