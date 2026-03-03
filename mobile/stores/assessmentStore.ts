@@ -118,6 +118,18 @@ export const useAssessmentStore = create<AssessmentState>()(
         try {
           const data = await assessmentApi.getQuestions();
           const questions = data.data;
+
+          if (questions.length === 0) {
+            set({
+              questions: [],
+              totalQuestions: 0,
+              questionsLoading: false,
+              questionsError:
+                'No assessment questions are available yet. Please try again shortly.',
+            });
+            return;
+          }
+
           set({
             questions,
             totalQuestions: questions.length,

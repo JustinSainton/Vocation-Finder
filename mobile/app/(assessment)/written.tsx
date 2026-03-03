@@ -84,7 +84,7 @@ export default function WrittenAssessmentScreen() {
   };
 
   // Loading state
-  if (questionsLoading || questions.length === 0) {
+  if (questionsLoading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
@@ -102,10 +102,25 @@ export default function WrittenAssessmentScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
           <Typography variant="body" color={colors.textSecondary}>
-            Something went wrong loading the questions.
+            {questionsError}
           </Typography>
           <View style={styles.retryAction}>
             <Button title="Try again" onPress={fetchQuestions} />
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (questions.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centered}>
+          <Typography variant="body" color={colors.textSecondary}>
+            No questions are available yet. Please try again shortly.
+          </Typography>
+          <View style={styles.retryAction}>
+            <Button title="Retry" onPress={fetchQuestions} />
           </View>
         </View>
       </SafeAreaView>

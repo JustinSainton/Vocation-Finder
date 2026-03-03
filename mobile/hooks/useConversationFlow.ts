@@ -51,9 +51,20 @@ export function useConversationFlow() {
   // Initialize session on mount
   useEffect(() => {
     const init = async () => {
-      const state = useAssessmentStore.getState();
+      let state = useAssessmentStore.getState();
       if (state.questions.length === 0) {
         await fetchQuestions();
+        state = useAssessmentStore.getState();
+      }
+
+      if (state.questions.length === 0) {
+        useAssessmentStore.setState({
+          conversationState: 'error',
+          conversationError:
+            state.questionsError ??
+            'No assessment questions are available yet. Please try again shortly.',
+        });
+        return;
       }
 
       if (!state.assessmentId) {
@@ -80,7 +91,20 @@ export function useConversationFlow() {
     return status.granted;
   }, []);
 
+  const currentQuestionText =
+    questions[currentQuestion]?.conversation_prompt ??
+    questions[currentQuestion]?.question_text ??
+    '';
+
   const startRecording = useCallback(async () => {
+    if (!currentQuestionText) {
+      useAssessmentStore.setState({
+        conversationState: 'error',
+        conversationError: 'No question is ready yet. Please try again in a moment.',
+      });
+      return;
+    }
+
     if (!sessionId) {
       await startConversationSession();
 
@@ -110,7 +134,14 @@ export function useConversationFlow() {
     } catch {
       setConversationState('error');
     }
-  }, [requestMicPermission, setConversationState, audioRecorder, sessionId, startConversationSession]);
+  }, [
+    requestMicPermission,
+    setConversationState,
+    audioRecorder,
+    sessionId,
+    startConversationSession,
+    currentQuestionText,
+  ]);
 
   const stopRecording = useCallback(async () => {
     audioLevel.value = 0;
@@ -171,13 +202,14 @@ export function useConversationFlow() {
     completeConversationSession,
   ]);
 
-  const currentQuestionText =
-    questions[currentQuestion]?.conversation_prompt ??
-    questions[currentQuestion]?.question_text ??
-    '';
-
   const playIntroAndFirstQuestion = useCallback(() => {
     if (!currentQuestionText || introPlayed) {
+      if (!currentQuestionText) {
+        useAssessmentStore.setState({
+          conversationState: 'error',
+          conversationError: 'Questions are still loading. Please try again in a moment.',
+        });
+      }
       return;
     }
 
