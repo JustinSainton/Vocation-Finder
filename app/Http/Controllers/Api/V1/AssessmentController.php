@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\AssessmentResource;
+use App\Jobs\AnalyzeAssessmentJob;
 use App\Models\Assessment;
 use App\Models\Answer;
 use Illuminate\Http\JsonResponse;
@@ -81,13 +82,17 @@ class AssessmentController extends Controller
     {
         $this->authorizeAccess($request, $assessment);
 
+        $answerCount = $assessment->answers()->count();
+        if ($answerCount === 0) {
+            return response()->json(['error' => 'Cannot complete assessment with no answers.'], 422);
+        }
+
         $assessment->update([
             'status' => 'analyzing',
             'completed_at' => now(),
         ]);
 
-        // Dispatch AI analysis job
-        // AnalyzeAssessmentJob::dispatch($assessment);
+        AnalyzeAssessmentJob::dispatch($assessment);
 
         return response()->json(['status' => 'analyzing']);
     }
