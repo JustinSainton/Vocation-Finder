@@ -14,7 +14,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.vocationfinder.app"
+      "bundleIdentifier": "com.vocationfinder.app",
+      "appleTeamId": "6CJ76J3665"
     },
     "android": {
       "adaptiveIcon": {
@@ -24,7 +25,13 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "package": "com.vocationfinder.app",
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
