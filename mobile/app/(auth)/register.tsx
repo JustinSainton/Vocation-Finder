@@ -2,7 +2,6 @@ import React, { useRef, useState } from 'react';
 import { View, StyleSheet, TextInput as RNTextInput, ScrollView } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
 import { SingleLineInput } from '../../components/ui/SingleLineInput';
@@ -22,7 +21,6 @@ export default function RegisterScreen() {
   const confirmRef = useRef<RNTextInput>(null);
 
   const handleRegister = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       await register(name, email, password, passwordConfirmation);
       router.replace('/');

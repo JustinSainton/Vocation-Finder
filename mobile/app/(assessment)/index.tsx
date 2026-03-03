@@ -2,16 +2,22 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
+import { TypewriterText } from '../../components/ui/TypewriterText';
 import { colors, spacing } from '../../constants/theme';
+
+const HERO_HEADLINE = [
+  'Most people are taught',
+  'to choose a career.',
+  'Very few are taught',
+  'to discern a calling.',
+].join('\n');
 
 export default function AssessmentLandingScreen() {
   const router = useRouter();
 
-  const handleBegin = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const handleBegin = () => {
     router.push('/(assessment)/orientation');
   };
 
@@ -19,9 +25,12 @@ export default function AssessmentLandingScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.body}>
-          <Typography variant="headingLarge" style={styles.headline}>
-            {'Most people are taught\nto choose a career.\nVery few are taught\nto discern a calling.'}
-          </Typography>
+          <TypewriterText
+            text={HERO_HEADLINE}
+            variant="headingLarge"
+            style={styles.headline}
+            speedMs={16}
+          />
 
           <Typography
             variant="body"
@@ -44,8 +53,9 @@ export default function AssessmentLandingScreen() {
 
         <View style={styles.actions}>
           <Button
-            title="Begin discernment  \u2192"
+            title="Start your assessment"
             onPress={handleBegin}
+            hapticStyle="medium"
           />
         </View>
       </View>

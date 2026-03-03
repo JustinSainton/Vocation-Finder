@@ -32,9 +32,8 @@
     },
     "plugins": [
       "expo-router",
-      "react-native-reanimated",
       [
-        "expo-av",
+        "expo-audio",
         {
           "microphonePermission": "Allow Vocation Finder to access your microphone for voice conversations."
         }

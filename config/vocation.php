@@ -11,6 +11,19 @@ return [
         'model' => env('AI_MODEL', 'claude-sonnet-4-20250514'),
         'model_lite' => env('AI_MODEL_LITE', 'claude-haiku-4-5-20251001'),
         'analysis_timeout' => env('AI_ANALYSIS_TIMEOUT', 120),
+        'conversation_experiment' => [
+            'enabled' => env('CONVERSATION_MODEL_EXPERIMENT_ENABLED', false),
+            'rollout_percentage' => env('CONVERSATION_MODEL_EXPERIMENT_ROLLOUT', 0),
+            'force_variant' => env('CONVERSATION_MODEL_EXPERIMENT_FORCE_VARIANT'),
+            'control' => [
+                'provider' => env('CONVERSATION_MODEL_CONTROL_PROVIDER', 'anthropic'),
+                'model' => env('CONVERSATION_MODEL_CONTROL', 'claude-haiku-4-5-20251001'),
+            ],
+            'treatment' => [
+                'provider' => env('CONVERSATION_MODEL_TREATMENT_PROVIDER', 'openrouter'),
+                'model' => env('CONVERSATION_MODEL_TREATMENT', 'qwen/qwen3-4b-instruct-2507'),
+            ],
+        ],
     ],
 
     /*

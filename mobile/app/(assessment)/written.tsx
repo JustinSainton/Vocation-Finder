@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
 import { TextInput } from '../../components/ui/TextInput';
@@ -71,8 +70,6 @@ export default function WrittenAssessmentScreen() {
   );
 
   const handleContinue = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
     if (isLastQuestion) {
       router.push('/(assessment)/synthesis');
     } else {
@@ -168,7 +165,7 @@ export default function WrittenAssessmentScreen() {
 
             {/* Continue button */}
             <Button
-              title={isLastQuestion ? 'Finish  \u2192' : 'Continue  \u2192'}
+              title={isLastQuestion ? 'Finish assessment' : 'Continue'}
               onPress={handleContinue}
               disabled={currentAnswer.trim().length === 0}
             />

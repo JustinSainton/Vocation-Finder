@@ -237,7 +237,12 @@ export const useAssessmentStore = create<AssessmentState>()(
         set({ conversationState: 'processing', conversationError: null });
 
         try {
-          const response = await assessmentApi.uploadConversationAudio(sessionId, audioUri);
+          const audioUpload = await assessmentApi.uploadConversationAudio(sessionId, audioUri);
+          const response = await assessmentApi.processTurn(
+            sessionId,
+            audioUpload.transcript,
+            audioUpload.audio_path
+          );
           set({
             aiResponseText: response.response,
             currentQuestion: response.current_question_index,
