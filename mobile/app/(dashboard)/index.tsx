@@ -4,10 +4,13 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
-import { colors, spacing } from '../../constants/theme';
+import { spacing } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -70,39 +73,40 @@ export default function DashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xl,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: spacing.md,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.divider,
-    marginVertical: spacing.xl,
-  },
-  section: {
-    marginBottom: spacing.md,
-  },
-  sectionLabel: {
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: spacing.sm,
-  },
-  sectionDescription: {
-    marginBottom: spacing.lg,
-  },
-  cta: {
-    alignSelf: 'flex-start',
-  },
-});
+const getStyles = (colors: { background: string; divider: string }) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.xl,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
+      marginBottom: spacing.md,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: colors.divider,
+      marginVertical: spacing.xl,
+    },
+    section: {
+      marginBottom: spacing.md,
+    },
+    sectionLabel: {
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      marginBottom: spacing.sm,
+    },
+    sectionDescription: {
+      marginBottom: spacing.lg,
+    },
+    cta: {
+      alignSelf: 'flex-start',
+    },
+  });

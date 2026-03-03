@@ -5,7 +5,8 @@ import {
   View,
   KeyboardTypeOptions,
 } from 'react-native';
-import { colors, typography, spacing } from '../../constants/theme';
+import { typography, spacing } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 
 interface SingleLineInputProps {
   placeholder?: string;
@@ -34,6 +35,9 @@ export const SingleLineInput = forwardRef<RNTextInput, SingleLineInputProps>(
     },
     ref
   ) {
+    const { colors } = useTheme();
+    const styles = getStyles(colors);
+
     return (
       <View style={styles.container}>
         <RNTextInput
@@ -56,17 +60,21 @@ export const SingleLineInput = forwardRef<RNTextInput, SingleLineInputProps>(
   }
 );
 
-const styles = StyleSheet.create({
-  container: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
-  },
-  input: {
-    fontFamily: typography.fontFamily.serif,
-    fontSize: typography.sizes.body,
-    lineHeight: typography.sizes.body * typography.lineHeight.body,
-    color: colors.text,
-    paddingVertical: spacing.md,
-    paddingHorizontal: 0,
-  },
-});
+const getStyles = (colors: {
+  divider: string;
+  text: string;
+}) =>
+  StyleSheet.create({
+    container: {
+      borderBottomWidth: 1,
+      borderBottomColor: colors.divider,
+    },
+    input: {
+      fontFamily: typography.fontFamily.serif,
+      fontSize: typography.sizes.body,
+      lineHeight: typography.sizes.body * typography.lineHeight.body,
+      color: colors.text,
+      paddingVertical: spacing.md,
+      paddingHorizontal: 0,
+    },
+  });

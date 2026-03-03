@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, Pressable } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
   interpolate,
-  SharedValue,
+  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -12,20 +12,35 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { useTheme } from '../hooks/useTheme';
 import type { ConversationState } from '../stores/assessmentStore';
 
 const ORB_SIZE = 190;
 const HALO_SIZE = ORB_SIZE + 74;
 const ORBIT_SIZE = ORB_SIZE + 28;
 
+export type OrbAgentState = 'thinking' | 'listening' | 'talking' | null;
+type VolumeMode = 'auto' | 'manual';
+
 interface AudioOrbProps {
-  state: ConversationState;
-  audioLevel: SharedValue<number>;
+  // Eleven-like API
+  agentState?: OrbAgentState;
+  volumeMode?: VolumeMode;
+  manualInput?: number;
+  manualOutput?: number;
+  getInputVolume?: () => number;
+  getOutputVolume?: () => number;
+  colors?: [string, string];
+
+  // Backward compatibility for existing app flow
+  state?: ConversationState;
+  inputLevel?: SharedValue<number>;
+  outputLevel?: SharedValue<number>;
+  audioLevel?: SharedValue<number>;
   speechLevel?: SharedValue<number>;
+
   onPress?: () => void;
 }
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 type OrbPalette = {
   halo: string;
@@ -34,60 +49,137 @@ type OrbPalette = {
   spark: string;
 };
 
-function paletteForState(state: ConversationState): OrbPalette {
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function mapConversationStateToAgentState(state: ConversationState | undefined): OrbAgentState {
   switch (state) {
+    case 'processing':
+      return 'thinking';
+    case 'listening':
+      return 'listening';
+    case 'speaking':
+      return 'talking';
+    default:
+      return null;
+  }
+}
+
+function paletteForState(
+  agentState: OrbAgentState,
+  colorPair: [string, string],
+  isDark: boolean
+): OrbPalette {
+  const [primary, secondary] = colorPair;
+
+  switch (agentState) {
     case 'listening':
       return {
-        halo: 'rgba(59, 130, 246, 0.26)',
-        ring: '#2563EB',
-        core: '#0F172A',
-        spark: '#60A5FA',
+        halo: isDark ? 'rgba(59, 130, 246, 0.30)' : 'rgba(59, 130, 246, 0.24)',
+        ring: primary,
+        core: isDark ? '#081425' : '#0F172A',
+        spark: secondary,
       };
-    case 'speaking':
+    case 'talking':
       return {
-        halo: 'rgba(34, 197, 94, 0.24)',
-        ring: '#16A34A',
-        core: '#052E16',
-        spark: '#86EFAC',
+        halo: isDark ? 'rgba(34, 197, 94, 0.30)' : 'rgba(34, 197, 94, 0.24)',
+        ring: secondary,
+        core: isDark ? '#06210F' : '#052E16',
+        spark: primary,
       };
-    case 'processing':
+    case 'thinking':
       return {
-        halo: 'rgba(245, 158, 11, 0.22)',
+        halo: isDark ? 'rgba(245, 158, 11, 0.28)' : 'rgba(245, 158, 11, 0.22)',
         ring: '#D97706',
-        core: '#451A03',
+        core: isDark ? '#2C1600' : '#451A03',
         spark: '#FCD34D',
       };
-    case 'error':
-      return {
-        halo: 'rgba(239, 68, 68, 0.24)',
-        ring: '#B91C1C',
-        core: '#450A0A',
-        spark: '#FCA5A5',
-      };
-    case 'idle':
+    case null:
     default:
       return {
-        halo: 'rgba(168, 162, 158, 0.24)',
-        ring: '#57534E',
-        core: '#1C1917',
-        spark: '#D6D3D1',
+        halo: isDark ? 'rgba(148, 163, 184, 0.20)' : 'rgba(168, 162, 158, 0.24)',
+        ring: isDark ? '#7DD3FC' : '#57534E',
+        core: isDark ? '#10151D' : '#1C1917',
+        spark: isDark ? '#C4B5FD' : '#D6D3D1',
       };
   }
 }
 
-export function AudioOrb({ state, audioLevel, speechLevel, onPress }: AudioOrbProps) {
+export function AudioOrb({
+  agentState,
+  volumeMode = 'manual',
+  manualInput = 0,
+  manualOutput = 0,
+  getInputVolume,
+  getOutputVolume,
+  colors: customColors,
+  state,
+  inputLevel,
+  outputLevel,
+  audioLevel,
+  speechLevel,
+  onPress,
+}: AudioOrbProps) {
+  const { isDark } = useTheme();
+  const defaultColors: [string, string] = isDark
+    ? ['#38BDF8', '#A78BFA']
+    : ['#2563EB', '#22C55E'];
+
+  const colorPair = customColors ?? defaultColors;
+  const resolvedState = agentState ?? mapConversationStateToAgentState(state);
+  const palette = paletteForState(resolvedState, colorPair, isDark);
+
+  const sampledInput = useSharedValue(0);
+  const sampledOutput = useSharedValue(0);
+
+  const resolvedInput = inputLevel ?? audioLevel ?? sampledInput;
+  const resolvedOutput = outputLevel ?? speechLevel ?? sampledOutput;
+
   const breathe = useSharedValue(1);
   const spin = useSharedValue(0);
   const shimmer = useSharedValue(0.3);
   const pressedScale = useSharedValue(1);
 
   useEffect(() => {
+    if (inputLevel || outputLevel || audioLevel || speechLevel) {
+      return;
+    }
+
+    const readLevel = (modeValue: number, getter?: () => number) => {
+      if (volumeMode === 'auto' && getter) {
+        const value = getter();
+        return Number.isFinite(value) ? value : 0;
+      }
+
+      return modeValue;
+    };
+
+    const timer = setInterval(() => {
+      sampledInput.value = Math.max(0, Math.min(1, readLevel(manualInput, getInputVolume)));
+      sampledOutput.value = Math.max(0, Math.min(1, readLevel(manualOutput, getOutputVolume)));
+    }, 80);
+
+    return () => clearInterval(timer);
+  }, [
+    audioLevel,
+    getInputVolume,
+    getOutputVolume,
+    inputLevel,
+    manualInput,
+    manualOutput,
+    outputLevel,
+    sampledInput,
+    sampledOutput,
+    speechLevel,
+    volumeMode,
+  ]);
+
+  useEffect(() => {
     cancelAnimation(breathe);
     cancelAnimation(spin);
     cancelAnimation(shimmer);
 
-    switch (state) {
-      case 'idle': {
+    switch (resolvedState) {
+      case null: {
         breathe.value = withRepeat(
           withSequence(
             withTiming(1.03, { duration: 2400, easing: Easing.inOut(Easing.ease) }),
@@ -96,7 +188,11 @@ export function AudioOrb({ state, audioLevel, speechLevel, onPress }: AudioOrbPr
           -1,
           false
         );
-        spin.value = withRepeat(withTiming(360, { duration: 22000, easing: Easing.linear }), -1, false);
+        spin.value = withRepeat(
+          withTiming(360, { duration: 22000, easing: Easing.linear }),
+          -1,
+          false
+        );
         shimmer.value = withRepeat(
           withSequence(
             withTiming(0.42, { duration: 2400, easing: Easing.inOut(Easing.ease) }),
@@ -109,7 +205,11 @@ export function AudioOrb({ state, audioLevel, speechLevel, onPress }: AudioOrbPr
       }
       case 'listening': {
         breathe.value = withTiming(1, { duration: 200 });
-        spin.value = withRepeat(withTiming(360, { duration: 6000, easing: Easing.linear }), -1, false);
+        spin.value = withRepeat(
+          withTiming(360, { duration: 5800, easing: Easing.linear }),
+          -1,
+          false
+        );
         shimmer.value = withRepeat(
           withSequence(
             withTiming(0.68, { duration: 600, easing: Easing.inOut(Easing.ease) }),
@@ -120,7 +220,7 @@ export function AudioOrb({ state, audioLevel, speechLevel, onPress }: AudioOrbPr
         );
         break;
       }
-      case 'processing': {
+      case 'thinking': {
         breathe.value = withRepeat(
           withSequence(
             withTiming(1.015, { duration: 1800, easing: Easing.inOut(Easing.ease) }),
@@ -129,20 +229,28 @@ export function AudioOrb({ state, audioLevel, speechLevel, onPress }: AudioOrbPr
           -1,
           false
         );
-        spin.value = withRepeat(withTiming(-360, { duration: 16000, easing: Easing.linear }), -1, false);
+        spin.value = withRepeat(
+          withTiming(-360, { duration: 12000, easing: Easing.linear }),
+          -1,
+          false
+        );
         shimmer.value = withTiming(0.16, { duration: 280 });
         break;
       }
-      case 'speaking': {
+      case 'talking': {
         breathe.value = withRepeat(
           withSequence(
-            withTiming(1.045, { duration: 1300, easing: Easing.inOut(Easing.ease) }),
-            withTiming(1, { duration: 1300, easing: Easing.inOut(Easing.ease) })
+            withTiming(1.045, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
+            withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) })
           ),
           -1,
           false
         );
-        spin.value = withRepeat(withTiming(360, { duration: 7000, easing: Easing.linear }), -1, false);
+        spin.value = withRepeat(
+          withTiming(360, { duration: 6500, easing: Easing.linear }),
+          -1,
+          false
+        );
         shimmer.value = withRepeat(
           withSequence(
             withTiming(0.74, { duration: 620, easing: Easing.inOut(Easing.ease) }),
@@ -153,21 +261,11 @@ export function AudioOrb({ state, audioLevel, speechLevel, onPress }: AudioOrbPr
         );
         break;
       }
-      case 'error': {
-        breathe.value = withTiming(1, { duration: 300 });
-        spin.value = withTiming(0, { duration: 300 });
-        shimmer.value = withTiming(0.14, { duration: 300 });
-        break;
-      }
     }
-  }, [state]);
+  }, [breathe, resolvedState, shimmer, spin]);
 
   const containerStyle = useAnimatedStyle(() => {
-    const activeLevel = state === 'listening'
-      ? audioLevel.value
-      : state === 'speaking'
-        ? speechLevel?.value ?? 0
-        : 0;
+    const activeLevel = resolvedState === 'listening' ? resolvedInput.value : resolvedOutput.value;
     const reactiveScale = interpolate(activeLevel, [0, 1], [1, 1.14]);
 
     return {
@@ -176,11 +274,7 @@ export function AudioOrb({ state, audioLevel, speechLevel, onPress }: AudioOrbPr
   });
 
   const haloStyle = useAnimatedStyle(() => {
-    const activeLevel = state === 'listening'
-      ? audioLevel.value
-      : state === 'speaking'
-        ? speechLevel?.value ?? 0
-        : 0;
+    const activeLevel = resolvedState === 'listening' ? resolvedInput.value : resolvedOutput.value;
     const scale = interpolate(activeLevel, [0, 1], [1, 1.28]);
 
     return {
@@ -198,19 +292,13 @@ export function AudioOrb({ state, audioLevel, speechLevel, onPress }: AudioOrbPr
   }));
 
   const corePulseStyle = useAnimatedStyle(() => {
-    const activeLevel = state === 'listening'
-      ? audioLevel.value
-      : state === 'speaking'
-        ? speechLevel?.value ?? 0
-        : 0;
+    const activeLevel = resolvedState === 'listening' ? resolvedInput.value : resolvedOutput.value;
 
     return {
       transform: [{ scale: interpolate(activeLevel, [0, 1], [1, 1.22]) }],
       opacity: interpolate(activeLevel, [0, 1], [0.34, 0.78]),
     };
   });
-
-  const palette = paletteForState(state);
 
   return (
     <AnimatedPressable
@@ -223,34 +311,12 @@ export function AudioOrb({ state, audioLevel, speechLevel, onPress }: AudioOrbPr
       }}
       style={[styles.container, containerStyle]}
     >
+      <Animated.View style={[styles.halo, { backgroundColor: palette.halo }, haloStyle]} />
+      <Animated.View style={[styles.orbit, { borderColor: palette.ring }, orbitStyle]} />
       <Animated.View
-        style={[
-          styles.halo,
-          { backgroundColor: palette.halo },
-          haloStyle,
-        ]}
+        style={[styles.orbitReverse, { borderColor: palette.spark }, orbitReverseStyle]}
       />
-      <Animated.View
-        style={[
-          styles.orbit,
-          { borderColor: palette.ring },
-          orbitStyle,
-        ]}
-      />
-      <Animated.View
-        style={[
-          styles.orbitReverse,
-          { borderColor: palette.spark },
-          orbitReverseStyle,
-        ]}
-      />
-      <Animated.View
-        style={[
-          styles.corePulse,
-          { backgroundColor: palette.spark },
-          corePulseStyle,
-        ]}
-      />
+      <Animated.View style={[styles.corePulse, { backgroundColor: palette.spark }, corePulseStyle]} />
       <Animated.View
         style={[
           styles.core,

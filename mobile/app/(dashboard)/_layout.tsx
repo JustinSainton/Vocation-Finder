@@ -1,7 +1,9 @@
 import { Stack } from 'expo-router';
-import { colors } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 
 export default function DashboardLayout() {
+  const { colors } = useTheme();
+
   return (
     <Stack
       screenOptions={{

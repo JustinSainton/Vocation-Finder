@@ -6,10 +6,13 @@ import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
 import { SingleLineInput } from '../../components/ui/SingleLineInput';
 import { useAuthStore } from '../../stores/authStore';
-import { colors, spacing } from '../../constants/theme';
+import { spacing } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const { register, isLoading, error, clearError } = useAuthStore();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -167,41 +170,42 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: spacing.lg,
-    justifyContent: 'center',
-    paddingVertical: spacing.xxl,
-  },
-  header: {
-    marginBottom: spacing.xl,
-  },
-  subtitle: {
-    marginTop: spacing.sm,
-  },
-  error: {
-    marginBottom: spacing.md,
-  },
-  form: {
-    marginBottom: spacing.xl,
-  },
-  field: {
-    marginBottom: spacing.lg,
-  },
-  actions: {
-    gap: spacing.md,
-  },
-  linkRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: spacing.md,
-  },
-});
+const getStyles = (colors: { background: string }) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scrollContent: {
+      flexGrow: 1,
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: spacing.lg,
+      justifyContent: 'center',
+      paddingVertical: spacing.xxl,
+    },
+    header: {
+      marginBottom: spacing.xl,
+    },
+    subtitle: {
+      marginTop: spacing.sm,
+    },
+    error: {
+      marginBottom: spacing.md,
+    },
+    form: {
+      marginBottom: spacing.xl,
+    },
+    field: {
+      marginBottom: spacing.lg,
+    },
+    actions: {
+      gap: spacing.md,
+    },
+    linkRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      marginTop: spacing.md,
+    },
+  });

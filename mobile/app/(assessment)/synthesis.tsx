@@ -6,10 +6,13 @@ import * as Haptics from 'expo-haptics';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
 import { useAssessmentStore } from '../../stores/assessmentStore';
-import { colors, spacing } from '../../constants/theme';
+import { spacing } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 
 export default function SynthesisScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const { completeAssessment } = useAssessmentStore();
   const [submitting, setSubmitting] = useState(false);
 
@@ -63,21 +66,22 @@ export default function SynthesisScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: spacing.lg,
-    justifyContent: 'space-between',
-    paddingTop: spacing.section,
-    paddingBottom: spacing.xxl,
-  },
-  body: {},
-  paragraph: {
-    marginBottom: spacing.lg,
-  },
-  actions: {},
-});
+const getStyles = (colors: { background: string }) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: spacing.lg,
+      justifyContent: 'space-between',
+      paddingTop: spacing.section,
+      paddingBottom: spacing.xxl,
+    },
+    body: {},
+    paragraph: {
+      marginBottom: spacing.lg,
+    },
+    actions: {},
+  });

@@ -5,7 +5,8 @@ import {
   View,
   TextInputProps as RNTextInputProps,
 } from 'react-native';
-import { colors, typography, spacing } from '../../constants/theme';
+import { typography, spacing } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 
 interface TextInputProps extends Omit<RNTextInputProps, 'style'> {
   minHeight?: number;
@@ -16,7 +17,9 @@ export const TextInput = forwardRef<RNTextInput, TextInputProps>(
     { minHeight = 120, placeholder = 'Begin typing...', ...props },
     ref
   ) {
+    const { colors } = useTheme();
     const [height, setHeight] = useState(minHeight);
+    const styles = getStyles(colors);
 
     return (
       <View style={styles.container}>
@@ -40,17 +43,21 @@ export const TextInput = forwardRef<RNTextInput, TextInputProps>(
   }
 );
 
-const styles = StyleSheet.create({
-  container: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
-  },
-  input: {
-    fontFamily: typography.fontFamily.serif,
-    fontSize: typography.sizes.body,
-    lineHeight: typography.sizes.body * typography.lineHeight.body,
-    color: colors.text,
-    paddingVertical: spacing.md,
-    paddingHorizontal: 0,
-  },
-});
+const getStyles = (colors: {
+  divider: string;
+  text: string;
+}) =>
+  StyleSheet.create({
+    container: {
+      borderBottomWidth: 1,
+      borderBottomColor: colors.divider,
+    },
+    input: {
+      fontFamily: typography.fontFamily.serif,
+      fontSize: typography.sizes.body,
+      lineHeight: typography.sizes.body * typography.lineHeight.body,
+      color: colors.text,
+      paddingVertical: spacing.md,
+      paddingHorizontal: 0,
+    },
+  });

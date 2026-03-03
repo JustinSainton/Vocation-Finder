@@ -5,10 +5,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
-import { colors, spacing, layout } from '../../constants/theme';
+import { spacing, layout } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 
 export default function OrientationScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const [checked, setChecked] = useState(false);
 
   const handleSpeak = () => {
@@ -99,65 +102,70 @@ export default function OrientationScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: spacing.lg,
-    justifyContent: 'space-between',
-    paddingTop: spacing.section,
-    paddingBottom: spacing.xxl,
-  },
-  body: {},
-  title: {
-    marginBottom: spacing.xl,
-  },
-  paragraph: {
-    marginBottom: spacing.md,
-  },
-  timeNote: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.lg,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.divider,
-    marginVertical: spacing.lg,
-  },
-  checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    minHeight: layout.touchTarget,
-    paddingVertical: spacing.sm,
-  },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderWidth: 1.5,
-    borderColor: colors.text,
-    marginRight: spacing.md,
-    marginTop: 3,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: colors.text,
-  },
-  checkmark: {
-    width: 10,
-    height: 10,
-    backgroundColor: colors.background,
-  },
-  checkboxLabel: {
-    flex: 1,
-  },
-  actions: {
-    marginTop: spacing.xxl,
-  },
-  secondaryButton: {
-    marginTop: spacing.md,
-  },
-});
+const getStyles = (colors: {
+  background: string;
+  divider: string;
+  text: string;
+}) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: spacing.lg,
+      justifyContent: 'space-between',
+      paddingTop: spacing.section,
+      paddingBottom: spacing.xxl,
+    },
+    body: {},
+    title: {
+      marginBottom: spacing.xl,
+    },
+    paragraph: {
+      marginBottom: spacing.md,
+    },
+    timeNote: {
+      marginTop: spacing.sm,
+      marginBottom: spacing.lg,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: colors.divider,
+      marginVertical: spacing.lg,
+    },
+    checkboxRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      minHeight: layout.touchTarget,
+      paddingVertical: spacing.sm,
+    },
+    checkbox: {
+      width: 22,
+      height: 22,
+      borderWidth: 1.5,
+      borderColor: colors.text,
+      marginRight: spacing.md,
+      marginTop: 3,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    checkboxChecked: {
+      backgroundColor: colors.text,
+    },
+    checkmark: {
+      width: 10,
+      height: 10,
+      backgroundColor: colors.background,
+    },
+    checkboxLabel: {
+      flex: 1,
+    },
+    actions: {
+      marginTop: spacing.xxl,
+    },
+    secondaryButton: {
+      marginTop: spacing.md,
+    },
+  });

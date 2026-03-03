@@ -1,4 +1,9 @@
-export const colors = {
+import { Appearance, ColorSchemeName } from 'react-native';
+
+export type ThemePreference = 'system' | 'light' | 'dark';
+export type ThemeName = 'light' | 'dark';
+
+export const lightColors = {
   background: '#FAFAF7',
   text: '#1C1917',
   textSecondary: '#78716C',
@@ -7,6 +12,49 @@ export const colors = {
   buttonBg: '#1C1917',
   buttonText: '#FAFAF7',
 };
+
+export const darkColors = {
+  background: '#0F1216',
+  text: '#E7E5E4',
+  textSecondary: '#A8A29E',
+  accent: '#94A3B8',
+  divider: '#262E3A',
+  buttonBg: '#E7E5E4',
+  buttonText: '#0F1216',
+};
+
+export const palettes: Record<ThemeName, typeof lightColors> = {
+  light: lightColors,
+  dark: darkColors,
+};
+
+let activeTheme: ThemeName = Appearance.getColorScheme() === 'dark' ? 'dark' : 'light';
+
+export function resolveThemeName(
+  preference: ThemePreference,
+  systemScheme: ColorSchemeName
+): ThemeName {
+  if (preference === 'light' || preference === 'dark') {
+    return preference;
+  }
+
+  return systemScheme === 'dark' ? 'dark' : 'light';
+}
+
+export function setActiveTheme(theme: ThemeName): void {
+  activeTheme = theme;
+  Object.assign(colors, palettes[theme]);
+}
+
+export function getActiveTheme(): ThemeName {
+  return activeTheme;
+}
+
+export const colors = {
+  ...palettes.light,
+};
+
+setActiveTheme(activeTheme);
 
 export const typography = {
   fontFamily: {
