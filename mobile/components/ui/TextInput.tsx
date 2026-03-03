@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, forwardRef } from 'react';
 import {
   TextInput as RNTextInput,
   StyleSheet,
@@ -11,32 +11,34 @@ interface TextInputProps extends Omit<RNTextInputProps, 'style'> {
   minHeight?: number;
 }
 
-export function TextInput({
-  minHeight = 120,
-  placeholder = 'Begin typing...',
-  ...props
-}: TextInputProps) {
-  const [height, setHeight] = useState(minHeight);
+export const TextInput = forwardRef<RNTextInput, TextInputProps>(
+  function TextInput(
+    { minHeight = 120, placeholder = 'Begin typing...', ...props },
+    ref
+  ) {
+    const [height, setHeight] = useState(minHeight);
 
-  return (
-    <View style={styles.container}>
-      <RNTextInput
-        multiline
-        placeholder={placeholder}
-        placeholderTextColor={colors.accent}
-        textAlignVertical="top"
-        style={[
-          styles.input,
-          { minHeight, height: Math.max(height, minHeight) },
-        ]}
-        onContentSizeChange={(e) => {
-          setHeight(e.nativeEvent.contentSize.height);
-        }}
-        {...props}
-      />
-    </View>
-  );
-}
+    return (
+      <View style={styles.container}>
+        <RNTextInput
+          ref={ref}
+          multiline
+          placeholder={placeholder}
+          placeholderTextColor={colors.accent}
+          textAlignVertical="top"
+          style={[
+            styles.input,
+            { minHeight, height: Math.max(height, minHeight) },
+          ]}
+          onContentSizeChange={(e) => {
+            setHeight(e.nativeEvent.contentSize.height);
+          }}
+          {...props}
+        />
+      </View>
+    );
+  }
+);
 
 const styles = StyleSheet.create({
   container: {

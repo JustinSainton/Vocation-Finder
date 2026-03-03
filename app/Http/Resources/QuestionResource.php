@@ -13,11 +13,10 @@ class QuestionResource extends JsonResource
             'id' => $this->id,
             'question_text' => $this->question_text,
             'conversation_prompt' => $this->conversation_prompt,
+            'follow_up_prompts' => $this->follow_up_prompts ?? [],
             'sort_order' => $this->sort_order,
-            'category' => [
-                'name' => $this->whenLoaded('category', fn () => $this->category->name),
-                'slug' => $this->whenLoaded('category', fn () => $this->category->slug),
-            ],
+            'category_name' => $this->whenLoaded('category', fn () => $this->category->name),
+            'category_slug' => $this->whenLoaded('category', fn () => $this->category->slug),
         ];
     }
 }

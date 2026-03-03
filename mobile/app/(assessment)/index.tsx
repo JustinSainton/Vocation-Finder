@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
 import { colors, spacing } from '../../constants/theme';
@@ -9,41 +10,42 @@ import { colors, spacing } from '../../constants/theme';
 export default function AssessmentLandingScreen() {
   const router = useRouter();
 
+  const handleBegin = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push('/(assessment)/orientation');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <View style={styles.header}>
-          <Typography variant="headingLarge">
-            Vocational Discovery
+        <View style={styles.body}>
+          <Typography variant="headingLarge" style={styles.headline}>
+            {'Most people are taught\nto choose a career.\nVery few are taught\nto discern a calling.'}
           </Typography>
+
           <Typography
             variant="body"
             color={colors.textSecondary}
-            style={styles.description}
+            style={styles.framing}
           >
-            This assessment is designed to surface your deepest vocational
-            inclinations through guided reflection. It takes approximately
-            20 minutes.
+            This is a space for honest reflection — not a personality quiz, not
+            a career test. What follows is a guided process designed to surface
+            what you may already sense but haven't yet articulated.
           </Typography>
-        </View>
 
-        <View style={styles.divider} />
-
-        <View style={styles.details}>
-          <Typography variant="body" style={styles.detailItem}>
-            A series of open-ended questions will invite you to reflect on
-            your experiences, interests, and aspirations.
-          </Typography>
-          <Typography variant="body" style={styles.detailItem}>
-            There are no right or wrong answers. Respond honestly and at
-            whatever length feels natural.
+          <Typography
+            variant="body"
+            color={colors.textSecondary}
+            style={styles.framing}
+          >
+            It requires your time and your honesty. Nothing less will do.
           </Typography>
         </View>
 
         <View style={styles.actions}>
           <Button
-            title="Begin"
-            onPress={() => router.push('/(assessment)/orientation')}
+            title="Begin discernment  \u2192"
+            onPress={handleBegin}
           />
         </View>
       </View>
@@ -59,26 +61,18 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: spacing.lg,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    paddingTop: spacing.section,
+    paddingBottom: spacing.xxl,
   },
-  header: {
+  body: {},
+  headline: {
     marginBottom: spacing.xl,
   },
-  description: {
-    marginTop: spacing.md,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.divider,
-    marginVertical: spacing.xl,
-  },
-  details: {
-    marginBottom: spacing.xxl,
-  },
-  detailItem: {
+  framing: {
     marginBottom: spacing.md,
   },
   actions: {
-    gap: spacing.md,
+    marginTop: spacing.xxl,
   },
 });

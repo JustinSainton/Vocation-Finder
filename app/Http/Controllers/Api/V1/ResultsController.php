@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\VocationalProfileResource;
+use App\Jobs\EmailResultsJob;
 use App\Models\Assessment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -65,8 +66,7 @@ class ResultsController extends Controller
             return response()->json(['error' => 'Results are not ready yet.'], 422);
         }
 
-        // TODO: Dispatch email job
-        // EmailResultsJob::dispatch($assessment, $validated['email']);
+        EmailResultsJob::dispatch($assessment, $validated['email']);
 
         return response()->json(['message' => 'Results will be emailed shortly.']);
     }

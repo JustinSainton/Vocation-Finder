@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import {
   View,
   StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
+  TextInput as RNTextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
 import { TextInput } from '../../components/ui/TextInput';
@@ -16,21 +19,101 @@ import { colors, spacing } from '../../constants/theme';
 
 export default function WrittenAssessmentScreen() {
   const router = useRouter();
-  const { currentQuestion, answers, setAnswer } = useAssessmentStore();
-  const [text, setText] = useState(answers[currentQuestion] ?? '');
+  const scrollRef = useRef<ScrollView>(null);
+  const inputRef = useRef<RNTextInput>(null);
 
-  // Placeholder question -- real questions will come from the API
-  const question =
-    'Describe a moment in your life when you felt most engaged and alive. What were you doing, and what about that experience felt meaningful to you?';
+  const {
+    currentQuestion,
+    totalQuestions,
+    answers,
+    questions,
+    questionsLoading,
+    questionsError,
+    assessmentId,
+    fetchQuestions,
+    createAssessment,
+    saveAnswerToApi,
+    setCurrentQuestion,
+  } = useAssessmentStore();
 
-  const handleSave = () => {
-    setAnswer(currentQuestion, text);
+  // Fetch questions and create assessment on mount
+  useEffect(() => {
+    const init = async () => {
+      if (questions.length === 0) {
+        await fetchQuestions();
+      }
+      if (!assessmentId) {
+        await createAssessment('written');
+      }
+    };
+    init();
+  }, []);
+
+  // Scroll to top and focus input when question changes
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+    // Small delay to let the layout settle before focusing
+    const timer = setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [currentQuestion]);
+
+  const currentAnswer = answers[currentQuestion] ?? '';
+  const question = questions[currentQuestion];
+  const isLastQuestion = currentQuestion === totalQuestions - 1;
+
+  const handleTextChange = useCallback(
+    (text: string) => {
+      saveAnswerToApi(currentQuestion, text);
+    },
+    [currentQuestion, saveAnswerToApi]
+  );
+
+  const handleContinue = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    if (isLastQuestion) {
+      router.push('/(assessment)/synthesis');
+    } else {
+      setCurrentQuestion(currentQuestion + 1);
+    }
   };
 
-  const handleContinue = () => {
-    handleSave();
-    router.push('/(assessment)/synthesis');
+  const handleBack = () => {
+    if (currentQuestion > 0) {
+      setCurrentQuestion(currentQuestion - 1);
+    }
   };
+
+  // Loading state
+  if (questionsLoading || questions.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centered}>
+          <Typography variant="body" color={colors.textSecondary}>
+            Preparing your questions...
+          </Typography>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Error state
+  if (questionsError) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centered}>
+          <Typography variant="body" color={colors.textSecondary}>
+            Something went wrong loading the questions.
+          </Typography>
+          <View style={styles.retryAction}>
+            <Button title="Try again" onPress={fetchQuestions} />
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -39,39 +122,73 @@ export default function WrittenAssessmentScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.progress}>
+          {/* Category label */}
+          {question?.category_name ? (
             <Typography
               variant="caption"
               family="sans"
               color={colors.accent}
+              style={styles.category}
             >
-              Question {currentQuestion + 1}
+              {question.category_name}
             </Typography>
-          </View>
+          ) : null}
 
+          {/* Question text */}
           <Typography variant="heading" style={styles.question}>
-            {question}
+            {question?.question_text}
           </Typography>
 
-          <View style={styles.divider} />
-
+          {/* Text input -- using defaultValue to avoid JS-to-native flicker */}
           <TextInput
-            value={text}
-            onChangeText={setText}
-            placeholder="Take your time. Write whatever comes to mind..."
+            ref={inputRef}
+            key={`question-${currentQuestion}`}
+            defaultValue={currentAnswer}
+            onChangeText={handleTextChange}
+            placeholder="Take your time. Write freely."
             minHeight={200}
           />
 
-          <View style={styles.actions}>
+          {/* Bottom area */}
+          <View style={styles.bottomArea}>
+            {/* Question indicator */}
+            <Typography
+              variant="caption"
+              family="sans"
+              color={colors.accent}
+              style={styles.indicator}
+            >
+              Question {currentQuestion + 1} of {totalQuestions}
+            </Typography>
+
+            {/* Continue button */}
             <Button
-              title="Continue"
+              title={isLastQuestion ? 'Finish  \u2192' : 'Continue  \u2192'}
               onPress={handleContinue}
-              disabled={text.trim().length === 0}
+              disabled={currentAnswer.trim().length === 0}
             />
+
+            {/* Back link */}
+            {currentQuestion > 0 ? (
+              <Pressable
+                onPress={handleBack}
+                style={styles.backButton}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <Typography
+                  variant="small"
+                  family="sans"
+                  color={colors.textSecondary}
+                >
+                  Back
+                </Typography>
+              </Pressable>
+            ) : null}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -87,24 +204,39 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  retryAction: {
+    marginTop: spacing.lg,
+  },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xl,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.xl,
   },
-  progress: {
-    marginBottom: spacing.xxl,
+  category: {
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: spacing.lg,
   },
   question: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
   },
-  divider: {
-    height: 1,
-    backgroundColor: colors.divider,
-    marginBottom: spacing.lg,
-  },
-  actions: {
+  bottomArea: {
     marginTop: spacing.xxl,
-    paddingBottom: spacing.xl,
+    paddingBottom: spacing.lg,
+  },
+  indicator: {
+    marginBottom: spacing.lg,
+  },
+  backButton: {
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    marginTop: spacing.sm,
   },
 });

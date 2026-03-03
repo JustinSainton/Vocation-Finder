@@ -16,7 +16,7 @@ class AssessmentResource extends JsonResource
             'guest_token' => $this->when($this->isGuest(), $this->guest_token),
             'started_at' => $this->started_at?->toISOString(),
             'completed_at' => $this->completed_at?->toISOString(),
-            'answers' => QuestionResource::collection($this->whenLoaded('answers')),
+            'answer_count' => $this->whenLoaded('answers', fn () => $this->answers->count()),
             'vocational_profile' => new VocationalProfileResource($this->whenLoaded('vocationalProfile')),
             'created_at' => $this->created_at->toISOString(),
         ];
