@@ -46,6 +46,9 @@ return [
         'tts_provider' => env('TTS_PROVIDER', 'openai'),
         'tts_model' => env('TTS_MODEL', 'gpt-4o-mini-tts'),
         'tts_voice' => env('TTS_VOICE', 'nova'),
+        'tts_fallback_provider' => env('TTS_FALLBACK_PROVIDER'),
+        'tts_fallback_model' => env('TTS_FALLBACK_MODEL'),
+        'tts_fallback_voice' => env('TTS_FALLBACK_VOICE', 'default-female'),
         'tts_instructions' => env(
             'TTS_INSTRUCTIONS',
             'Warm, grounded, and conversational. Avoid robotic cadence.'

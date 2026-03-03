@@ -124,14 +124,23 @@ export function useConversationFlow() {
           return;
         }
 
+        const englishVoices = voices.filter((voice) => voice.language?.startsWith('en'));
+        const enhancedEnglishVoices = englishVoices.filter(
+          (voice) => String(voice.quality ?? '').toLowerCase() === 'enhanced'
+        );
+
         const preferred =
-          voices.find(
+          enhancedEnglishVoices.find(
             (voice) =>
-              voice.language?.startsWith('en') &&
+              /samantha|ava|allison|serena|zoe|daniel|lee|nicky|karen/i.test(voice.name ?? '')
+          ) ??
+          enhancedEnglishVoices[0] ??
+          englishVoices.find(
+            (voice) =>
               /premium|enhanced|samantha|ava|nicky|serena/i.test(voice.name ?? '')
           ) ??
           voices.find((voice) => voice.language === 'en-US') ??
-          voices.find((voice) => voice.language?.startsWith('en'));
+          englishVoices[0];
 
         preferredVoiceRef.current = preferred?.identifier;
       })

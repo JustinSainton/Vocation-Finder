@@ -199,35 +199,108 @@ class AudioConversationController extends Controller
         try {
             $disk = config('vocation.audio.tts_audio_disk', 's3');
             $expiresAt = now()->addMinutes((int) config('vocation.audio.tts_audio_ttl_minutes', 15));
+            $filesystem = Storage::disk($disk);
 
-            $audio = Audio::of($validated['text'])
-                ->voice(config('vocation.audio.tts_voice', 'nova'))
-                ->instructions(config('vocation.audio.tts_instructions', 'Warm, natural, and conversational.'))
-                ->generate(
-                    config('vocation.audio.tts_provider', 'openai'),
-                    config('vocation.audio.tts_model', 'gpt-4o-mini-tts'),
+            $primaryProvider = (string) config('vocation.audio.tts_provider', 'openai');
+            $primaryModel = (string) config('vocation.audio.tts_model', 'gpt-4o-mini-tts');
+            $primaryVoice = (string) config('vocation.audio.tts_voice', 'nova');
+            $instructions = (string) config('vocation.audio.tts_instructions', 'Warm, natural, and conversational.');
+
+            $fallbackProvider = config('vocation.audio.tts_fallback_provider');
+            $fallbackModel = config('vocation.audio.tts_fallback_model');
+            $fallbackVoice = (string) config('vocation.audio.tts_fallback_voice', 'default-female');
+
+            $primaryCachePath = $this->ttsCachePath(
+                $validated['text'],
+                $primaryProvider,
+                $primaryModel,
+                $primaryVoice,
+                $instructions,
+            );
+
+            if ($filesystem->exists($primaryCachePath)) {
+                return response()->json([
+                    'audio_url' => $this->temporaryOrPublicUrl($filesystem, $primaryCachePath, $expiresAt),
+                    'mime_type' => 'audio/mpeg',
+                    'provider' => $primaryProvider,
+                    'model' => $primaryModel,
+                    'voice' => $primaryVoice,
+                    'cached' => true,
+                ]);
+            }
+
+            if ($fallbackProvider && $fallbackModel) {
+                $fallbackCachePath = $this->ttsCachePath(
+                    $validated['text'],
+                    (string) $fallbackProvider,
+                    (string) $fallbackModel,
+                    $fallbackVoice,
+                    $instructions,
                 );
 
-            $path = $audio->store('conversation-tts', $disk);
+                if ($filesystem->exists($fallbackCachePath)) {
+                    return response()->json([
+                        'audio_url' => $this->temporaryOrPublicUrl($filesystem, $fallbackCachePath, $expiresAt),
+                        'mime_type' => 'audio/mpeg',
+                        'provider' => (string) $fallbackProvider,
+                        'model' => (string) $fallbackModel,
+                        'voice' => $fallbackVoice,
+                        'cached' => true,
+                    ]);
+                }
+            }
 
-            if (! is_string($path)) {
+            $usedProvider = $primaryProvider;
+            $usedModel = $primaryModel;
+            $usedVoice = $primaryVoice;
+
+            try {
+                $audio = Audio::of($validated['text'])
+                    ->voice($primaryVoice)
+                    ->instructions($instructions)
+                    ->generate($primaryProvider, $primaryModel);
+            } catch (Throwable $primaryException) {
+                if (! $fallbackProvider || ! $fallbackModel) {
+                    throw $primaryException;
+                }
+
+                Log::warning('conversation_tts_primary_failed', [
+                    'provider' => $primaryProvider,
+                    'model' => $primaryModel,
+                    'message' => $primaryException->getMessage(),
+                ]);
+
+                $usedProvider = (string) $fallbackProvider;
+                $usedModel = (string) $fallbackModel;
+                $usedVoice = $fallbackVoice;
+
+                $audio = Audio::of($validated['text'])
+                    ->voice($fallbackVoice)
+                    ->instructions($instructions)
+                    ->generate($usedProvider, $usedModel);
+            }
+
+            $cachePath = $this->ttsCachePath(
+                $validated['text'],
+                $usedProvider,
+                $usedModel,
+                $usedVoice,
+                $instructions,
+            );
+
+            $stored = $filesystem->put($cachePath, $audio->content());
+
+            if (! $stored) {
                 throw new \RuntimeException('Audio storage failed.');
             }
 
-            $filesystem = Storage::disk($disk);
-
-            try {
-                $audioUrl = $filesystem->temporaryUrl($path, $expiresAt);
-            } catch (Throwable) {
-                $audioUrl = $filesystem->url($path);
-            }
-
             return response()->json([
-                'audio_url' => $audioUrl,
+                'audio_url' => $this->temporaryOrPublicUrl($filesystem, $cachePath, $expiresAt),
                 'mime_type' => $audio->mimeType() ?? 'audio/mpeg',
-                'provider' => config('vocation.audio.tts_provider', 'openai'),
-                'model' => config('vocation.audio.tts_model', 'gpt-4o-mini-tts'),
-                'voice' => config('vocation.audio.tts_voice', 'nova'),
+                'provider' => $audio->meta->provider ?? $usedProvider,
+                'model' => $audio->meta->model ?? $usedModel,
+                'voice' => $usedVoice,
+                'cached' => false,
             ]);
         } catch (Throwable $e) {
             Log::error('conversation_tts_failed', [
@@ -253,6 +326,33 @@ class AudioConversationController extends Controller
         AnalyzeAssessmentJob::dispatch($assessment);
 
         return response()->json(['status' => 'analyzing']);
+    }
+
+    protected function temporaryOrPublicUrl($filesystem, string $path, $expiresAt): string
+    {
+        try {
+            return $filesystem->temporaryUrl($path, $expiresAt);
+        } catch (Throwable) {
+            return $filesystem->url($path);
+        }
+    }
+
+    protected function ttsCachePath(
+        string $text,
+        string $provider,
+        string $model,
+        string $voice,
+        string $instructions
+    ): string {
+        $hash = sha1(json_encode([
+            'text' => $text,
+            'provider' => $provider,
+            'model' => $model,
+            'voice' => $voice,
+            'instructions' => $instructions,
+        ]));
+
+        return 'conversation-tts/'.$hash.'.mp3';
     }
 
     protected function storeConversationExperimentMetadata(ConversationSession $session, array $modelSelection): void
