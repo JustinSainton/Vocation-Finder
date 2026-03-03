@@ -250,6 +250,13 @@ export const useAssessmentStore = create<AssessmentState>()(
 
         try {
           const audioUpload = await assessmentApi.uploadConversationAudio(sessionId, audioUri);
+          if (!audioUpload.transcript?.trim()) {
+            throw {
+              message: 'No speech detected. Please speak a little closer to the mic and try again.',
+              status: 422,
+            };
+          }
+
           const response = await assessmentApi.processTurn(
             sessionId,
             audioUpload.transcript,

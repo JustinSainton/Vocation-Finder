@@ -52,22 +52,33 @@ class AudioConversationController extends Controller
             'audio' => 'required|file|mimes:aac,m4a,mp3,wav|max:10240',
         ]);
 
-        $disk = (string) config('vocation.audio.recording_audio_disk', 's3');
-        $fallbackDisk = (string) config('vocation.audio.recording_audio_fallback_disk', 'public');
-        [, $activeDisk] = $this->resolveTtsFilesystem($disk, $fallbackDisk);
+        try {
+            $disk = (string) config('vocation.audio.recording_audio_disk', 's3');
+            $fallbackDisk = (string) config('vocation.audio.recording_audio_fallback_disk', 'public');
+            [, $activeDisk] = $this->resolveTtsFilesystem($disk, $fallbackDisk);
 
-        $path = $request->file('audio')->store('conversation-audio', $activeDisk);
+            $path = $request->file('audio')->store('conversation-audio', $activeDisk);
 
-        $transcriptionResponse = Transcription::fromUpload($request->file('audio'))
-            ->language('en')
-            ->generate();
+            $transcriptionResponse = Transcription::fromUpload($request->file('audio'))
+                ->language('en')
+                ->generate();
 
-        return response()->json([
-            'audio_path' => $path,
-            'audio_disk' => $activeDisk,
-            'transcript' => $transcriptionResponse->text,
-            'status' => 'transcribed',
-        ]);
+            return response()->json([
+                'audio_path' => $path,
+                'audio_disk' => $activeDisk,
+                'transcript' => $transcriptionResponse->text,
+                'status' => 'transcribed',
+            ]);
+        } catch (Throwable $e) {
+            Log::error('conversation_audio_upload_failed', [
+                'session_id' => $session->id,
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Unable to process recorded audio right now.',
+            ], 502);
+        }
     }
 
     public function processTurn(Request $request, ConversationSession $session): JsonResponse

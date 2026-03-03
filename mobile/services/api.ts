@@ -34,6 +34,28 @@ function getAuthHeaders(): Record<string, string> {
   return { Authorization: `Bearer ${token}` };
 }
 
+function deriveErrorMessage(
+  responseStatusText: string,
+  fallbackStatus: number,
+  rawBody: string
+): string {
+  const trimmed = rawBody.trim();
+  if (!trimmed) {
+    return `Request failed: ${responseStatusText}`;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as { message?: string; error?: string };
+    return parsed.message ?? parsed.error ?? `Request failed: ${responseStatusText}`;
+  } catch {
+    if (trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html')) {
+      return `Server error (${fallbackStatus}).`;
+    }
+
+    return trimmed.slice(0, 220);
+  }
+}
+
 async function request<T>(
   endpoint: string,
   method: HttpMethod = 'GET',
@@ -71,12 +93,8 @@ async function request<T>(
       status: response.status,
     };
 
-    try {
-      const data = await response.json();
-      error.message = data.message ?? data.error ?? error.message;
-    } catch {
-      // keep default message
-    }
+    const rawBody = await response.text();
+    error.message = deriveErrorMessage(response.statusText, response.status, rawBody);
 
     throw error;
   }
@@ -154,12 +172,10 @@ async function uploadAudio<T>(
       message: `Request failed: ${response.statusText}`,
       status: response.status,
     };
-    try {
-      const data = await response.json();
-      error.message = data.message ?? data.error ?? error.message;
-    } catch {
-      // keep default message
-    }
+
+    const rawBody = await response.text();
+    error.message = deriveErrorMessage(response.statusText, response.status, rawBody);
+
     throw error;
   }
 
@@ -217,6 +233,7 @@ export interface ConversationTurnResponse {
 
 export interface ConversationAudioUploadResponse {
   audio_path: string;
+  audio_disk?: string;
   transcript: string;
   status: 'transcribed';
 }
