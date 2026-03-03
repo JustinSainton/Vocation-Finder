@@ -1,27 +1,33 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  useAudioRecorder,
   AudioModule,
   RecordingPresets,
   setAudioModeAsync,
+  useAudioPlayer,
+  useAudioPlayerStatus,
+  useAudioRecorder,
   useAudioRecorderState,
+  useAudioSampleListener,
 } from 'expo-audio';
 import * as Speech from 'expo-speech';
-import {
-  useSharedValue,
-  cancelAnimation,
-} from 'react-native-reanimated';
+import { cancelAnimation, useSharedValue } from 'react-native-reanimated';
+import { assessmentApi } from '../services/api';
 import { useAssessmentStore } from '../stores/assessmentStore';
 
 const METERING_INTERVAL_MS = 100;
 
 export function useConversationFlow() {
   const audioLevel = useSharedValue(0);
-  const meteringInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const speakingLevel = useSharedValue(0);
   const [introPlayed, setIntroPlayed] = useState(false);
+  const preferredVoiceRef = useRef<string | undefined>(undefined);
+  const onSpeechDoneRef = useRef<(() => void) | null>(null);
+  const onSpeechErrorRef = useRef<(() => void) | null>(null);
 
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder, METERING_INTERVAL_MS);
+  const ttsPlayer = useAudioPlayer(null, { updateInterval: 100 });
+  const ttsStatus = useAudioPlayerStatus(ttsPlayer);
 
   const {
     conversationState,
@@ -47,6 +53,29 @@ export function useConversationFlow() {
       audioLevel.value = normalized;
     }
   }, [recorderState.metering, recorderState.isRecording]);
+
+  useAudioSampleListener(ttsPlayer, (sample) => {
+    if (conversationState !== 'speaking') {
+      speakingLevel.value = 0;
+      return;
+    }
+
+    const frames = sample.channels[0]?.frames;
+
+    if (!frames || frames.length === 0) {
+      speakingLevel.value = 0.08;
+      return;
+    }
+
+    let sum = 0;
+    for (let i = 0; i < frames.length; i += 1) {
+      const frame = frames[i];
+      sum += frame * frame;
+    }
+
+    const rms = Math.sqrt(sum / frames.length);
+    speakingLevel.value = Math.min(1, Math.max(0.08, rms * 8));
+  });
 
   // Initialize session on mount
   useEffect(() => {
@@ -86,15 +115,112 @@ export function useConversationFlow() {
     }
   }, [sessionId]);
 
+  useEffect(() => {
+    let mounted = true;
+
+    Speech.getAvailableVoicesAsync()
+      .then((voices) => {
+        if (!mounted || !voices?.length) {
+          return;
+        }
+
+        const preferred =
+          voices.find(
+            (voice) =>
+              voice.language?.startsWith('en') &&
+              /premium|enhanced|samantha|ava|nicky|serena/i.test(voice.name ?? '')
+          ) ??
+          voices.find((voice) => voice.language === 'en-US') ??
+          voices.find((voice) => voice.language?.startsWith('en'));
+
+        preferredVoiceRef.current = preferred?.identifier;
+      })
+      .catch(() => {
+        preferredVoiceRef.current = undefined;
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const requestMicPermission = useCallback(async (): Promise<boolean> => {
     const status = await AudioModule.requestRecordingPermissionsAsync();
     return status.granted;
   }, []);
 
+  const clearSpeechCallbacks = useCallback(() => {
+    onSpeechDoneRef.current = null;
+    onSpeechErrorRef.current = null;
+  }, []);
+
+  const finalizeSpeech = useCallback(
+    (kind: 'done' | 'error') => {
+      const doneCallback = onSpeechDoneRef.current;
+      const errorCallback = onSpeechErrorRef.current;
+
+      clearSpeechCallbacks();
+      speakingLevel.value = 0;
+
+      if (kind === 'done') {
+        doneCallback?.();
+        return;
+      }
+
+      errorCallback?.();
+    },
+    [clearSpeechCallbacks, speakingLevel]
+  );
+
   const currentQuestionText =
     questions[currentQuestion]?.conversation_prompt ??
     questions[currentQuestion]?.question_text ??
     '';
+
+  const speakText = useCallback(
+    async (text: string, options?: { onDone?: () => void; onError?: () => void }) => {
+      onSpeechDoneRef.current = options?.onDone ?? (() => setConversationState('idle'));
+      onSpeechErrorRef.current = options?.onError ?? (() => setConversationState('idle'));
+
+      setConversationState('speaking');
+      speakingLevel.value = 0.08;
+
+      try {
+        const speech = await assessmentApi.synthesizeConversationSpeech(text);
+
+        await setAudioModeAsync({
+          allowsRecording: false,
+          playsInSilentMode: true,
+        });
+
+        ttsPlayer.replace(speech.audio_url);
+        ttsPlayer.play();
+        return;
+      } catch {
+        Speech.speak(text, {
+          language: 'en-US',
+          voice: preferredVoiceRef.current,
+          rate: 0.94,
+          pitch: 1.0,
+          onDone: () => finalizeSpeech('done'),
+          onError: () => finalizeSpeech('error'),
+        });
+      }
+    },
+    [finalizeSpeech, setConversationState, speakingLevel, ttsPlayer]
+  );
+
+  const stopSpeaking = useCallback(() => {
+    Speech.stop();
+    ttsPlayer.pause();
+    finalizeSpeech('done');
+  }, [finalizeSpeech, ttsPlayer]);
+
+  useEffect(() => {
+    if (ttsStatus.didJustFinish) {
+      finalizeSpeech('done');
+    }
+  }, [finalizeSpeech, ttsStatus.didJustFinish]);
 
   const startRecording = useCallback(async () => {
     if (!currentQuestionText) {
@@ -167,8 +293,7 @@ export function useConversationFlow() {
 
       if (response) {
         if (response.is_complete) {
-          Speech.speak(response.response, {
-            language: 'en-US',
+          await speakText(response.response, {
             onDone: () => {
               setConversationState('idle');
               completeConversationSession();
@@ -179,8 +304,7 @@ export function useConversationFlow() {
             },
           });
         } else {
-          Speech.speak(response.response, {
-            language: 'en-US',
+          await speakText(response.response, {
             onDone: () => {
               setConversationState('idle');
             },
@@ -200,6 +324,7 @@ export function useConversationFlow() {
     setConversationState,
     handleConversationTurn,
     completeConversationSession,
+    speakText,
   ]);
 
   const playIntroAndFirstQuestion = useCallback(() => {
@@ -220,8 +345,7 @@ export function useConversationFlow() {
       ? `Welcome to Vocation Finder. We'll walk through ${totalQuestions} questions together. Take your time and answer honestly. First question: ${currentQuestionText}`
       : `Welcome to Vocation Finder. First question: ${currentQuestionText}`;
 
-    Speech.speak(intro, {
-      language: 'en-US',
+    void speakText(intro, {
       onDone: () => {
         setConversationState('idle');
       },
@@ -229,15 +353,18 @@ export function useConversationFlow() {
         setConversationState('idle');
       },
     });
-  }, [currentQuestionText, introPlayed, setConversationState, totalQuestions]);
+  }, [currentQuestionText, introPlayed, setConversationState, speakText, totalQuestions]);
 
   // Clean up on unmount
   useEffect(() => {
     return () => {
       Speech.stop();
+      ttsPlayer.pause();
       cancelAnimation(audioLevel);
+      cancelAnimation(speakingLevel);
+      clearSpeechCallbacks();
     };
-  }, []);
+  }, [audioLevel, clearSpeechCallbacks, speakingLevel, ttsPlayer]);
 
   const isComplete = useAssessmentStore((s) => s.status === 'analyzing' || s.status === 'completed');
 
@@ -245,11 +372,13 @@ export function useConversationFlow() {
     startRecording,
     stopRecording,
     playIntroAndFirstQuestion,
+    stopSpeaking,
     introPlayed,
     conversationState,
     conversationError,
     aiResponseText,
     audioLevel,
+    speakingLevel,
     currentQuestion,
     totalQuestions,
     currentQuestionText,

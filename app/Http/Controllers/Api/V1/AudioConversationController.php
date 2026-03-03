@@ -14,7 +14,10 @@ use App\Services\Ai\ConversationModelSelector;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Laravel\Ai\Audio;
 use Laravel\Ai\Transcription;
+use Throwable;
 
 class AudioConversationController extends Controller
 {
@@ -185,6 +188,56 @@ class AudioConversationController extends Controller
             'reasoning' => $result['reasoning'],
             'model_variant' => $modelSelection['variant'],
         ]);
+    }
+
+    public function synthesizeSpeech(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'text' => 'required|string|max:2500',
+        ]);
+
+        try {
+            $disk = config('vocation.audio.tts_audio_disk', 's3');
+            $expiresAt = now()->addMinutes((int) config('vocation.audio.tts_audio_ttl_minutes', 15));
+
+            $audio = Audio::of($validated['text'])
+                ->voice(config('vocation.audio.tts_voice', 'nova'))
+                ->instructions(config('vocation.audio.tts_instructions', 'Warm, natural, and conversational.'))
+                ->generate(
+                    config('vocation.audio.tts_provider', 'openai'),
+                    config('vocation.audio.tts_model', 'gpt-4o-mini-tts'),
+                );
+
+            $path = $audio->store('conversation-tts', $disk);
+
+            if (! is_string($path)) {
+                throw new \RuntimeException('Audio storage failed.');
+            }
+
+            $filesystem = Storage::disk($disk);
+
+            try {
+                $audioUrl = $filesystem->temporaryUrl($path, $expiresAt);
+            } catch (Throwable) {
+                $audioUrl = $filesystem->url($path);
+            }
+
+            return response()->json([
+                'audio_url' => $audioUrl,
+                'mime_type' => $audio->mimeType() ?? 'audio/mpeg',
+                'provider' => config('vocation.audio.tts_provider', 'openai'),
+                'model' => config('vocation.audio.tts_model', 'gpt-4o-mini-tts'),
+                'voice' => config('vocation.audio.tts_voice', 'nova'),
+            ]);
+        } catch (Throwable $e) {
+            Log::error('conversation_tts_failed', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Unable to synthesize voice right now.',
+            ], 502);
+        }
     }
 
     public function complete(Request $request, ConversationSession $session): JsonResponse
