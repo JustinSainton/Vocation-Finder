@@ -43,7 +43,15 @@ return [
     |--------------------------------------------------------------------------
     */
     'audio' => [
+        'tts_provider' => env('TTS_PROVIDER', 'openai'),
+        'tts_model' => env('TTS_MODEL', 'gpt-4o-mini-tts'),
         'tts_voice' => env('TTS_VOICE', 'nova'),
+        'tts_instructions' => env(
+            'TTS_INSTRUCTIONS',
+            'Warm, grounded, and conversational. Avoid robotic cadence.'
+        ),
+        'tts_audio_disk' => env('TTS_AUDIO_DISK', 's3'),
+        'tts_audio_ttl_minutes' => env('TTS_AUDIO_TTL_MINUTES', 15),
         'max_audio_size_kb' => 10240,
         'recording_sample_rate' => 16000,
     ],

@@ -221,6 +221,14 @@ export interface ConversationAudioUploadResponse {
   status: 'transcribed';
 }
 
+export interface ConversationSpeechResponse {
+  audio_url: string;
+  mime_type: string;
+  provider: string;
+  model: string;
+  voice: string;
+}
+
 // ── Domain API methods ────────────────────────────────────────
 
 export const assessmentApi = {
@@ -310,4 +318,8 @@ export const assessmentApi = {
   /** Complete a conversation session */
   completeConversation: (sessionId: string) =>
     api.post<{ status: string }>(`/conversations/${sessionId}/complete`),
+
+  /** Synthesize assistant text into speech audio */
+  synthesizeConversationSpeech: (text: string) =>
+    api.post<ConversationSpeechResponse>('/conversations/speech', { text }),
 };

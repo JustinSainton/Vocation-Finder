@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -10,11 +10,11 @@ import { colors, spacing } from '../../constants/theme';
 import type { ConversationState } from '../../stores/assessmentStore';
 
 const STATE_LABELS: Record<ConversationState, string> = {
-  idle: 'Tap to answer',
-  listening: 'Listening...',
-  processing: 'Thinking...',
-  speaking: 'Speaking...',
-  error: 'Something went wrong. Tap to retry.',
+  idle: 'Tap the orb to answer',
+  listening: 'Listening... tap again to send',
+  processing: 'Discerning your response...',
+  speaking: 'Speaking... tap orb to skip',
+  error: 'Connection issue. Tap to retry.',
 };
 
 export default function ConversationScreen() {
@@ -23,10 +23,12 @@ export default function ConversationScreen() {
     startRecording,
     stopRecording,
     playIntroAndFirstQuestion,
+    stopSpeaking,
     introPlayed,
     conversationState,
     conversationError,
     audioLevel,
+    speakingLevel,
     currentQuestion,
     totalQuestions,
     currentQuestionText,
@@ -43,6 +45,11 @@ export default function ConversationScreen() {
   const handleOrbPress = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
+    if (conversationState === 'speaking') {
+      stopSpeaking();
+      return;
+    }
+
     if (conversationState === 'idle' || conversationState === 'error') {
       if (!introPlayed) {
         playIntroAndFirstQuestion();
@@ -53,33 +60,42 @@ export default function ConversationScreen() {
     } else if (conversationState === 'listening') {
       stopRecording();
     }
-    // Do nothing if processing or speaking
+    // Do nothing if processing
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.bgBlobOne} />
+      <View style={styles.bgBlobTwo} />
+
       <View style={styles.content}>
-        {/* Question text */}
-        <View style={styles.questionArea}>
+        <View style={styles.topArea}>
+          <Typography
+            variant="caption"
+            family="sans"
+            color={colors.accent}
+            style={styles.topLabel}
+          >
+            Voice Discernment
+          </Typography>
+
           {currentQuestionText ? (
-            <Typography
-              variant="body"
-              style={styles.questionText}
-            >
-              {currentQuestionText}
-            </Typography>
+            <View style={styles.questionCard}>
+              <Typography variant="body" style={styles.questionText}>
+                {currentQuestionText}
+              </Typography>
+            </View>
           ) : null}
         </View>
 
-        {/* Orb area */}
         <View style={styles.orbArea}>
           <AudioOrb
             state={conversationState}
             audioLevel={audioLevel}
+            speechLevel={speakingLevel}
             onPress={handleOrbPress}
           />
 
-          {/* State label */}
           <Typography
             variant="body"
             color={conversationState === 'error' ? '#B91C1C' : colors.textSecondary}
@@ -89,6 +105,14 @@ export default function ConversationScreen() {
               ? 'Tap to begin'
               : STATE_LABELS[conversationState]}
           </Typography>
+
+          {conversationState === 'idle' && introPlayed ? (
+            <Pressable onPress={handleOrbPress} style={styles.secondaryAction}>
+              <Typography variant="small" family="sans" color={colors.textSecondary}>
+                Tap to start recording
+              </Typography>
+            </Pressable>
+          ) : null}
 
           {conversationError ? (
             <Typography
@@ -102,18 +126,19 @@ export default function ConversationScreen() {
           ) : null}
         </View>
 
-        {/* Bottom progress */}
         <View style={styles.bottomArea}>
-          <Typography
-            variant="caption"
-            family="sans"
-            color={colors.accent}
-            style={styles.indicator}
-          >
-            {totalQuestions > 0
-              ? `Question ${currentQuestion + 1} of ${totalQuestions}`
-              : 'Starting conversation...'}
-          </Typography>
+          <View style={styles.progressPill}>
+            <Typography
+              variant="caption"
+              family="sans"
+              color={colors.text}
+              style={styles.indicator}
+            >
+              {totalQuestions > 0
+                ? `Question ${currentQuestion + 1} of ${totalQuestions}`
+                : 'Starting conversation...'}
+            </Typography>
+          </View>
         </View>
       </View>
     </SafeAreaView>
@@ -125,35 +150,80 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  bgBlobOne: {
+    position: 'absolute',
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: 'rgba(186, 230, 253, 0.35)',
+    top: -70,
+    right: -90,
+  },
+  bgBlobTwo: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(254, 215, 170, 0.28)',
+    bottom: -60,
+    left: -70,
+  },
   content: {
     flex: 1,
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    justifyContent: 'space-between',
   },
-  questionArea: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingTop: spacing.xl,
+  topArea: {
+    gap: spacing.md,
+  },
+  topLabel: {
+    textTransform: 'uppercase',
+    letterSpacing: 1.1,
+  },
+  questionCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.78)',
+    borderWidth: 1,
+    borderColor: colors.divider,
+    borderRadius: 18,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.md,
+    boxShadow: '0 10px 32px rgba(28, 25, 23, 0.10)',
   },
   questionText: {
-    textAlign: 'center',
+    textAlign: 'left',
   },
   orbArea: {
     alignItems: 'center',
-    paddingVertical: spacing.xl,
+    paddingVertical: spacing.md,
+    gap: spacing.md,
   },
   stateLabel: {
-    marginTop: spacing.xl,
     textAlign: 'center',
+  },
+  secondaryAction: {
+    borderWidth: 1,
+    borderColor: colors.divider,
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.72)',
   },
   errorText: {
-    marginTop: spacing.md,
     textAlign: 'center',
+    maxWidth: 320,
   },
   bottomArea: {
-    flex: 1,
-    justifyContent: 'flex-end',
     alignItems: 'center',
+  },
+  progressPill: {
+    borderWidth: 1,
+    borderColor: colors.divider,
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.82)',
   },
   indicator: {
     textAlign: 'center',

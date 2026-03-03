@@ -49,6 +49,7 @@ Route::prefix('v1')->group(function () {
     Route::post('conversations/{session}/audio', [AudioConversationController::class, 'uploadAudio']);
     Route::post('conversations/{session}/turn', [AudioConversationController::class, 'processTurn']);
     Route::post('conversations/{session}/complete', [AudioConversationController::class, 'complete']);
+    Route::post('conversations/speech', [AudioConversationController::class, 'synthesizeSpeech']);
 
     // Courses (public)
     Route::get('courses', [CourseController::class, 'index']);
