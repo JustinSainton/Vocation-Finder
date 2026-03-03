@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -23,6 +24,7 @@ class User extends Authenticatable
         'role',
         'provider',
         'provider_id',
+        'assessment_credits',
     ];
 
     protected $hidden = [
@@ -53,5 +55,38 @@ class User extends Authenticatable
     public function courseEnrollments(): HasMany
     {
         return $this->hasMany(CourseEnrollment::class);
+    }
+
+    public function curriculumPathways(): HasMany
+    {
+        return $this->hasMany(CurriculumPathway::class);
+    }
+
+    public function latestCurriculumPathway(): HasOne
+    {
+        return $this->hasOne(CurriculumPathway::class)->latestOfMany();
+    }
+
+    public function hasActiveSubscription(): bool
+    {
+        if ($this->subscribed()) {
+            return true;
+        }
+
+        return $this->organizations()
+            ->where('subscription_status', 'active')
+            ->exists();
+    }
+
+    public function hasAssessmentAccess(): bool
+    {
+        if ($this->assessment_credits > 0) {
+            return true;
+        }
+
+        return $this->organizations()
+            ->where('subscription_status', 'active')
+            ->get()
+            ->contains(fn (Organization $org) => $org->hasAssessmentQuotaRemaining());
     }
 }

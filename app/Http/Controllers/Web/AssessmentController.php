@@ -68,6 +68,13 @@ class AssessmentController extends Controller
         $user = $assessment->user;
         $isPaid = $user && $user->subscribed();
 
+        // Check for curriculum pathway
+        $pathway = $assessment->curriculumPathway;
+        $pathwayData = $pathway ? [
+            'id' => $pathway->id,
+            'status' => $pathway->status,
+        ] : null;
+
         return Inertia::render('Assessment/Results', [
             'assessment_id' => $assessment->id,
             'guest_token' => $assessment->guest_token,
@@ -75,6 +82,7 @@ class AssessmentController extends Controller
             'profile' => $profileData,
             'tier' => $isPaid ? 'paid' : 'free',
             'upgrade_message' => $isPaid ? null : 'Unlock your complete vocational profile — including specific career pathways, personalized considerations, and actionable next steps.',
+            'pathway' => $pathwayData,
         ]);
     }
 }

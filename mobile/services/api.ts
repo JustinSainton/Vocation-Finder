@@ -82,6 +82,57 @@ export const api = {
   delete: <T>(endpoint: string) => request<T>(endpoint, 'DELETE'),
 };
 
+/**
+ * Upload audio file using multipart/form-data
+ */
+async function uploadAudio<T>(
+  endpoint: string,
+  audioUri: string,
+  fields?: Record<string, string>
+): Promise<T> {
+  const url = `${BASE_URL}${endpoint}`;
+  const formData = new FormData();
+
+  formData.append('audio', {
+    uri: audioUri,
+    type: 'audio/m4a',
+    name: 'recording.m4a',
+  } as any);
+
+  if (fields) {
+    for (const [key, value] of Object.entries(fields)) {
+      formData.append(key, value);
+    }
+  }
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'multipart/form-data',
+    ...getAuthHeaders(),
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error: ApiError = {
+      message: `Request failed: ${response.statusText}`,
+      status: response.status,
+    };
+    try {
+      const data = await response.json();
+      error.message = data.message ?? data.error ?? error.message;
+    } catch {
+      // keep default message
+    }
+    throw error;
+  }
+
+  return response.json();
+}
+
 // ── Domain types ──────────────────────────────────────────────
 
 export interface Question {
@@ -209,6 +260,13 @@ export const assessmentApi = {
       audio_storage_path: audioPath,
       duration_seconds: duration,
     }),
+
+  /** Upload audio for a conversation turn */
+  uploadConversationAudio: (sessionId: string, audioUri: string) =>
+    uploadAudio<ConversationTurnResponse>(
+      `/conversations/${sessionId}/audio`,
+      audioUri
+    ),
 
   /** Complete a conversation session */
   completeConversation: (sessionId: string) =>

@@ -2,6 +2,11 @@
 
 use App\Http\Controllers\Api\V1\AssessmentController;
 use App\Http\Controllers\Api\V1\AudioConversationController;
+use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\BillingController;
+use App\Http\Controllers\Api\V1\CourseController;
+use App\Http\Controllers\Api\V1\OrganizationInvitationController;
+use App\Http\Controllers\Api\V1\PathwayController;
 use App\Http\Controllers\Api\V1\QuestionController;
 use App\Http\Controllers\Api\V1\ResultsController;
 use Illuminate\Http\Request;
@@ -14,6 +19,16 @@ Route::get('/user', function (Request $request) {
 
 // API v1
 Route::prefix('v1')->group(function () {
+
+    // Auth
+    Route::post('auth/register', [AuthController::class, 'register']);
+    Route::post('auth/login', [AuthController::class, 'login']);
+    Route::post('auth/social/google', [AuthController::class, 'socialGoogle']);
+    Route::post('auth/forgot-password', [AuthController::class, 'forgotPassword']);
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('auth/logout', [AuthController::class, 'logout']);
+    });
 
     // Public — no auth required
     Route::get('questions', [QuestionController::class, 'index']);
@@ -35,6 +50,14 @@ Route::prefix('v1')->group(function () {
     Route::post('conversations/{session}/turn', [AudioConversationController::class, 'processTurn']);
     Route::post('conversations/{session}/complete', [AudioConversationController::class, 'complete']);
 
+    // Courses (public)
+    Route::get('courses', [CourseController::class, 'index']);
+    Route::get('courses/{course}', [CourseController::class, 'show']);
+    Route::get('courses/{course}/modules/{module}', [CourseController::class, 'module']);
+
+    // Invitations (public show)
+    Route::get('invitations/{token}', [OrganizationInvitationController::class, 'show']);
+
     // Authenticated routes
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('assessments', function (Request $request) {
@@ -43,5 +66,25 @@ Route::prefix('v1')->group(function () {
                 ->latest()
                 ->paginate(10);
         });
+
+        // Billing
+        Route::get('billing/access-check', [BillingController::class, 'accessCheck']);
+        Route::get('billing/usage', [BillingController::class, 'billingUsage']);
+        Route::post('billing/checkout/individual', [BillingController::class, 'checkoutIndividual']);
+        Route::post('billing/checkout/organization', [BillingController::class, 'checkoutOrganization']);
+        Route::get('billing/portal', [BillingController::class, 'billingPortal']);
+
+        // Invitations
+        Route::post('invitations', [OrganizationInvitationController::class, 'store']);
+        Route::post('invitations/{token}/accept', [OrganizationInvitationController::class, 'accept']);
+
+        // Courses (authenticated)
+        Route::get('courses/recommendations', [CourseController::class, 'recommendations']);
+        Route::post('courses/{course}/enroll', [CourseController::class, 'enroll']);
+        Route::patch('courses/{course}/progress', [CourseController::class, 'progress']);
+
+        // Learning pathway
+        Route::get('pathway', [PathwayController::class, 'index']);
+        Route::get('pathway/{pathway}', [PathwayController::class, 'show']);
     });
 });

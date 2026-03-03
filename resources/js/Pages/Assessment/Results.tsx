@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from '@inertiajs/react';
 import AppLayout from '../../Layouts/AppLayout';
 
 interface VocationalProfile {
@@ -14,6 +15,11 @@ interface VocationalProfile {
     secondary_orientation: string;
 }
 
+interface PathwayRef {
+    id: string;
+    status: 'generating' | 'ready' | 'failed';
+}
+
 interface Props {
     assessment_id: string;
     guest_token: string | null;
@@ -21,6 +27,7 @@ interface Props {
     profile: VocationalProfile | null;
     tier?: string;
     upgrade_message?: string;
+    pathway?: PathwayRef | null;
 }
 
 export default function Results({
@@ -30,6 +37,7 @@ export default function Results({
     profile: initialProfile,
     tier,
     upgrade_message,
+    pathway,
 }: Props) {
     const [profile, setProfile] = useState<VocationalProfile | null>(initialProfile);
     const [polling, setPolling] = useState(initialStatus === 'analyzing');
@@ -261,6 +269,31 @@ export default function Results({
                 intelligence based on your written reflections. It is intended as a tool
                 for discernment, not a definitive assessment.
             </p>
+
+            {/* Learning Path CTA */}
+            {pathway && pathway.status === 'ready' && (
+                <>
+                    <Link
+                        href={`/pathway/${pathway.id}`}
+                        className="block w-full bg-[var(--color-text)] py-4 text-center font-sans text-sm tracking-wide text-[var(--color-background)] transition-colors hover:bg-[var(--color-stone-800)]"
+                    >
+                        View your learning path &rarr;
+                    </Link>
+                    <div className="my-8 h-px bg-[var(--color-divider)]" />
+                </>
+            )}
+
+            {pathway && pathway.status === 'generating' && (
+                <>
+                    <div className="flex items-center justify-center gap-3 py-4">
+                        <div className="h-4 w-4 animate-spin border border-[var(--color-divider)] border-t-[var(--color-text)]" />
+                        <p className="font-sans text-sm text-[var(--color-text-secondary)]">
+                            Building your personalized learning path...
+                        </p>
+                    </div>
+                    <div className="my-8 h-px bg-[var(--color-divider)]" />
+                </>
+            )}
 
             {/* Actions */}
             <div className="mt-8 space-y-3">
