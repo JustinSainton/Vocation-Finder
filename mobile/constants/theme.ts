@@ -10,8 +10,14 @@ export const colors = {
 
 export const typography = {
   fontFamily: {
-    serif: 'Literata',
-    sans: 'Satoshi',
+    serif: 'Literata-Regular',
+    serifMedium: 'Literata-Medium',
+    serifSemiBold: 'Literata-SemiBold',
+    serifBold: 'Literata-Bold',
+    serifItalic: 'Literata-Italic',
+    sans: 'Satoshi-Regular',
+    sansMedium: 'Satoshi-Medium',
+    sansBold: 'Satoshi-Bold',
   },
   sizes: {
     body: 18,
