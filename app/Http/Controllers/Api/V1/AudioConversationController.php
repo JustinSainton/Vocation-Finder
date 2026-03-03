@@ -197,9 +197,10 @@ class AudioConversationController extends Controller
         ]);
 
         try {
-            $disk = config('vocation.audio.tts_audio_disk', 's3');
+            $disk = (string) config('vocation.audio.tts_audio_disk', 's3');
+            $fallbackDisk = (string) config('vocation.audio.tts_audio_fallback_disk', 'public');
             $expiresAt = now()->addMinutes((int) config('vocation.audio.tts_audio_ttl_minutes', 15));
-            $filesystem = Storage::disk($disk);
+            [$filesystem, $activeDisk] = $this->resolveTtsFilesystem($disk, $fallbackDisk);
 
             $primaryProvider = (string) config('vocation.audio.tts_provider', 'openai');
             $primaryModel = (string) config('vocation.audio.tts_model', 'gpt-4o-mini-tts');
@@ -225,6 +226,7 @@ class AudioConversationController extends Controller
                     'provider' => $primaryProvider,
                     'model' => $primaryModel,
                     'voice' => $primaryVoice,
+                    'disk' => $activeDisk,
                     'cached' => true,
                 ]);
             }
@@ -245,6 +247,7 @@ class AudioConversationController extends Controller
                         'provider' => (string) $fallbackProvider,
                         'model' => (string) $fallbackModel,
                         'voice' => $fallbackVoice,
+                        'disk' => $activeDisk,
                         'cached' => true,
                     ]);
                 }
@@ -300,6 +303,7 @@ class AudioConversationController extends Controller
                 'provider' => $audio->meta->provider ?? $usedProvider,
                 'model' => $audio->meta->model ?? $usedModel,
                 'voice' => $usedVoice,
+                'disk' => $activeDisk,
                 'cached' => false,
             ]);
         } catch (Throwable $e) {
@@ -334,6 +338,27 @@ class AudioConversationController extends Controller
             return $filesystem->temporaryUrl($path, $expiresAt);
         } catch (Throwable) {
             return $filesystem->url($path);
+        }
+    }
+
+    protected function resolveTtsFilesystem(string $preferredDisk, string $fallbackDisk): array
+    {
+        try {
+            $filesystem = Storage::disk($preferredDisk);
+            $filesystem->exists('__tts_healthcheck__');
+
+            return [$filesystem, $preferredDisk];
+        } catch (Throwable $e) {
+            Log::warning('conversation_tts_storage_fallback', [
+                'preferred_disk' => $preferredDisk,
+                'fallback_disk' => $fallbackDisk,
+                'message' => $e->getMessage(),
+            ]);
+
+            $filesystem = Storage::disk($fallbackDisk);
+            $filesystem->exists('__tts_healthcheck__');
+
+            return [$filesystem, $fallbackDisk];
         }
     }
 
