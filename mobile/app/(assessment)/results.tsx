@@ -8,12 +8,15 @@ import { Button } from '../../components/ui/Button';
 import { TextInput } from '../../components/ui/TextInput';
 import { useAssessmentStore } from '../../stores/assessmentStore';
 import { assessmentApi } from '../../services/api';
-import { colors, spacing } from '../../constants/theme';
+import { spacing } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 
 const POLL_INTERVAL = 5000;
 
 export default function ResultsScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
+  const styles = getStyles(colors, isDark);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const {
     results,
@@ -299,108 +302,117 @@ export default function ResultsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
+const getStyles = (
+  colors: {
+    background: string;
+    divider: string;
+    accent: string;
+    text: string;
   },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
-  },
-  waitingText: {
-    textAlign: 'center',
-    marginBottom: spacing.lg,
-  },
-  waitingSub: {
-    textAlign: 'center',
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xxl,
-    paddingBottom: spacing.section,
-  },
-  section: {
-    marginBottom: spacing.md,
-  },
-  sectionHeading: {
-    marginBottom: spacing.lg,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.divider,
-    marginVertical: spacing.xl,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    marginTop: spacing.lg,
-    gap: spacing.lg,
-  },
-  metaBadge: {
-    flex: 1,
-    paddingVertical: spacing.sm,
-  },
-  metaValue: {
-    marginTop: 4,
-  },
-  pathwayCard: {
-    backgroundColor: '#F5F5F0',
-    borderLeftWidth: 3,
-    borderLeftColor: colors.accent,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  stepRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: spacing.md,
-  },
-  stepNumber: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.text,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-    marginTop: 3,
-  },
-  stepNumberText: {
-    textAlign: 'center',
-  },
-  stepText: {
-    flex: 1,
-  },
-  upgradeCard: {
-    borderWidth: 1,
-    borderColor: colors.divider,
-    padding: spacing.lg,
-    marginBottom: spacing.xl,
-  },
-  upgradeText: {
-    fontStyle: 'italic',
-  },
-  emailBody: {
-    marginBottom: spacing.md,
-  },
-  emailRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  emailInput: {
-    flex: 1,
-  },
-  emailButtonWrap: {
-    justifyContent: 'flex-end',
-  },
-  actions: {
-    gap: spacing.md,
-    marginBottom: spacing.xl,
-  },
-  disclaimer: {
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-});
+  isDark: boolean
+) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    centered: {
+      flex: 1,
+      justifyContent: 'center',
+      paddingHorizontal: spacing.xl,
+    },
+    waitingText: {
+      textAlign: 'center',
+      marginBottom: spacing.lg,
+    },
+    waitingSub: {
+      textAlign: 'center',
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.xl,
+      paddingTop: spacing.xxl,
+      paddingBottom: spacing.section,
+    },
+    section: {
+      marginBottom: spacing.md,
+    },
+    sectionHeading: {
+      marginBottom: spacing.lg,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: colors.divider,
+      marginVertical: spacing.xl,
+    },
+    metaRow: {
+      flexDirection: 'row',
+      marginTop: spacing.lg,
+      gap: spacing.lg,
+    },
+    metaBadge: {
+      flex: 1,
+      paddingVertical: spacing.sm,
+    },
+    metaValue: {
+      marginTop: 4,
+    },
+    pathwayCard: {
+      backgroundColor: isDark ? 'rgba(24, 31, 43, 0.72)' : '#F5F5F0',
+      borderLeftWidth: 3,
+      borderLeftColor: colors.accent,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    stepRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      marginBottom: spacing.md,
+    },
+    stepNumber: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: colors.text,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.md,
+      marginTop: 3,
+    },
+    stepNumberText: {
+      textAlign: 'center',
+    },
+    stepText: {
+      flex: 1,
+    },
+    upgradeCard: {
+      borderWidth: 1,
+      borderColor: colors.divider,
+      padding: spacing.lg,
+      marginBottom: spacing.xl,
+    },
+    upgradeText: {
+      fontStyle: 'italic',
+    },
+    emailBody: {
+      marginBottom: spacing.md,
+    },
+    emailRow: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+    emailInput: {
+      flex: 1,
+    },
+    emailButtonWrap: {
+      justifyContent: 'flex-end',
+    },
+    actions: {
+      gap: spacing.md,
+      marginBottom: spacing.xl,
+    },
+    disclaimer: {
+      textAlign: 'center',
+      lineHeight: 18,
+    },
+  });

@@ -10,13 +10,14 @@ import {
   Literata_700Bold,
   Literata_400Regular_Italic,
 } from '@expo-google-fonts/literata';
-import { colors } from '../constants/theme';
+import { useTheme } from '../hooks/useTheme';
 import { useAuthStore } from '../stores/authStore';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const checkAuth = useAuthStore((s) => s.checkAuth);
+  const { isDark, colors } = useTheme();
 
   const [fontsLoaded] = useFonts({
     'Literata-Regular': Literata_400Regular,
@@ -46,7 +47,7 @@ export default function RootLayout() {
 
   return (
     <>
-      <StatusBar style="dark" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
           headerShown: false,

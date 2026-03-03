@@ -7,7 +7,8 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Typography } from './Typography';
-import { colors, spacing, layout } from '../../constants/theme';
+import { spacing, layout } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 
 type HapticStyle = 'none' | 'light' | 'medium' | 'heavy' | 'soft' | 'rigid';
 
@@ -28,6 +29,7 @@ export function Button({
   hapticStyle = 'light',
   style,
 }: ButtonProps) {
+  const { colors } = useTheme();
   const isPrimary = variant === 'primary';
 
   const handlePressIn = () => {
@@ -52,8 +54,14 @@ export function Button({
       onPressIn={handlePressIn}
       disabled={disabled}
       style={({ pressed }) => [
-        styles.base,
-        isPrimary ? styles.primary : styles.secondary,
+        baseStyles.base,
+        isPrimary
+          ? { backgroundColor: colors.buttonBg }
+          : {
+              backgroundColor: 'transparent',
+              borderWidth: 1,
+              borderColor: colors.divider,
+            },
         disabled && styles.disabled,
         pressed && !disabled && styles.pressed,
         style,
@@ -72,21 +80,6 @@ export function Button({
 }
 
 const styles = StyleSheet.create({
-  base: {
-    minHeight: layout.touchTarget,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primary: {
-    backgroundColor: colors.buttonBg,
-  },
-  secondary: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: colors.divider,
-  },
   disabled: {
     opacity: 0.4,
   },
@@ -96,4 +89,14 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 18,
   } as TextStyle,
+});
+
+const baseStyles = StyleSheet.create({
+  base: {
+    minHeight: layout.touchTarget,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

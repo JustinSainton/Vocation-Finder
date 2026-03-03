@@ -14,10 +14,13 @@ import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
 import { TextInput } from '../../components/ui/TextInput';
 import { useAssessmentStore } from '../../stores/assessmentStore';
-import { colors, spacing } from '../../constants/theme';
+import { spacing } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 
 export default function WrittenAssessmentScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const scrollRef = useRef<ScrollView>(null);
   const inputRef = useRef<RNTextInput>(null);
 
@@ -208,47 +211,48 @@ export default function WrittenAssessmentScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  flex: {
-    flex: 1,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-  },
-  retryAction: {
-    marginTop: spacing.lg,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xxl,
-    paddingBottom: spacing.xl,
-  },
-  category: {
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-    marginBottom: spacing.lg,
-  },
-  question: {
-    marginBottom: spacing.xl,
-  },
-  bottomArea: {
-    marginTop: spacing.xxl,
-    paddingBottom: spacing.lg,
-  },
-  indicator: {
-    marginBottom: spacing.lg,
-  },
-  backButton: {
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    marginTop: spacing.sm,
-  },
-});
+const getStyles = (colors: { background: string }) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    flex: {
+      flex: 1,
+    },
+    centered: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+    },
+    retryAction: {
+      marginTop: spacing.lg,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.xxl,
+      paddingBottom: spacing.xl,
+    },
+    category: {
+      textTransform: 'uppercase',
+      letterSpacing: 1.2,
+      marginBottom: spacing.lg,
+    },
+    question: {
+      marginBottom: spacing.xl,
+    },
+    bottomArea: {
+      marginTop: spacing.xxl,
+      paddingBottom: spacing.lg,
+    },
+    indicator: {
+      marginBottom: spacing.lg,
+    },
+    backButton: {
+      alignItems: 'center',
+      paddingVertical: spacing.md,
+      marginTop: spacing.sm,
+    },
+  });

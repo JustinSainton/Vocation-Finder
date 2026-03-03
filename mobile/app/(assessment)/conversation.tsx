@@ -6,7 +6,8 @@ import * as Haptics from 'expo-haptics';
 import { Typography } from '../../components/ui/Typography';
 import { AudioOrb } from '../../components/AudioOrb';
 import { useConversationFlow } from '../../hooks/useConversationFlow';
-import { colors, spacing } from '../../constants/theme';
+import { spacing } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 import type { ConversationState } from '../../stores/assessmentStore';
 
 const STATE_LABELS: Record<ConversationState, string> = {
@@ -19,6 +20,8 @@ const STATE_LABELS: Record<ConversationState, string> = {
 
 export default function ConversationScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
+  const styles = getStyles(colors, isDark);
   const {
     startRecording,
     stopRecording,
@@ -63,6 +66,15 @@ export default function ConversationScreen() {
     // Do nothing if processing
   };
 
+  const agentState =
+    conversationState === 'processing'
+      ? 'thinking'
+      : conversationState === 'listening'
+        ? 'listening'
+        : conversationState === 'speaking'
+          ? 'talking'
+          : null;
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.bgBlobOne} />
@@ -90,9 +102,10 @@ export default function ConversationScreen() {
 
         <View style={styles.orbArea}>
           <AudioOrb
-            state={conversationState}
-            audioLevel={audioLevel}
-            speechLevel={speakingLevel}
+            agentState={agentState}
+            inputLevel={audioLevel}
+            outputLevel={speakingLevel}
+            colors={isDark ? ['#38BDF8', '#A78BFA'] : ['#2563EB', '#22C55E']}
             onPress={handleOrbPress}
           />
 
@@ -145,87 +158,99 @@ export default function ConversationScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
+const getStyles = (
+  colors: {
+    background: string;
+    accent: string;
+    text: string;
+    textSecondary: string;
+    divider: string;
   },
-  bgBlobOne: {
-    position: 'absolute',
-    width: 260,
-    height: 260,
-    borderRadius: 130,
-    backgroundColor: 'rgba(186, 230, 253, 0.35)',
-    top: -70,
-    right: -90,
-  },
-  bgBlobTwo: {
-    position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: 'rgba(254, 215, 170, 0.28)',
-    bottom: -60,
-    left: -70,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.xl,
-    justifyContent: 'space-between',
-  },
-  topArea: {
-    gap: spacing.md,
-  },
-  topLabel: {
-    textTransform: 'uppercase',
-    letterSpacing: 1.1,
-  },
-  questionCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.78)',
-    borderWidth: 1,
-    borderColor: colors.divider,
-    borderRadius: 18,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.md,
-    boxShadow: '0 10px 32px rgba(28, 25, 23, 0.10)',
-  },
-  questionText: {
-    textAlign: 'left',
-  },
-  orbArea: {
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    gap: spacing.md,
-  },
-  stateLabel: {
-    textAlign: 'center',
-  },
-  secondaryAction: {
-    borderWidth: 1,
-    borderColor: colors.divider,
-    borderRadius: 999,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.72)',
-  },
-  errorText: {
-    textAlign: 'center',
-    maxWidth: 320,
-  },
-  bottomArea: {
-    alignItems: 'center',
-  },
-  progressPill: {
-    borderWidth: 1,
-    borderColor: colors.divider,
-    borderRadius: 999,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.82)',
-  },
-  indicator: {
-    textAlign: 'center',
-  },
-});
+  isDark: boolean
+) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    bgBlobOne: {
+      position: 'absolute',
+      width: 260,
+      height: 260,
+      borderRadius: 130,
+      backgroundColor: isDark ? 'rgba(14, 116, 144, 0.26)' : 'rgba(186, 230, 253, 0.35)',
+      top: -70,
+      right: -90,
+    },
+    bgBlobTwo: {
+      position: 'absolute',
+      width: 220,
+      height: 220,
+      borderRadius: 110,
+      backgroundColor: isDark ? 'rgba(180, 83, 9, 0.22)' : 'rgba(254, 215, 170, 0.28)',
+      bottom: -60,
+      left: -70,
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.xl,
+      justifyContent: 'space-between',
+    },
+    topArea: {
+      gap: spacing.md,
+    },
+    topLabel: {
+      textTransform: 'uppercase',
+      letterSpacing: 1.1,
+    },
+    questionCard: {
+      backgroundColor: isDark ? 'rgba(18, 23, 32, 0.88)' : 'rgba(255, 255, 255, 0.78)',
+      borderWidth: 1,
+      borderColor: colors.divider,
+      borderRadius: 18,
+      paddingVertical: spacing.lg,
+      paddingHorizontal: spacing.md,
+      boxShadow: isDark
+        ? '0 10px 32px rgba(0, 0, 0, 0.28)'
+        : '0 10px 32px rgba(28, 25, 23, 0.10)',
+    },
+    questionText: {
+      textAlign: 'left',
+    },
+    orbArea: {
+      alignItems: 'center',
+      paddingVertical: spacing.md,
+      gap: spacing.md,
+    },
+    stateLabel: {
+      textAlign: 'center',
+    },
+    secondaryAction: {
+      borderWidth: 1,
+      borderColor: colors.divider,
+      borderRadius: 999,
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      backgroundColor: isDark ? 'rgba(28, 35, 47, 0.72)' : 'rgba(255, 255, 255, 0.72)',
+    },
+    errorText: {
+      textAlign: 'center',
+      maxWidth: 320,
+    },
+    bottomArea: {
+      alignItems: 'center',
+    },
+    progressPill: {
+      borderWidth: 1,
+      borderColor: colors.divider,
+      borderRadius: 999,
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      backgroundColor: isDark ? 'rgba(24, 31, 43, 0.82)' : 'rgba(255, 255, 255, 0.82)',
+    },
+    indicator: {
+      textAlign: 'center',
+    },
+  });

@@ -5,7 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
 import { TypewriterText } from '../../components/ui/TypewriterText';
-import { colors, spacing } from '../../constants/theme';
+import { spacing } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 
 const HERO_HEADLINE = [
   'Most people are taught',
@@ -16,6 +17,8 @@ const HERO_HEADLINE = [
 
 export default function AssessmentLandingScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
 
   const handleBegin = () => {
     router.push('/(assessment)/orientation');
@@ -63,26 +66,27 @@ export default function AssessmentLandingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: spacing.lg,
-    justifyContent: 'space-between',
-    paddingTop: spacing.section,
-    paddingBottom: spacing.xxl,
-  },
-  body: {},
-  headline: {
-    marginBottom: spacing.xl,
-  },
-  framing: {
-    marginBottom: spacing.md,
-  },
-  actions: {
-    marginTop: spacing.xxl,
-  },
-});
+const getStyles = (colors: { background: string }) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: spacing.lg,
+      justifyContent: 'space-between',
+      paddingTop: spacing.section,
+      paddingBottom: spacing.xxl,
+    },
+    body: {},
+    headline: {
+      marginBottom: spacing.xl,
+    },
+    framing: {
+      marginBottom: spacing.md,
+    },
+    actions: {
+      marginTop: spacing.xxl,
+    },
+  });

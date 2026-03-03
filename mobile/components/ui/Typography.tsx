@@ -1,6 +1,7 @@
 import React from 'react';
-import { Text, TextStyle, StyleSheet } from 'react-native';
-import { colors, typography } from '../../constants/theme';
+import { Text, TextStyle } from 'react-native';
+import { typography } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 
 type Variant = 'body' | 'bodyLarge' | 'heading' | 'headingLarge' | 'small' | 'caption';
 type Family = 'serif' | 'sans';
@@ -43,10 +44,11 @@ const variantStyles: Record<Variant, TextStyle> = {
 export function Typography({
   variant = 'body',
   family = 'serif',
-  color = colors.text,
+  color,
   style,
   children,
 }: TypographyProps) {
+  const { colors } = useTheme();
   const fontFamily =
     family === 'serif'
       ? typography.fontFamily.serif
@@ -56,7 +58,7 @@ export function Typography({
     <Text
       style={[
         variantStyles[variant],
-        { fontFamily, color },
+        { fontFamily, color: color ?? colors.text },
         style,
       ]}
     >
