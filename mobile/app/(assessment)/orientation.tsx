@@ -11,13 +11,11 @@ export default function OrientationScreen() {
   const router = useRouter();
   const [checked, setChecked] = useState(false);
 
-  const handleSpeak = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const handleSpeak = () => {
     router.push('/(assessment)/conversation');
   };
 
-  const handleWrite = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const handleWrite = () => {
     router.push('/(assessment)/written');
   };
 
@@ -42,7 +40,7 @@ export default function OrientationScreen() {
           </Typography>
 
           <Typography variant="body" style={styles.paragraph}>
-            Set aside roughly 30{'\u2013'}45 minutes. This is best done in a
+            Set aside roughly 30-45 minutes. This is best done in a
             quiet place, without distractions, when you can give your full
             attention to the process.
           </Typography>
@@ -53,7 +51,7 @@ export default function OrientationScreen() {
             color={colors.textSecondary}
             style={styles.timeNote}
           >
-            ~30{'\u2013'}45 minutes
+            ~30-45 minutes
           </Typography>
 
           <View style={styles.divider} />

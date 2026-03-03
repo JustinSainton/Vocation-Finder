@@ -10,7 +10,7 @@ import { colors, spacing } from '../../constants/theme';
 import type { ConversationState } from '../../stores/assessmentStore';
 
 const STATE_LABELS: Record<ConversationState, string> = {
-  idle: 'Tap to speak',
+  idle: 'Tap to answer',
   listening: 'Listening...',
   processing: 'Thinking...',
   speaking: 'Speaking...',
@@ -22,6 +22,8 @@ export default function ConversationScreen() {
   const {
     startRecording,
     stopRecording,
+    playIntroAndFirstQuestion,
+    introPlayed,
     conversationState,
     conversationError,
     audioLevel,
@@ -42,6 +44,11 @@ export default function ConversationScreen() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     if (conversationState === 'idle' || conversationState === 'error') {
+      if (!introPlayed) {
+        playIntroAndFirstQuestion();
+        return;
+      }
+
       startRecording();
     } else if (conversationState === 'listening') {
       stopRecording();
@@ -78,8 +85,21 @@ export default function ConversationScreen() {
             color={conversationState === 'error' ? '#B91C1C' : colors.textSecondary}
             style={styles.stateLabel}
           >
-            {STATE_LABELS[conversationState]}
+            {conversationState === 'idle' && !introPlayed
+              ? 'Tap to begin'
+              : STATE_LABELS[conversationState]}
           </Typography>
+
+          {conversationError ? (
+            <Typography
+              variant="small"
+              family="sans"
+              color="#B91C1C"
+              style={styles.errorText}
+            >
+              {conversationError}
+            </Typography>
+          ) : null}
         </View>
 
         {/* Bottom progress */}
@@ -124,6 +144,10 @@ const styles = StyleSheet.create({
   },
   stateLabel: {
     marginTop: spacing.xl,
+    textAlign: 'center',
+  },
+  errorText: {
+    marginTop: spacing.md,
     textAlign: 'center',
   },
   bottomArea: {

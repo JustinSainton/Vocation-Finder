@@ -10,12 +10,18 @@ use App\Models\Assessment;
 use App\Models\ConversationSession;
 use App\Models\ConversationTurn;
 use App\Models\Question;
+use App\Services\Ai\ConversationModelSelector;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Transcription;
 
 class AudioConversationController extends Controller
 {
+    public function __construct(
+        protected ConversationModelSelector $modelSelector,
+    ) {}
+
     public function start(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -105,8 +111,23 @@ class AudioConversationController extends Controller
             previousTurns: $previousTurns,
         );
 
-        $response = $agent->prompt($agent->buildPrompt());
+        $modelSelection = $this->modelSelector->forSessionId($session->id);
+        $response = $agent->prompt(
+            $agent->buildPrompt(),
+            provider: $modelSelection['provider'],
+            model: $modelSelection['model'],
+        );
         $result = $response->structured;
+
+        $this->storeConversationExperimentMetadata($session, $modelSelection);
+        Log::info('conversation_turn_processed', [
+            'session_id' => $session->id,
+            'assessment_id' => $session->assessment_id,
+            'variant' => $modelSelection['variant'],
+            'provider' => $modelSelection['provider'],
+            'model' => $modelSelection['model'],
+            'is_sufficient' => $result['is_sufficient'] ?? null,
+        ]);
 
         if ($result['is_sufficient']) {
             // Save the synthesized answer for this question
@@ -142,6 +163,7 @@ class AudioConversationController extends Controller
                 'is_follow_up' => false,
                 'is_complete' => $isComplete,
                 'reasoning' => $result['reasoning'],
+                'model_variant' => $modelSelection['variant'],
             ]);
         }
 
@@ -161,6 +183,7 @@ class AudioConversationController extends Controller
             'is_follow_up' => true,
             'is_complete' => false,
             'reasoning' => $result['reasoning'],
+            'model_variant' => $modelSelection['variant'],
         ]);
     }
 
@@ -177,5 +200,28 @@ class AudioConversationController extends Controller
         AnalyzeAssessmentJob::dispatch($assessment);
 
         return response()->json(['status' => 'analyzing']);
+    }
+
+    protected function storeConversationExperimentMetadata(ConversationSession $session, array $modelSelection): void
+    {
+        $assessment = $session->assessment;
+        $metadata = $assessment->metadata ?? [];
+
+        if (($metadata['conversation_model_experiment']['variant'] ?? null) !== null) {
+            return;
+        }
+
+        $metadata['conversation_model_experiment'] = [
+            'variant' => $modelSelection['variant'],
+            'provider' => $modelSelection['provider'],
+            'model' => $modelSelection['model'],
+            'rollout_percentage' => $modelSelection['rollout_percentage'],
+            'enabled' => $modelSelection['experiment_enabled'],
+            'assigned_at' => now()->toIso8601String(),
+            'assignment_unit' => 'conversation_session_id',
+            'assignment_key' => $session->id,
+        ];
+
+        $assessment->update(['metadata' => $metadata]);
     }
 }

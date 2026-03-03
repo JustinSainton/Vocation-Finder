@@ -1,8 +1,25 @@
 import Constants from 'expo-constants';
 import { useAuthStore } from '../stores/authStore';
 
-const BASE_URL =
-  Constants.expoConfig?.extra?.apiUrl ?? 'http://localhost:8000/api/v1';
+function normalizeApiBaseUrl(url: string): string {
+  const trimmed = url.trim().replace(/\/+$/, '');
+
+  if (trimmed.endsWith('/api/v1')) {
+    return trimmed;
+  }
+
+  if (trimmed.endsWith('/api')) {
+    return `${trimmed}/v1`;
+  }
+
+  return `${trimmed}/api/v1`;
+}
+
+const envApiUrl = process.env.EXPO_PUBLIC_API_URL;
+const configApiUrl = Constants.expoConfig?.extra?.apiUrl as string | undefined;
+const fallbackApiUrl = 'http://127.0.0.1:8000';
+
+const BASE_URL = normalizeApiBaseUrl(envApiUrl ?? configApiUrl ?? fallbackApiUrl);
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -38,7 +55,15 @@ async function request<T>(
     config.body = JSON.stringify(body);
   }
 
-  const response = await fetch(url, config);
+  let response: Response;
+  try {
+    response = await fetch(url, config);
+  } catch {
+    throw {
+      message: `Network request failed. Check API URL: ${BASE_URL}`,
+      status: 0,
+    } as ApiError;
+  }
 
   if (!response.ok) {
     const error: ApiError = {
@@ -110,11 +135,19 @@ async function uploadAudio<T>(
     ...getAuthHeaders(),
   };
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers,
-    body: formData,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+  } catch {
+    throw {
+      message: `Network request failed. Check API URL: ${BASE_URL}`,
+      status: 0,
+    } as ApiError;
+  }
 
   if (!response.ok) {
     const error: ApiError = {
@@ -180,6 +213,12 @@ export interface ConversationTurnResponse {
   is_follow_up: boolean;
   is_complete: boolean;
   reasoning: string;
+}
+
+export interface ConversationAudioUploadResponse {
+  audio_path: string;
+  transcript: string;
+  status: 'transcribed';
 }
 
 // ── Domain API methods ────────────────────────────────────────
@@ -263,7 +302,7 @@ export const assessmentApi = {
 
   /** Upload audio for a conversation turn */
   uploadConversationAudio: (sessionId: string, audioUri: string) =>
-    uploadAudio<ConversationTurnResponse>(
+    uploadAudio<ConversationAudioUploadResponse>(
       `/conversations/${sessionId}/audio`,
       audioUri
     ),

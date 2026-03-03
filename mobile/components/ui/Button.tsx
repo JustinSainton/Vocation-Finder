@@ -5,14 +5,18 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Typography } from './Typography';
 import { colors, spacing, layout } from '../../constants/theme';
+
+type HapticStyle = 'none' | 'light' | 'medium' | 'heavy' | 'soft' | 'rigid';
 
 interface ButtonProps {
   title: string;
   onPress: () => void;
   variant?: 'primary' | 'secondary';
   disabled?: boolean;
+  hapticStyle?: HapticStyle;
   style?: ViewStyle;
 }
 
@@ -21,13 +25,31 @@ export function Button({
   onPress,
   variant = 'primary',
   disabled = false,
+  hapticStyle = 'light',
   style,
 }: ButtonProps) {
   const isPrimary = variant === 'primary';
 
+  const handlePressIn = () => {
+    if (disabled || hapticStyle === 'none') {
+      return;
+    }
+
+    const styleMap: Record<Exclude<HapticStyle, 'none'>, Haptics.ImpactFeedbackStyle> = {
+      light: Haptics.ImpactFeedbackStyle.Light,
+      medium: Haptics.ImpactFeedbackStyle.Medium,
+      heavy: Haptics.ImpactFeedbackStyle.Heavy,
+      soft: Haptics.ImpactFeedbackStyle.Soft,
+      rigid: Haptics.ImpactFeedbackStyle.Rigid,
+    };
+
+    Haptics.impactAsync(styleMap[hapticStyle]).catch(() => null);
+  };
+
   return (
     <Pressable
       onPress={onPress}
+      onPressIn={handlePressIn}
       disabled={disabled}
       style={({ pressed }) => [
         styles.base,

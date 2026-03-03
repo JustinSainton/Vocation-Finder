@@ -53,7 +53,7 @@ export default function SynthesisScreen() {
 
         <View style={styles.actions}>
           <Button
-            title={submitting ? 'Preparing...' : 'Continue  \u2192'}
+            title={submitting ? 'Preparing...' : 'Continue'}
             onPress={handleContinue}
             disabled={submitting}
           />
