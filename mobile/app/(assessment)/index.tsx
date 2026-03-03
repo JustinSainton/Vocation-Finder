@@ -33,6 +33,8 @@ export default function AssessmentLandingScreen() {
             variant="headingLarge"
             style={styles.headline}
             speedMs={30}
+            enableHaptics
+            hapticEveryNChars={3}
           />
 
           <Typography

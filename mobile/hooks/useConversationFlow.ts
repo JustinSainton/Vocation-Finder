@@ -196,6 +196,28 @@ export function useConversationFlow() {
 
       try {
         const speech = await assessmentApi.synthesizeConversationSpeech(text);
+        const probeController = new AbortController();
+        const probeTimeout = setTimeout(() => {
+          probeController.abort();
+        }, 4000);
+
+        let probeStatus = 0;
+        try {
+          const probeResponse = await fetch(speech.audio_url, {
+            method: 'GET',
+            headers: {
+              Range: 'bytes=0-1',
+            },
+            signal: probeController.signal,
+          });
+          probeStatus = probeResponse.status;
+        } finally {
+          clearTimeout(probeTimeout);
+        }
+
+        if (probeStatus === 404 || probeStatus >= 500) {
+          throw new Error(`Remote TTS audio URL not reachable (${probeStatus})`);
+        }
 
         await setAudioModeAsync({
           allowsRecording: false,

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { TextStyle } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Typography } from './Typography';
 
 type Variant = 'body' | 'bodyLarge' | 'heading' | 'headingLarge' | 'small' | 'caption';
@@ -14,6 +15,8 @@ interface TypewriterTextProps {
   speedMs?: number;
   startDelayMs?: number;
   showCursor?: boolean;
+  enableHaptics?: boolean;
+  hapticEveryNChars?: number;
 }
 
 export function TypewriterText({
@@ -25,6 +28,8 @@ export function TypewriterText({
   speedMs = 18,
   startDelayMs = 120,
   showCursor = true,
+  enableHaptics = false,
+  hapticEveryNChars = 3,
 }: TypewriterTextProps) {
   const [visibleChars, setVisibleChars] = useState(0);
 
@@ -42,7 +47,20 @@ export function TypewriterText({
             return prev;
           }
 
-          return prev + 1;
+          const next = prev + 1;
+
+          if (enableHaptics) {
+            const typedChar = text.charAt(next - 1);
+            const shouldPulse =
+              (typedChar.trim().length > 0 && next % Math.max(1, hapticEveryNChars) === 0) ||
+              /[.!?,;:\n]/.test(typedChar);
+
+            if (shouldPulse) {
+              Haptics.selectionAsync().catch(() => null);
+            }
+          }
+
+          return next;
         });
       }, speedMs);
     }, startDelayMs);
@@ -53,7 +71,7 @@ export function TypewriterText({
         clearInterval(typeTimer);
       }
     };
-  }, [text, speedMs, startDelayMs]);
+  }, [enableHaptics, hapticEveryNChars, text, speedMs, startDelayMs]);
 
   const visibleText = useMemo(() => text.slice(0, visibleChars), [text, visibleChars]);
   const isComplete = visibleChars >= text.length;
