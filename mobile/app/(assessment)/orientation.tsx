@@ -11,7 +11,12 @@ export default function OrientationScreen() {
   const router = useRouter();
   const [checked, setChecked] = useState(false);
 
-  const handleContinue = async () => {
+  const handleSpeak = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push('/(assessment)/conversation');
+  };
+
+  const handleWrite = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push('/(assessment)/written');
   };
@@ -79,9 +84,16 @@ export default function OrientationScreen() {
 
         <View style={styles.actions}>
           <Button
-            title="Continue  \u2192"
-            onPress={handleContinue}
+            title="Speak your answers"
+            onPress={handleSpeak}
             disabled={!checked}
+          />
+          <Button
+            title="Write your answers"
+            onPress={handleWrite}
+            variant="secondary"
+            disabled={!checked}
+            style={styles.secondaryButton}
           />
         </View>
       </View>
@@ -146,5 +158,8 @@ const styles = StyleSheet.create({
   },
   actions: {
     marginTop: spacing.xxl,
+  },
+  secondaryButton: {
+    marginTop: spacing.md,
   },
 });

@@ -61,6 +61,11 @@ class Assessment extends Model
         return $this->hasOne(VocationalProfile::class);
     }
 
+    public function curriculumPathway(): HasOne
+    {
+        return $this->hasOne(CurriculumPathway::class);
+    }
+
     public function isComplete(): bool
     {
         return $this->status === 'completed';

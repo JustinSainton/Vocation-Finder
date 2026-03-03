@@ -1,105 +1,89 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  withSequence,
-  Easing,
-} from 'react-native-reanimated';
+import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { Typography } from '../../components/ui/Typography';
-import { useAssessmentStore } from '../../stores/assessmentStore';
+import { AudioOrb } from '../../components/AudioOrb';
+import { useConversationFlow } from '../../hooks/useConversationFlow';
 import { colors, spacing } from '../../constants/theme';
+import type { ConversationState } from '../../stores/assessmentStore';
 
-type OrbState = 'idle' | 'listening' | 'thinking';
-
-const STATE_LABELS: Record<OrbState, string> = {
-  idle: 'Tap to begin',
+const STATE_LABELS: Record<ConversationState, string> = {
+  idle: 'Tap to speak',
   listening: 'Listening...',
-  thinking: 'Thinking...',
+  processing: 'Thinking...',
+  speaking: 'Speaking...',
+  error: 'Something went wrong. Tap to retry.',
 };
 
-const ORB_SIZE = 160;
-
 export default function ConversationScreen() {
-  const [orbState] = useState<OrbState>('idle');
-  const { currentQuestion, totalQuestions } = useAssessmentStore();
+  const router = useRouter();
+  const {
+    startRecording,
+    stopRecording,
+    conversationState,
+    conversationError,
+    audioLevel,
+    currentQuestion,
+    totalQuestions,
+    currentQuestionText,
+    isComplete,
+  } = useConversationFlow();
 
-  // Animated scale for the pulse
-  const scale = useSharedValue(1);
-  // Animated opacity for a subtle breathing effect
-  const opacity = useSharedValue(0.35);
-
+  // Navigate to results when conversation is complete
   useEffect(() => {
-    // Gentle pulse animation -- always running
-    scale.value = withRepeat(
-      withSequence(
-        withTiming(1.08, {
-          duration: 2400,
-          easing: Easing.inOut(Easing.ease),
-        }),
-        withTiming(1, {
-          duration: 2400,
-          easing: Easing.inOut(Easing.ease),
-        })
-      ),
-      -1, // infinite
-      false
-    );
+    if (isComplete) {
+      router.replace('/(assessment)/results');
+    }
+  }, [isComplete]);
 
-    opacity.value = withRepeat(
-      withSequence(
-        withTiming(0.55, {
-          duration: 2400,
-          easing: Easing.inOut(Easing.ease),
-        }),
-        withTiming(0.35, {
-          duration: 2400,
-          easing: Easing.inOut(Easing.ease),
-        })
-      ),
-      -1,
-      false
-    );
-  }, []);
+  const handleOrbPress = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-  const orbAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const glowAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ scale: scale.value }],
-  }));
+    if (conversationState === 'idle' || conversationState === 'error') {
+      startRecording();
+    } else if (conversationState === 'listening') {
+      stopRecording();
+    }
+    // Do nothing if processing or speaking
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        {/* Top spacer for centering */}
-        <View style={styles.topSpacer} />
-
-        {/* Orb area */}
-        <View style={styles.orbContainer}>
-          {/* Outer glow ring */}
-          <Animated.View style={[styles.orbGlow, glowAnimatedStyle]} />
-          {/* Main orb */}
-          <Animated.View style={[styles.orb, orbAnimatedStyle]} />
+        {/* Question text */}
+        <View style={styles.questionArea}>
+          {currentQuestionText ? (
+            <Typography
+              variant="body"
+              style={styles.questionText}
+            >
+              {currentQuestionText}
+            </Typography>
+          ) : null}
         </View>
 
-        {/* State indicator */}
-        <Typography
-          variant="body"
-          color={colors.textSecondary}
-          style={styles.stateLabel}
-        >
-          {STATE_LABELS[orbState]}
-        </Typography>
+        {/* Orb area */}
+        <View style={styles.orbArea}>
+          <AudioOrb
+            state={conversationState}
+            audioLevel={audioLevel}
+            onPress={handleOrbPress}
+          />
 
-        {/* Bottom area */}
+          {/* State label */}
+          <Typography
+            variant="body"
+            color={conversationState === 'error' ? '#B91C1C' : colors.textSecondary}
+            style={styles.stateLabel}
+          >
+            {STATE_LABELS[conversationState]}
+          </Typography>
+        </View>
+
+        {/* Bottom progress */}
         <View style={styles.bottomArea}>
-          {/* Question indicator */}
           <Typography
             variant="caption"
             family="sans"
@@ -108,17 +92,7 @@ export default function ConversationScreen() {
           >
             {totalQuestions > 0
               ? `Question ${currentQuestion + 1} of ${totalQuestions}`
-              : 'Conversation mode'}
-          </Typography>
-
-          {/* Phase note */}
-          <Typography
-            variant="caption"
-            family="sans"
-            color={colors.accent}
-            style={styles.phaseNote}
-          >
-            Audio conversation is coming in a future update.
+              : 'Starting conversation...'}
           </Typography>
         </View>
       </View>
@@ -133,33 +107,20 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxl,
   },
-  topSpacer: {
+  questionArea: {
     flex: 1,
-  },
-  orbContainer: {
-    width: ORB_SIZE + 40,
-    height: ORB_SIZE + 40,
-    alignItems: 'center',
     justifyContent: 'center',
+    paddingTop: spacing.xl,
   },
-  orbGlow: {
-    position: 'absolute',
-    width: ORB_SIZE + 40,
-    height: ORB_SIZE + 40,
-    borderRadius: (ORB_SIZE + 40) / 2,
-    borderWidth: 1,
-    borderColor: colors.accent,
+  questionText: {
+    textAlign: 'center',
   },
-  orb: {
-    width: ORB_SIZE,
-    height: ORB_SIZE,
-    borderRadius: ORB_SIZE / 2,
-    borderWidth: 1.5,
-    borderColor: colors.text,
+  orbArea: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
   },
   stateLabel: {
     marginTop: spacing.xl,
@@ -171,9 +132,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   indicator: {
-    marginBottom: spacing.sm,
-  },
-  phaseNote: {
     textAlign: 'center',
   },
 });

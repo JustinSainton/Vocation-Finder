@@ -5,6 +5,7 @@ import {
   assessmentApi,
   Question,
   VocationalProfile,
+  ConversationTurnResponse,
 } from '../services/api';
 
 type AssessmentMode = 'conversation' | 'written' | null;
@@ -14,6 +15,13 @@ type AssessmentStatus =
   | 'in_progress'
   | 'analyzing'
   | 'completed';
+
+export type ConversationState =
+  | 'idle'
+  | 'listening'
+  | 'processing'
+  | 'speaking'
+  | 'error';
 
 interface AssessmentState {
   // Core state
@@ -32,6 +40,9 @@ interface AssessmentState {
 
   // Conversation mode
   sessionId: string | null;
+  conversationState: ConversationState;
+  conversationError: string | null;
+  aiResponseText: string | null;
 
   // Results
   results: VocationalProfile | null;
@@ -54,6 +65,12 @@ interface AssessmentState {
   completeAssessment: () => Promise<void>;
   fetchResults: () => Promise<VocationalProfile | null>;
 
+  // Conversation actions
+  setConversationState: (state: ConversationState) => void;
+  startConversationSession: () => Promise<void>;
+  handleConversationTurn: (audioUri: string) => Promise<ConversationTurnResponse | null>;
+  completeConversationSession: () => Promise<void>;
+
   reset: () => void;
 }
 
@@ -69,6 +86,9 @@ const initialState = {
   questionsLoading: false,
   questionsError: null as string | null,
   sessionId: null as string | null,
+  conversationState: 'idle' as ConversationState,
+  conversationError: null as string | null,
+  aiResponseText: null as string | null,
   results: null as VocationalProfile | null,
   resultsLoading: false,
   resultsError: null as string | null,
@@ -185,6 +205,66 @@ export const useAssessmentStore = create<AssessmentState>()(
             resultsError: err?.message ?? 'Failed to load results',
           });
           return null;
+        }
+      },
+
+      setConversationState: (conversationState) => set({ conversationState }),
+
+      startConversationSession: async () => {
+        const { assessmentId } = get();
+        if (!assessmentId) return;
+
+        try {
+          const data = await assessmentApi.startConversation(assessmentId);
+          set({
+            sessionId: data.session_id,
+            currentQuestion: data.current_question_index,
+            conversationState: 'idle',
+            conversationError: null,
+          });
+        } catch (err: any) {
+          set({
+            conversationState: 'error',
+            conversationError: err?.message ?? 'Failed to start conversation',
+          });
+        }
+      },
+
+      handleConversationTurn: async (audioUri) => {
+        const { sessionId } = get();
+        if (!sessionId) return null;
+
+        set({ conversationState: 'processing', conversationError: null });
+
+        try {
+          const response = await assessmentApi.uploadConversationAudio(sessionId, audioUri);
+          set({
+            aiResponseText: response.response,
+            currentQuestion: response.current_question_index,
+            conversationState: 'speaking',
+          });
+          return response;
+        } catch (err: any) {
+          set({
+            conversationState: 'error',
+            conversationError: err?.message ?? 'Failed to process audio',
+          });
+          return null;
+        }
+      },
+
+      completeConversationSession: async () => {
+        const { sessionId } = get();
+        if (!sessionId) return;
+
+        set({ status: 'analyzing' });
+        try {
+          await assessmentApi.completeConversation(sessionId);
+        } catch (err: any) {
+          set({
+            conversationState: 'error',
+            conversationError: err?.message ?? 'Failed to complete conversation',
+          });
         }
       },
 

@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Ai\Agents\NarrativeSynthesis;
 use App\Ai\Agents\VocationalAnalysis;
+use App\Jobs\GenerateCurriculumJob;
 use App\Models\Assessment;
 use App\Models\VocationalProfile;
 use Illuminate\Bus\Queueable;
@@ -77,6 +78,12 @@ class AnalyzeAssessmentJob implements ShouldQueue
         );
 
         $this->assessment->update(['status' => 'completed']);
+
+        // Dispatch curriculum generation for authenticated users
+        $user = $this->assessment->user;
+        if ($user) {
+            GenerateCurriculumJob::dispatch($user, $this->assessment);
+        }
     }
 
     protected function resolveModel(): string

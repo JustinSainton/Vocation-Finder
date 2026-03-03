@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -11,10 +11,13 @@ import {
   Literata_400Regular_Italic,
 } from '@expo-google-fonts/literata';
 import { colors } from '../constants/theme';
+import { useAuthStore } from '../stores/authStore';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const checkAuth = useAuthStore((s) => s.checkAuth);
+
   const [fontsLoaded] = useFonts({
     'Literata-Regular': Literata_400Regular,
     'Literata-Medium': Literata_500Medium,
@@ -25,6 +28,11 @@ export default function RootLayout() {
     'Satoshi-Medium': require('../assets/fonts/Satoshi-Medium.ttf'),
     'Satoshi-Bold': require('../assets/fonts/Satoshi-Bold.ttf'),
   });
+
+  // Check persisted token on mount
+  useEffect(() => {
+    checkAuth();
+  }, []);
 
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded) {

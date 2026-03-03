@@ -12,7 +12,10 @@ class CourseEnrollment extends Model
 
     protected $fillable = [
         'user_id',
+        'course_id',
         'course_slug',
+        'assessment_id',
+        'current_module_id',
         'status',
         'progress',
         'completed_at',
@@ -29,5 +32,20 @@ class CourseEnrollment extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(Course::class);
+    }
+
+    public function assessment(): BelongsTo
+    {
+        return $this->belongsTo(Assessment::class);
+    }
+
+    public function currentModule(): BelongsTo
+    {
+        return $this->belongsTo(CourseModule::class, 'current_module_id');
     }
 }

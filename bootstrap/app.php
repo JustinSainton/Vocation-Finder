@@ -15,6 +15,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
         ]);
+
+        $middleware->alias([
+            'guest' => \Illuminate\Auth\Middleware\RedirectIfAuthenticated::class,
+            'admin' => \App\Http\Middleware\EnsureAdmin::class,
+            'assessment.access' => \App\Http\Middleware\CheckAssessmentAccess::class,
+            'org.subscribed' => \App\Http\Middleware\EnsureOrganizationSubscribed::class,
+            'org.admin' => \App\Http\Middleware\EnsureOrgAdmin::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
