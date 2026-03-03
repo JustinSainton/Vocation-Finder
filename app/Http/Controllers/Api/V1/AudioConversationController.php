@@ -15,8 +15,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Laravel\Ai\Audio;
 use Laravel\Ai\Transcription;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 class AudioConversationController extends Controller
@@ -206,6 +208,53 @@ class AudioConversationController extends Controller
         ]);
     }
 
+    public function streamSpeech(Request $request): JsonResponse|StreamedResponse
+    {
+        if (! $request->hasValidSignature()) {
+            return response()->json([
+                'message' => 'Invalid or expired audio URL.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'path' => 'required|string',
+            'disk' => 'required|string',
+        ]);
+
+        $path = (string) $validated['path'];
+        $disk = (string) $validated['disk'];
+
+        if (! str_starts_with($path, 'conversation-tts/')) {
+            return response()->json([
+                'message' => 'Invalid audio path.',
+            ], 403);
+        }
+
+        $filesystem = Storage::disk($disk);
+        if (! $filesystem->exists($path)) {
+            return response()->json([
+                'message' => 'Audio not found.',
+            ], 404);
+        }
+
+        $stream = $filesystem->readStream($path);
+        if ($stream === false) {
+            return response()->json([
+                'message' => 'Audio stream unavailable.',
+            ], 404);
+        }
+
+        return response()->stream(function () use ($stream) {
+            fpassthru($stream);
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }, 200, [
+            'Content-Type' => 'audio/mpeg',
+            'Cache-Control' => 'private, max-age=900',
+        ]);
+    }
+
     public function synthesizeSpeech(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -237,7 +286,7 @@ class AudioConversationController extends Controller
 
             if ($filesystem->exists($primaryCachePath)) {
                 return response()->json([
-                    'audio_url' => $this->temporaryOrPublicUrl($filesystem, $primaryCachePath, $expiresAt),
+                    'audio_url' => $this->temporaryOrPublicUrl($filesystem, $primaryCachePath, $expiresAt, $activeDisk),
                     'mime_type' => 'audio/mpeg',
                     'provider' => $primaryProvider,
                     'model' => $primaryModel,
@@ -258,7 +307,7 @@ class AudioConversationController extends Controller
 
                 if ($filesystem->exists($fallbackCachePath)) {
                     return response()->json([
-                        'audio_url' => $this->temporaryOrPublicUrl($filesystem, $fallbackCachePath, $expiresAt),
+                        'audio_url' => $this->temporaryOrPublicUrl($filesystem, $fallbackCachePath, $expiresAt, $activeDisk),
                         'mime_type' => 'audio/mpeg',
                         'provider' => (string) $fallbackProvider,
                         'model' => (string) $fallbackModel,
@@ -314,7 +363,7 @@ class AudioConversationController extends Controller
             }
 
             return response()->json([
-                'audio_url' => $this->temporaryOrPublicUrl($filesystem, $cachePath, $expiresAt),
+                'audio_url' => $this->temporaryOrPublicUrl($filesystem, $cachePath, $expiresAt, $activeDisk),
                 'mime_type' => $audio->mimeType() ?? 'audio/mpeg',
                 'provider' => $audio->meta->provider ?? $usedProvider,
                 'model' => $audio->meta->model ?? $usedModel,
@@ -348,8 +397,15 @@ class AudioConversationController extends Controller
         return response()->json(['status' => 'analyzing']);
     }
 
-    protected function temporaryOrPublicUrl($filesystem, string $path, $expiresAt): string
+    protected function temporaryOrPublicUrl($filesystem, string $path, $expiresAt, string $disk): string
     {
+        if (in_array($disk, ['local', 'public'], true)) {
+            return URL::temporarySignedRoute('api.v1.conversations.speech-file', $expiresAt, [
+                'path' => $path,
+                'disk' => $disk,
+            ]);
+        }
+
         try {
             return $filesystem->temporaryUrl($path, $expiresAt);
         } catch (Throwable) {

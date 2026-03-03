@@ -50,6 +50,8 @@ Route::prefix('v1')->group(function () {
     Route::post('conversations/{session}/turn', [AudioConversationController::class, 'processTurn']);
     Route::post('conversations/{session}/complete', [AudioConversationController::class, 'complete']);
     Route::post('conversations/speech', [AudioConversationController::class, 'synthesizeSpeech']);
+    Route::get('conversations/speech-file', [AudioConversationController::class, 'streamSpeech'])
+        ->name('api.v1.conversations.speech-file');
 
     // Courses (public)
     Route::get('courses', [CourseController::class, 'index']);
