@@ -12,6 +12,12 @@ import {
 import * as Speech from 'expo-speech';
 import { cancelAnimation, useSharedValue } from 'react-native-reanimated';
 import { assessmentApi } from '../services/api';
+import {
+  isLocalTtsEnabled,
+  releaseLocalTts,
+  synthesizeLocalSpeech,
+  warmupLocalTts,
+} from '../services/localTts';
 import { useAssessmentStore } from '../stores/assessmentStore';
 
 const METERING_INTERVAL_MS = 100;
@@ -156,6 +162,16 @@ export function useConversationFlow() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isLocalTtsEnabled()) {
+      return;
+    }
+
+    void warmupLocalTts().catch(() => {
+      // optional optimization only
+    });
+  }, []);
+
   const requestMicPermission = useCallback(async (): Promise<boolean> => {
     const status = await AudioModule.requestRecordingPermissionsAsync();
     return status.granted;
@@ -220,47 +236,68 @@ export function useConversationFlow() {
       await startAmbientBed();
 
       try {
-        const speech = await assessmentApi.synthesizeConversationSpeech(text);
-        const probeController = new AbortController();
-        const probeTimeout = setTimeout(() => {
-          probeController.abort();
-        }, 4000);
-
-        let probeStatus = 0;
         try {
-          const probeResponse = await fetch(speech.audio_url, {
-            method: 'GET',
-            headers: {
-              Range: 'bytes=0-1',
-            },
-            signal: probeController.signal,
+          if (isLocalTtsEnabled()) {
+            const localSpeech = await synthesizeLocalSpeech(text);
+
+            await setAudioModeAsync({
+              allowsRecording: false,
+              playsInSilentMode: true,
+            });
+
+            ttsPlayer.replace(localSpeech.uri);
+            ttsPlayer.play();
+            return;
+          }
+        } catch {
+          // fall through to remote TTS and native fallback
+        }
+
+        try {
+          const speech = await assessmentApi.synthesizeConversationSpeech(text);
+          const probeController = new AbortController();
+          const probeTimeout = setTimeout(() => {
+            probeController.abort();
+          }, 4000);
+
+          let probeStatus = 0;
+          try {
+            const probeResponse = await fetch(speech.audio_url, {
+              method: 'GET',
+              headers: {
+                Range: 'bytes=0-1',
+              },
+              signal: probeController.signal,
+            });
+            probeStatus = probeResponse.status;
+          } finally {
+            clearTimeout(probeTimeout);
+          }
+
+          if (probeStatus === 404 || probeStatus >= 500) {
+            throw new Error(`Remote TTS audio URL not reachable (${probeStatus})`);
+          }
+
+          await setAudioModeAsync({
+            allowsRecording: false,
+            playsInSilentMode: true,
           });
-          probeStatus = probeResponse.status;
-        } finally {
-          clearTimeout(probeTimeout);
+
+          ttsPlayer.replace(speech.audio_url);
+          ttsPlayer.play();
+          return;
+        } catch {
+          Speech.speak(text, {
+            language: 'en-US',
+            voice: preferredVoiceRef.current,
+            rate: 0.86,
+            pitch: 0.88,
+            onDone: () => finalizeSpeech('done'),
+            onError: () => finalizeSpeech('error'),
+          });
         }
-
-        if (probeStatus === 404 || probeStatus >= 500) {
-          throw new Error(`Remote TTS audio URL not reachable (${probeStatus})`);
-        }
-
-        await setAudioModeAsync({
-          allowsRecording: false,
-          playsInSilentMode: true,
-        });
-
-        ttsPlayer.replace(speech.audio_url);
-        ttsPlayer.play();
-        return;
       } catch {
-        Speech.speak(text, {
-          language: 'en-US',
-          voice: preferredVoiceRef.current,
-          rate: 0.86,
-          pitch: 0.88,
-          onDone: () => finalizeSpeech('done'),
-          onError: () => finalizeSpeech('error'),
-        });
+        finalizeSpeech('error');
       }
     },
     [finalizeSpeech, preferredVoiceRef, setConversationState, speakingLevel, startAmbientBed, ttsPlayer]
@@ -268,7 +305,11 @@ export function useConversationFlow() {
 
   const stopSpeaking = useCallback(() => {
     Speech.stop();
-    ttsPlayer.pause();
+    try {
+      ttsPlayer.pause();
+    } catch {
+      // player may already be disposed
+    }
     void stopAmbientBed();
     finalizeSpeech('done');
   }, [finalizeSpeech, stopAmbientBed, ttsPlayer]);
@@ -418,8 +459,17 @@ export function useConversationFlow() {
   useEffect(() => {
     return () => {
       Speech.stop();
-      ttsPlayer.pause();
-      ambientPlayer.pause();
+      try {
+        ttsPlayer.pause();
+      } catch {
+        // player may already be disposed
+      }
+      try {
+        ambientPlayer.pause();
+      } catch {
+        // player may already be disposed
+      }
+      void releaseLocalTts();
       cancelAnimation(audioLevel);
       cancelAnimation(speakingLevel);
       clearSpeechCallbacks();
