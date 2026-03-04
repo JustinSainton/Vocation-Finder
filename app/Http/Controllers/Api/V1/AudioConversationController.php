@@ -421,27 +421,103 @@ class AudioConversationController extends Controller
     {
         $provider = (string) config('vocation.audio.transcription_provider', config('ai.default_for_transcription', 'openai'));
         $model = config('vocation.audio.transcription_model');
+        $secondaryModel = config('vocation.audio.transcription_secondary_model');
         $fallbackProvider = config('vocation.audio.transcription_fallback_provider');
         $fallbackModel = config('vocation.audio.transcription_fallback_model');
 
-        $pending = Transcription::fromUpload($request->file('audio'))
-            ->language('en');
-
-        try {
-            return $pending->generate($provider, $model ?: null);
-        } catch (Throwable $primaryException) {
-            if (! $fallbackProvider) {
-                throw $primaryException;
-            }
-
-            Log::warning('conversation_transcription_primary_failed', [
+        $attempts = [
+            [
                 'provider' => $provider,
-                'model' => $model,
-                'message' => $primaryException->getMessage(),
-            ]);
+                'model' => $model ?: null,
+            ],
+        ];
 
-            return $pending->generate((string) $fallbackProvider, $fallbackModel ?: null);
+        if ($provider === 'openai') {
+            $openAiFallbackModel = (string) ($secondaryModel ?: 'whisper-1');
+            if (($model ?: null) !== $openAiFallbackModel) {
+                $attempts[] = [
+                    'provider' => $provider,
+                    'model' => $openAiFallbackModel,
+                ];
+            }
         }
+
+        if ($fallbackProvider) {
+            $attempts[] = [
+                'provider' => (string) $fallbackProvider,
+                'model' => $fallbackModel ?: null,
+            ];
+        }
+
+        $lastException = null;
+        foreach ($attempts as $index => $attempt) {
+            try {
+                return $this->generateTranscriptionWithRetries(
+                    $request,
+                    (string) $attempt['provider'],
+                    $attempt['model'] ?: null,
+                );
+            } catch (Throwable $e) {
+                $lastException = $e;
+
+                if ($index === count($attempts) - 1) {
+                    throw $e;
+                }
+
+                Log::warning('conversation_transcription_attempt_failed', [
+                    'provider' => $attempt['provider'],
+                    'model' => $attempt['model'],
+                    'attempt_index' => $index + 1,
+                    'message' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        if ($lastException) {
+            throw $lastException;
+        }
+
+        throw new \RuntimeException('Transcription failed without a provider attempt.');
+    }
+
+    protected function generateTranscriptionWithRetries(Request $request, string $provider, ?string $model)
+    {
+        $retryAttempts = max((int) config('vocation.audio.transcription_retry_attempts', 2), 1);
+        $retryDelayMs = max((int) config('vocation.audio.transcription_retry_delay_ms', 700), 100);
+
+        $lastException = null;
+
+        for ($attempt = 1; $attempt <= $retryAttempts; $attempt++) {
+            try {
+                return Transcription::fromUpload($request->file('audio'))
+                    ->language('en')
+                    ->generate($provider, $model ?: null);
+            } catch (Throwable $e) {
+                $lastException = $e;
+
+                if (! $this->isRateLimitedException($e) || $attempt === $retryAttempts) {
+                    throw $e;
+                }
+
+                $backoffMs = $retryDelayMs * $attempt;
+
+                Log::warning('conversation_transcription_retry', [
+                    'provider' => $provider,
+                    'model' => $model,
+                    'attempt' => $attempt,
+                    'retry_in_ms' => $backoffMs,
+                    'message' => $e->getMessage(),
+                ]);
+
+                usleep($backoffMs * 1000);
+            }
+        }
+
+        if ($lastException) {
+            throw $lastException;
+        }
+
+        throw new \RuntimeException('Transcription retry loop exited unexpectedly.');
     }
 
     protected function isRateLimitedException(Throwable $e): bool
