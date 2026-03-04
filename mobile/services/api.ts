@@ -218,6 +218,7 @@ export interface VocationalProfile {
 export interface AssessmentResults {
   status: 'analyzing' | 'completed' | 'failed';
   profile: VocationalProfile | null;
+  message?: string;
   tier?: 'free';
   locked_sections?: string[];
   upgrade_message?: string;
@@ -283,7 +284,23 @@ export const assessmentApi = {
     const response = await fetch(url, { method: 'GET', headers });
 
     if (response.status === 202) {
-      return { status: 'analyzing', profile: null };
+      const data = await response.json().catch(() => ({}));
+      return {
+        status: 'analyzing',
+        profile: null,
+        message: typeof data?.message === 'string' ? data.message : undefined,
+      };
+    }
+
+    if (response.status === 500) {
+      const data = await response.json().catch(() => ({}));
+      if (data?.status === 'failed') {
+        return {
+          status: 'failed',
+          profile: null,
+          message: typeof data?.message === 'string' ? data.message : 'We encountered an issue analyzing your assessment.',
+        };
+      }
     }
 
     if (!response.ok) {

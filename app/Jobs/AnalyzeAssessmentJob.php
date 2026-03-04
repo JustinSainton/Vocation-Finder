@@ -30,6 +30,14 @@ class AnalyzeAssessmentJob implements ShouldQueue
 
     public function handle(): void
     {
+        $startedAt = microtime(true);
+
+        Log::info('assessment_analysis_started', [
+            'assessment_id' => $this->assessment->id,
+            'attempt' => $this->attempts(),
+            'queue' => $this->queue,
+        ]);
+
         $model = $this->resolveModel();
 
         // Phase A: Structured pattern analysis
@@ -84,6 +92,11 @@ class AnalyzeAssessmentJob implements ShouldQueue
         if ($user) {
             GenerateCurriculumJob::dispatch($user, $this->assessment);
         }
+
+        Log::info('assessment_analysis_completed', [
+            'assessment_id' => $this->assessment->id,
+            'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
+        ]);
     }
 
     protected function resolveModel(): string

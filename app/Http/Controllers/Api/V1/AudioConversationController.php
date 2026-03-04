@@ -396,7 +396,7 @@ class AudioConversationController extends Controller
             'completed_at' => now(),
         ]);
 
-        AnalyzeAssessmentJob::dispatch($assessment);
+        $this->dispatchAnalysisJob($assessment);
 
         return response()->json(['status' => 'analyzing']);
     }
@@ -610,5 +610,30 @@ class AudioConversationController extends Controller
         ];
 
         $assessment->update(['metadata' => $metadata]);
+    }
+
+    protected function dispatchAnalysisJob(Assessment $assessment): void
+    {
+        $dispatchMode = (string) config('vocation.assessment.analysis_dispatch', 'queue');
+
+        Log::info('assessment_analysis_dispatch_requested', [
+            'assessment_id' => $assessment->id,
+            'dispatch_mode' => $dispatchMode,
+            'queue_connection' => config('queue.default'),
+            'queue_name' => 'ai-analysis',
+            'source' => 'audio_conversation',
+        ]);
+
+        if ($dispatchMode === 'sync') {
+            AnalyzeAssessmentJob::dispatchSync($assessment);
+            return;
+        }
+
+        if ($dispatchMode === 'after_response') {
+            AnalyzeAssessmentJob::dispatchAfterResponse($assessment);
+            return;
+        }
+
+        AnalyzeAssessmentJob::dispatch($assessment);
     }
 }

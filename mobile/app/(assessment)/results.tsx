@@ -12,12 +12,14 @@ import { spacing } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 
 const POLL_INTERVAL = 5000;
+const POLL_TIMEOUT_MS = 120000;
 
 export default function ResultsScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const styles = getStyles(colors, isDark);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const {
     results,
     fetchResults,
@@ -25,24 +27,36 @@ export default function ResultsScreen() {
     guestToken,
     tier,
     upgradeMessage,
+    resultsError,
+    resultsStatusMessage,
     reset,
   } = useAssessmentStore();
 
   const [emailValue, setEmailValue] = useState('');
   const [emailSending, setEmailSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [isTakingLong, setIsTakingLong] = useState(false);
 
   // Poll for results until they arrive
   useEffect(() => {
-    if (results) return;
+    if (results || resultsError) return;
 
+    setIsTakingLong(false);
     fetchResults();
+
+    timeoutRef.current = setTimeout(() => {
+      setIsTakingLong(true);
+    }, POLL_TIMEOUT_MS);
 
     pollRef.current = setInterval(async () => {
       const profile = await fetchResults();
       if (profile && pollRef.current) {
         clearInterval(pollRef.current);
         pollRef.current = null;
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     }, POLL_INTERVAL);
@@ -52,8 +66,17 @@ export default function ResultsScreen() {
         clearInterval(pollRef.current);
         pollRef.current = null;
       }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
     };
-  }, []);
+  }, [fetchResults, results, resultsError]);
+
+  const handleRetryResults = async () => {
+    setIsTakingLong(false);
+    await fetchResults();
+  };
 
   const handleEmailResults = async () => {
     if (!assessmentId || !emailValue.trim()) return;
@@ -88,16 +111,54 @@ export default function ResultsScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <Typography variant="bodyLarge" style={styles.waitingText}>
-            Your vocational portrait is being prepared.
-          </Typography>
-          <Typography
-            variant="body"
-            color={colors.textSecondary}
-            style={styles.waitingSub}
-          >
-            This may take a moment. Your reflections deserve careful attention.
-          </Typography>
+          {resultsError ? (
+            <>
+              <Typography variant="bodyLarge" style={styles.waitingText}>
+                We could not complete your assessment yet.
+              </Typography>
+              <Typography
+                variant="body"
+                color={colors.textSecondary}
+                style={styles.waitingSub}
+              >
+                {resultsError}
+              </Typography>
+              <View style={styles.waitingActions}>
+                <Button title="Try again" onPress={handleRetryResults} />
+                <Button title="Start over" variant="secondary" onPress={handleStartOver} />
+              </View>
+            </>
+          ) : (
+            <>
+              <Typography variant="bodyLarge" style={styles.waitingText}>
+                Your vocational portrait is being prepared.
+              </Typography>
+              <Typography
+                variant="body"
+                color={colors.textSecondary}
+                style={styles.waitingSub}
+              >
+                {resultsStatusMessage ??
+                  'This may take a moment. Your reflections deserve careful attention.'}
+              </Typography>
+              {isTakingLong ? (
+                <>
+                  <Typography
+                    variant="small"
+                    family="sans"
+                    color={colors.textSecondary}
+                    style={styles.waitingSub}
+                  >
+                    This is taking longer than expected. If it remains stuck, the background
+                    analysis worker may be paused.
+                  </Typography>
+                  <View style={styles.waitingActions}>
+                    <Button title="Check again" onPress={handleRetryResults} />
+                  </View>
+                </>
+              ) : null}
+            </>
+          )}
         </View>
       </SafeAreaView>
     );
@@ -327,6 +388,11 @@ const getStyles = (
     },
     waitingSub: {
       textAlign: 'center',
+    },
+    waitingActions: {
+      width: '100%',
+      gap: spacing.md,
+      marginTop: spacing.lg,
     },
     scrollContent: {
       paddingHorizontal: spacing.xl,
