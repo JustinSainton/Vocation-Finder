@@ -9,6 +9,7 @@ use App\Models\Assessment;
 use App\Models\Answer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class AssessmentController extends Controller
@@ -92,9 +93,33 @@ class AssessmentController extends Controller
             'completed_at' => now(),
         ]);
 
-        AnalyzeAssessmentJob::dispatch($assessment);
+        $this->dispatchAnalysisJob($assessment);
 
         return response()->json(['status' => 'analyzing']);
+    }
+
+    private function dispatchAnalysisJob(Assessment $assessment): void
+    {
+        $dispatchMode = (string) config('vocation.assessment.analysis_dispatch', 'queue');
+
+        Log::info('assessment_analysis_dispatch_requested', [
+            'assessment_id' => $assessment->id,
+            'dispatch_mode' => $dispatchMode,
+            'queue_connection' => config('queue.default'),
+            'queue_name' => 'ai-analysis',
+        ]);
+
+        if ($dispatchMode === 'sync') {
+            AnalyzeAssessmentJob::dispatchSync($assessment);
+            return;
+        }
+
+        if ($dispatchMode === 'after_response') {
+            AnalyzeAssessmentJob::dispatchAfterResponse($assessment);
+            return;
+        }
+
+        AnalyzeAssessmentJob::dispatch($assessment);
     }
 
     private function authorizeAccess(Request $request, Assessment $assessment): void

@@ -14,6 +14,7 @@ type AssessmentStatus =
   | 'orientation'
   | 'in_progress'
   | 'analyzing'
+  | 'failed'
   | 'completed';
 
 export type ConversationState =
@@ -48,6 +49,7 @@ interface AssessmentState {
   results: VocationalProfile | null;
   resultsLoading: boolean;
   resultsError: string | null;
+  resultsStatusMessage: string | null;
   tier: 'free' | 'paid' | null;
   lockedSections: string[];
   upgradeMessage: string | null;
@@ -92,6 +94,7 @@ const initialState = {
   results: null as VocationalProfile | null,
   resultsLoading: false,
   resultsError: null as string | null,
+  resultsStatusMessage: null as string | null,
   tier: null as 'free' | 'paid' | null,
   lockedSections: [] as string[],
   upgradeMessage: null as string | null,
@@ -153,6 +156,8 @@ export const useAssessmentStore = create<AssessmentState>()(
           currentQuestion: 0,
           answers: {},
           results: null,
+          resultsError: null,
+          resultsStatusMessage: null,
         });
         return data.id;
       },
@@ -202,6 +207,8 @@ export const useAssessmentStore = create<AssessmentState>()(
               results: data.profile,
               resultsLoading: false,
               status: 'completed',
+              resultsError: null,
+              resultsStatusMessage: null,
               tier: data.tier ?? 'paid',
               lockedSections: data.locked_sections ?? [],
               upgradeMessage: data.upgrade_message ?? null,
@@ -209,7 +216,21 @@ export const useAssessmentStore = create<AssessmentState>()(
             return data.profile;
           }
 
-          set({ resultsLoading: false });
+          if (data.status === 'failed') {
+            set({
+              resultsLoading: false,
+              status: 'failed',
+              resultsError: data.message ?? 'We encountered an issue analyzing your assessment.',
+              resultsStatusMessage: null,
+            });
+            return null;
+          }
+
+          set({
+            resultsLoading: false,
+            status: 'analyzing',
+            resultsStatusMessage: data.message ?? null,
+          });
           return null;
         } catch (err: any) {
           set({
