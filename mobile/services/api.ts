@@ -17,7 +17,7 @@ function normalizeApiBaseUrl(url: string): string {
 
 const envApiUrl = process.env.EXPO_PUBLIC_API_URL;
 const configApiUrl = Constants.expoConfig?.extra?.apiUrl as string | undefined;
-const fallbackApiUrl = 'http://127.0.0.1:8000';
+const fallbackApiUrl = 'https://vocation-finder-main-f14jpf.laravel.cloud';
 
 const BASE_URL = normalizeApiBaseUrl(envApiUrl ?? configApiUrl ?? fallbackApiUrl);
 

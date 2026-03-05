@@ -52,6 +52,7 @@
     ],
     "extra": {
       "router": {},
+      "apiUrl": "https://vocation-finder-main-f14jpf.laravel.cloud",
       "eas": {
         "projectId": "7b3e2bf3-80d9-4757-a035-59cdcb47ee23"
       }
