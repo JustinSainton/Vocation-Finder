@@ -14,8 +14,11 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.vocationfinder.app",
-      "appleTeamId": "6CJ76J3665"
+      "bundleIdentifier": "io.vocationfinder.app",
+      "appleTeamId": "6CJ76J3665",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -44,7 +47,15 @@
         {
           "microphonePermission": "Allow Vocation Finder to access your microphone for voice conversations."
         }
-      ]
-    ]
+      ],
+      "expo-asset"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7b3e2bf3-80d9-4757-a035-59cdcb47ee23"
+      }
+    },
+    "owner": "justinsainton"
   }
 }
