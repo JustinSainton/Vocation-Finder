@@ -30,7 +30,8 @@
     "production": {
       "ios": {
         "appleId": "justinsanton@gmail.com",
-        "appleTeamId": "6CJ76J3665"
+        "appleTeamId": "6CJ76J3665",
+        "ascAppId": "6760142511"
       }
     }
   }
