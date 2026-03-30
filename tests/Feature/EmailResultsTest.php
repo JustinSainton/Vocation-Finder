@@ -136,4 +136,34 @@ class EmailResultsTest extends TestCase
             return $mail->hasTo('test@example.com');
         });
     }
+
+    public function test_results_mail_includes_pdf_attachment(): void
+    {
+        $assessment = Assessment::create([
+            'mode' => 'written',
+            'status' => 'completed',
+            'guest_token' => Str::random(64),
+            'started_at' => now(),
+            'completed_at' => now(),
+        ]);
+
+        $profile = VocationalProfile::create([
+            'assessment_id' => $assessment->id,
+            'opening_synthesis' => 'Test synthesis.',
+            'vocational_orientation' => 'Test orientation.',
+            'primary_pathways' => ['Pathway 1'],
+            'specific_considerations' => 'Test considerations.',
+            'next_steps' => ['Step 1'],
+            'ministry_integration' => 'Test ministry integration.',
+            'primary_domain' => 'Creating & Building',
+            'mode_of_work' => 'Collaborative',
+            'secondary_orientation' => 'Leadership',
+            'category_scores' => [],
+            'ai_analysis_raw' => [],
+        ]);
+
+        $mail = new ResultsMail($profile);
+
+        $this->assertCount(1, $mail->attachments());
+    }
 }

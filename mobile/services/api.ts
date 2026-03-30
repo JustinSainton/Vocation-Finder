@@ -59,13 +59,15 @@ function deriveErrorMessage(
 async function request<T>(
   endpoint: string,
   method: HttpMethod = 'GET',
-  body?: unknown
+  body?: unknown,
+  extraHeaders?: Record<string, string>
 ): Promise<T> {
   const url = `${BASE_URL}${endpoint}`;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...getAuthHeaders(),
+    ...extraHeaders,
   };
 
   const config: RequestInit = {
@@ -111,18 +113,20 @@ async function request<T>(
  * Raw HTTP helpers
  */
 export const api = {
-  get: <T>(endpoint: string) => request<T>(endpoint, 'GET'),
+  get: <T>(endpoint: string, extraHeaders?: Record<string, string>) =>
+    request<T>(endpoint, 'GET', undefined, extraHeaders),
 
-  post: <T>(endpoint: string, body?: unknown) =>
-    request<T>(endpoint, 'POST', body),
+  post: <T>(endpoint: string, body?: unknown, extraHeaders?: Record<string, string>) =>
+    request<T>(endpoint, 'POST', body, extraHeaders),
 
-  put: <T>(endpoint: string, body?: unknown) =>
-    request<T>(endpoint, 'PUT', body),
+  put: <T>(endpoint: string, body?: unknown, extraHeaders?: Record<string, string>) =>
+    request<T>(endpoint, 'PUT', body, extraHeaders),
 
-  patch: <T>(endpoint: string, body?: unknown) =>
-    request<T>(endpoint, 'PATCH', body),
+  patch: <T>(endpoint: string, body?: unknown, extraHeaders?: Record<string, string>) =>
+    request<T>(endpoint, 'PATCH', body, extraHeaders),
 
-  delete: <T>(endpoint: string) => request<T>(endpoint, 'DELETE'),
+  delete: <T>(endpoint: string, extraHeaders?: Record<string, string>) =>
+    request<T>(endpoint, 'DELETE', undefined, extraHeaders),
 };
 
 /**
@@ -264,12 +268,16 @@ export const assessmentApi = {
     return api.post<{ id: string }>(`/assessments/${assessmentId}/answers`, {
       question_id: questionId,
       response_text: responseText,
-    });
+    }, headers);
   },
 
   /** Mark the assessment as complete, triggering synthesis */
   completeAssessment: (assessmentId: string, guestToken?: string) =>
-    api.post<{ status: string }>(`/assessments/${assessmentId}/complete`),
+    api.post<{ status: string }>(
+      `/assessments/${assessmentId}/complete`,
+      undefined,
+      guestToken ? { 'X-Guest-Token': guestToken } : undefined
+    ),
 
   /** Fetch results (returns 202 while processing, 200 when ready) */
   getResults: async (assessmentId: string, guestToken?: string): Promise<AssessmentResults> => {
@@ -322,8 +330,12 @@ export const assessmentApi = {
   },
 
   /** Email results to the user */
-  emailResults: (assessmentId: string, email: string) =>
-    api.post<{ message: string }>(`/assessments/${assessmentId}/results/email`, { email }),
+  emailResults: (assessmentId: string, email: string, guestToken?: string) =>
+    api.post<{ message: string }>(
+      `/assessments/${assessmentId}/results/email`,
+      { email },
+      guestToken ? { 'X-Guest-Token': guestToken } : undefined
+    ),
 
   // ── Conversation mode ───────────────────────────────────────
 

@@ -42,6 +42,7 @@ Route::prefix('v1')->group(function () {
 
     // Results
     Route::get('assessments/{assessment}/results', [ResultsController::class, 'show']);
+    Route::get('assessments/{assessment}/results/pdf', [ResultsController::class, 'pdf']);
     Route::post('assessments/{assessment}/results/email', [ResultsController::class, 'email']);
 
     // Audio conversation

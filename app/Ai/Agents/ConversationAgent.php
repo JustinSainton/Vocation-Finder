@@ -81,12 +81,12 @@ INSTRUCTIONS;
     {
         return [
             'is_sufficient' => $schema->boolean('Whether the response provides enough substance for vocational analysis'),
-            'follow_up_question' => $schema->nullable(
-                $schema->string('If not sufficient, a natural follow-up question to draw out more depth'),
-            ),
-            'synthesized_answer' => $schema->nullable(
-                $schema->string('If sufficient, a clean third-person summary of the user\'s full answer across all turns'),
-            ),
+            'follow_up_question' => $schema
+                ->string('If not sufficient, a natural follow-up question to draw out more depth')
+                ->nullable(),
+            'synthesized_answer' => $schema
+                ->string('If sufficient, a clean third-person summary of the user\'s full answer across all turns')
+                ->nullable(),
             'reasoning' => $schema->string('Brief explanation of why the response is or is not sufficient'),
         ];
     }

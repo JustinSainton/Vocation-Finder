@@ -77,6 +77,14 @@ return [
         'eleven' => [
             'driver' => 'eleven',
             'key' => env('ELEVENLABS_API_KEY'),
+            'models' => [
+                'audio' => [
+                    'default' => env('ELEVENLABS_TTS_MODEL', 'eleven_flash_v2_5'),
+                ],
+                'transcription' => [
+                    'default' => env('ELEVENLABS_TRANSCRIPTION_MODEL', 'scribe_v2'),
+                ],
+            ],
         ],
 
         'gemini' => [

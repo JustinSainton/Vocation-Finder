@@ -271,9 +271,11 @@ class AudioConversationController extends Controller
             $expiresAt = now()->addMinutes((int) config('vocation.audio.tts_audio_ttl_minutes', 15));
             [$filesystem, $activeDisk] = $this->resolveTtsFilesystem($disk, $fallbackDisk);
 
-            $primaryProvider = (string) config('vocation.audio.tts_provider', 'openai');
-            $primaryModel = (string) config('vocation.audio.tts_model', 'gpt-4o-mini-tts');
-            $primaryVoice = (string) config('vocation.audio.tts_voice', 'nova');
+            [
+                'provider' => $primaryProvider,
+                'model' => $primaryModel,
+                'voice' => $primaryVoice,
+            ] = $this->resolvePrimaryTtsConfig();
             $instructions = (string) config('vocation.audio.tts_instructions', 'Warm, natural, and conversational.');
 
             $fallbackProvider = config('vocation.audio.tts_fallback_provider');
@@ -419,9 +421,11 @@ class AudioConversationController extends Controller
 
     protected function transcribeAudio(Request $request)
     {
-        $provider = (string) config('vocation.audio.transcription_provider', config('ai.default_for_transcription', 'openai'));
-        $model = config('vocation.audio.transcription_model');
-        $secondaryModel = config('vocation.audio.transcription_secondary_model');
+        [
+            'provider' => $provider,
+            'model' => $model,
+            'secondary_model' => $secondaryModel,
+        ] = $this->resolvePrimaryTranscriptionConfig();
         $fallbackProvider = config('vocation.audio.transcription_fallback_provider');
         $fallbackModel = config('vocation.audio.transcription_fallback_model');
 
@@ -518,6 +522,78 @@ class AudioConversationController extends Controller
         }
 
         throw new \RuntimeException('Transcription retry loop exited unexpectedly.');
+    }
+
+    protected function resolvePrimaryTtsConfig(): array
+    {
+        $provider = (string) config('vocation.audio.tts_provider', 'openai');
+        $model = (string) config('vocation.audio.tts_model', 'gpt-4o-mini-tts');
+        $voice = (string) config('vocation.audio.tts_voice', 'nova');
+
+        if ($this->shouldFallbackFromOpenAiToEleven($provider)) {
+            return [
+                'provider' => 'eleven',
+                'model' => $this->looksLikeOpenAiTtsModel($model) ? 'eleven_flash_v2_5' : $model,
+                'voice' => $this->normalizeElevenVoice($voice),
+            ];
+        }
+
+        return [
+            'provider' => $provider,
+            'model' => $model,
+            'voice' => $voice,
+        ];
+    }
+
+    protected function resolvePrimaryTranscriptionConfig(): array
+    {
+        $provider = (string) config('vocation.audio.transcription_provider', config('ai.default_for_transcription', 'openai'));
+        $model = config('vocation.audio.transcription_model');
+        $secondaryModel = config('vocation.audio.transcription_secondary_model');
+
+        if ($this->shouldFallbackFromOpenAiToEleven($provider)) {
+            return [
+                'provider' => 'eleven',
+                'model' => $this->looksLikeOpenAiTranscriptionModel($model) ? 'scribe_v2' : ($model ?: 'scribe_v2'),
+                'secondary_model' => null,
+            ];
+        }
+
+        return [
+            'provider' => $provider,
+            'model' => $model,
+            'secondary_model' => $secondaryModel,
+        ];
+    }
+
+    protected function shouldFallbackFromOpenAiToEleven(string $provider): bool
+    {
+        return $provider === 'openai'
+            && blank(config('ai.providers.openai.key'))
+            && filled(config('ai.providers.eleven.key'));
+    }
+
+    protected function normalizeElevenVoice(string $voice): string
+    {
+        if ($voice === '' || in_array($voice, ['nova', 'alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse'], true)) {
+            return 'default-female';
+        }
+
+        return $voice;
+    }
+
+    protected function looksLikeOpenAiTtsModel(?string $model): bool
+    {
+        return $model === null || str_starts_with($model, 'gpt-') || str_starts_with($model, 'tts-');
+    }
+
+    protected function looksLikeOpenAiTranscriptionModel(mixed $model): bool
+    {
+        if (! is_string($model) || trim($model) === '') {
+            return true;
+        }
+
+        return str_starts_with($model, 'gpt-') || str_starts_with($model, 'whisper');
     }
 
     protected function isRateLimitedException(Throwable $e): bool
