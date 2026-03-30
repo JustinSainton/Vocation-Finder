@@ -88,57 +88,63 @@ INSTRUCTIONS;
 
     public function schema(JsonSchema $schema): array
     {
+        $stringList = fn (string $description = '') => $schema
+            ->array()
+            ->items($schema->string())
+            ->description($description);
+
         return [
             'dimensions' => $schema->object([
                 'service_orientation' => $schema->object([
-                    'pattern' => $schema->string('Primary service pattern identified'),
-                    'mode' => $schema->enum(['direct_care', 'systemic', 'relational', 'technical', 'creative', 'educational']),
-                    'evidence' => $schema->array($schema->string(), 'Specific quotes or references from responses'),
+                    'pattern' => $schema->string()->description('Primary service pattern identified'),
+                    'mode' => $schema->string()->enum(['direct_care', 'systemic', 'relational', 'technical', 'creative', 'educational']),
+                    'evidence' => $stringList('Specific quotes or references from responses'),
                 ]),
                 'problem_solving_draw' => $schema->object([
-                    'primary_concern' => $schema->string('What type of disorder or need compels them'),
-                    'scale' => $schema->enum(['individual', 'organizational', 'community', 'societal']),
-                    'approach' => $schema->enum(['direct_service', 'policy', 'innovation', 'education', 'creation', 'care']),
-                    'evidence' => $schema->array($schema->string()),
+                    'primary_concern' => $schema->string()->description('What type of disorder or need compels them'),
+                    'scale' => $schema->string()->enum(['individual', 'organizational', 'community', 'societal']),
+                    'approach' => $schema->string()->enum(['direct_service', 'policy', 'innovation', 'education', 'creation', 'care']),
+                    'evidence' => $stringList(),
                 ]),
                 'energy_sources' => $schema->object([
-                    'flow_activities' => $schema->string('Activities that produce flow states'),
-                    'works_with' => $schema->enum(['people', 'systems', 'ideas', 'tangible_things']),
-                    'mode' => $schema->enum(['creating', 'organizing', 'discovering', 'caring', 'teaching', 'leading']),
-                    'collaboration' => $schema->enum(['solo', 'collaborative', 'leading_team']),
-                    'evidence' => $schema->array($schema->string()),
+                    'flow_activities' => $schema->string()->description('Activities that produce flow states'),
+                    'works_with' => $schema->string()->enum(['people', 'systems', 'ideas', 'tangible_things']),
+                    'mode' => $schema->string()->enum(['creating', 'organizing', 'discovering', 'caring', 'teaching', 'leading']),
+                    'collaboration' => $schema->string()->enum(['solo', 'collaborative', 'leading_team']),
+                    'evidence' => $stringList(),
                 ]),
                 'values_decision_making' => $schema->object([
-                    'primary_driver' => $schema->string('What drives their decisions when values conflict'),
-                    'risk_orientation' => $schema->enum(['risk_taking', 'security_seeking', 'calculated', 'faith_driven']),
-                    'theological_maturity' => $schema->enum(['emerging', 'developing', 'mature']),
-                    'evidence' => $schema->array($schema->string()),
+                    'primary_driver' => $schema->string()->description('What drives their decisions when values conflict'),
+                    'risk_orientation' => $schema->string()->enum(['risk_taking', 'security_seeking', 'calculated', 'faith_driven']),
+                    'theological_maturity' => $schema->string()->enum(['emerging', 'developing', 'mature']),
+                    'evidence' => $stringList(),
                 ]),
                 'response_to_obstacles' => $schema->object([
-                    'interpretation' => $schema->string('How they interpret limitations and setbacks'),
-                    'providence_awareness' => $schema->enum(['strong', 'moderate', 'emerging', 'not_expressed']),
-                    'resilience_style' => $schema->enum(['adaptive', 'persevering', 'reflective', 'resourceful']),
-                    'evidence' => $schema->array($schema->string()),
+                    'interpretation' => $schema->string()->description('How they interpret limitations and setbacks'),
+                    'providence_awareness' => $schema->string()->enum(['strong', 'moderate', 'emerging', 'not_expressed']),
+                    'resilience_style' => $schema->string()->enum(['adaptive', 'persevering', 'reflective', 'resourceful']),
+                    'evidence' => $stringList(),
                 ]),
                 'vision_legacy' => $schema->object([
-                    'scope' => $schema->enum(['local', 'regional', 'broad', 'generational']),
-                    'focus' => $schema->enum(['individuals', 'systems', 'culture', 'ideas', 'communities']),
-                    'contribution_type' => $schema->string('What "making a difference" means to them'),
-                    'evidence' => $schema->array($schema->string()),
+                    'scope' => $schema->string()->enum(['local', 'regional', 'broad', 'generational']),
+                    'focus' => $schema->string()->enum(['individuals', 'systems', 'culture', 'ideas', 'communities']),
+                    'contribution_type' => $schema->string()->description('What "making a difference" means to them'),
+                    'evidence' => $stringList(),
                 ]),
             ]),
-            'category_scores' => $schema->array(
-                $schema->object([
-                    'category' => $schema->string('One of the 17 vocational category names'),
-                    'score' => $schema->integer('Relevance score 0-100'),
-                    'rationale' => $schema->string('Brief explanation for the score'),
-                ]),
-                'Scored relevance for each of the 17 vocational categories'
-            ),
-            'primary_domain' => $schema->string('The primary vocational domain (e.g., "designing and building structures that serve communities")'),
-            'mode_of_work' => $schema->string('How they would work in that domain (e.g., "entrepreneurial ownership", "collaborative research")'),
-            'secondary_orientation' => $schema->string('Secondary calling dimension (e.g., "leadership and team development")'),
-            'ministry_connection' => $schema->string('How their vocation connects to ministry and service to neighbor — grounded in their specific responses'),
+            'category_scores' => $schema
+                ->array()
+                ->items($schema->object([
+                    'category' => $schema->string()->description('One of the 17 vocational category names'),
+                    'score' => $schema->integer()->min(0)->max(100)->description('Relevance score 0-100'),
+                    'rationale' => $schema->string()->description('Brief explanation for the score'),
+                ]))
+                ->min(17)
+                ->description('Scored relevance for each of the 17 vocational categories'),
+            'primary_domain' => $schema->string()->description('The primary vocational domain (e.g., "designing and building structures that serve communities")'),
+            'mode_of_work' => $schema->string()->description('How they would work in that domain (e.g., "entrepreneurial ownership", "collaborative research")'),
+            'secondary_orientation' => $schema->string()->description('Secondary calling dimension (e.g., "leadership and team development")'),
+            'ministry_connection' => $schema->string()->description('How their vocation connects to ministry and service to neighbor — grounded in their specific responses'),
         ];
     }
 

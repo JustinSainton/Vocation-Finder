@@ -83,7 +83,7 @@ export default function ResultsScreen() {
 
     setEmailSending(true);
     try {
-      await assessmentApi.emailResults(assessmentId, emailValue.trim());
+      await assessmentApi.emailResults(assessmentId, emailValue.trim(), guestToken ?? undefined);
       setEmailSent(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {

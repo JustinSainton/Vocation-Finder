@@ -35,7 +35,16 @@ return [
         'guest_session_days' => 30,
         'data_retention_days' => 365 * 2,
         'autosave_debounce_ms' => 500,
-        'analysis_dispatch' => env('ASSESSMENT_ANALYSIS_DISPATCH', 'queue'),
+        'analysis_dispatch' => env('ASSESSMENT_ANALYSIS_DISPATCH', 'after_response'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Results Delivery Configuration
+    |--------------------------------------------------------------------------
+    */
+    'results' => [
+        'email_dispatch' => env('RESULTS_EMAIL_DISPATCH', 'after_response'),
     ],
 
     /*

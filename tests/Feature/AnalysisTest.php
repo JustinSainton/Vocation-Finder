@@ -132,12 +132,50 @@ class AnalysisTest extends TestCase
                 'id',
                 'opening_synthesis',
                 'vocational_orientation',
+                'primary_pathways',
+                'specific_considerations',
+                'next_steps',
                 'primary_domain',
                 'mode_of_work',
                 'secondary_orientation',
+                'ministry_integration',
                 'created_at',
             ],
         ]);
+    }
+
+    public function test_results_pdf_returns_generated_pdf_when_completed(): void
+    {
+        $assessment = Assessment::create([
+            'mode' => 'written',
+            'status' => 'completed',
+            'guest_token' => Str::random(64),
+            'started_at' => now(),
+            'completed_at' => now(),
+        ]);
+
+        VocationalProfile::create([
+            'assessment_id' => $assessment->id,
+            'opening_synthesis' => 'You are drawn to creative problem-solving.',
+            'vocational_orientation' => 'Your orientation blends innovation with care.',
+            'primary_pathways' => ['Architecture with community focus', 'Urban planning'],
+            'specific_considerations' => 'Your leadership instincts are strong.',
+            'next_steps' => ['Explore architecture programs', 'Find a mentor in the field'],
+            'ministry_integration' => 'Your work in design is itself an act of service.',
+            'primary_domain' => 'Creating & Building',
+            'mode_of_work' => 'Entrepreneurial',
+            'secondary_orientation' => 'Leadership & Management',
+            'category_scores' => [],
+            'ai_analysis_raw' => [],
+        ]);
+
+        $response = $this->get(
+            "/api/v1/assessments/{$assessment->id}/results/pdf",
+            ['X-Guest-Token' => $assessment->guest_token]
+        );
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'application/pdf');
     }
 
     public function test_unauthorized_access_returns_403(): void

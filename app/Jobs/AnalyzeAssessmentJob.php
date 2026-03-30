@@ -53,19 +53,7 @@ class AnalyzeAssessmentJob implements ShouldQueue
         $this->validateAnalysis($analysisData);
 
         // Phase B: Narrative synthesis
-        $narrativeAgent = new NarrativeSynthesis($analysisData);
-        $narrativeResponse = $narrativeAgent->prompt(
-            $narrativeAgent->buildPrompt(),
-            model: $model,
-        );
-
-        $narrative = $narrativeResponse->text;
-
-        // Validate Phase B output
-        $this->validateNarrative($narrative);
-
-        // Parse narrative into sections
-        $sections = $this->parseNarrativeSections($narrative);
+        [$narrative, $sections] = $this->synthesizeNarrative($analysisData, $model);
 
         // Save vocational profile
         $this->assessment->vocationalProfile()->updateOrCreate(
@@ -101,12 +89,6 @@ class AnalyzeAssessmentJob implements ShouldQueue
 
     protected function resolveModel(): string
     {
-        $user = $this->assessment->user;
-
-        if (! $user || ! $user->subscribed()) {
-            return config('vocation.free_tier.analysis_model');
-        }
-
         return config('vocation.ai.model');
     }
 
@@ -180,6 +162,58 @@ class AnalyzeAssessmentJob implements ShouldQueue
         }
     }
 
+    protected function validateParsedSections(array $sections): void
+    {
+        $pathwayCount = count($sections['primary_pathways'] ?? []);
+        if ($pathwayCount < 3) {
+            throw new \RuntimeException("Narrative should contain at least 3 primary pathways, got {$pathwayCount}");
+        }
+
+        $nextStepCount = count($sections['next_steps'] ?? []);
+        if ($nextStepCount < 3) {
+            throw new \RuntimeException("Narrative should contain at least 3 next steps, got {$nextStepCount}");
+        }
+    }
+
+    protected function synthesizeNarrative(array $analysisData, string $model): array
+    {
+        $feedback = '';
+        $lastException = null;
+
+        for ($attempt = 1; $attempt <= 2; $attempt++) {
+            try {
+                $narrativeAgent = new NarrativeSynthesis($analysisData, $feedback);
+                $narrativeResponse = $narrativeAgent->prompt(
+                    $narrativeAgent->buildPrompt(),
+                    model: $model,
+                );
+
+                $narrative = $narrativeResponse->text;
+
+                $this->validateNarrative($narrative);
+
+                $sections = $this->parseNarrativeSections($narrative);
+                $this->validateParsedSections($sections);
+
+                return [$narrative, $sections];
+            } catch (\Throwable $exception) {
+                $lastException = $exception;
+                $feedback = <<<TEXT
+The previous draft did not conform to the required output format.
+
+Correction needed:
+- {$exception->getMessage()}
+- Use the exact markdown headers already specified
+- Provide 3-5 distinct `Primary Pathways` bullets
+- Provide 3-5 distinct `Next Steps` numbered items
+- Do not collapse multiple ideas into a single bullet
+TEXT;
+            }
+        }
+
+        throw $lastException ?? new \RuntimeException('Narrative synthesis failed unexpectedly.');
+    }
+
     protected function parseNarrativeSections(string $narrative): array
     {
         $sections = [
@@ -219,9 +253,7 @@ class AnalyzeAssessmentJob implements ShouldQueue
                 $content = trim($parts[$i]);
 
                 if (in_array($currentSection, ['primary_pathways', 'next_steps'])) {
-                    // Parse bullet points or numbered items into arrays
-                    $items = preg_split('/\n\s*(?:[-•*]|\d+[.)]\s)/', $content, -1, PREG_SPLIT_NO_EMPTY);
-                    $sections[$currentSection] = array_values(array_filter(array_map('trim', $items)));
+                    $sections[$currentSection] = $this->extractListItems($content);
                 } else {
                     $sections[$currentSection] .= $content;
                 }
@@ -229,6 +261,52 @@ class AnalyzeAssessmentJob implements ShouldQueue
         }
 
         return $sections;
+    }
+
+    protected function extractListItems(string $content): array
+    {
+        $lines = preg_split("/\r\n|\n|\r/", trim($content)) ?: [];
+        $items = [];
+        $current = null;
+
+        foreach ($lines as $line) {
+            $trimmed = trim($line);
+
+            if ($trimmed === '') {
+                continue;
+            }
+
+            if (preg_match('/^(?:[-•*]|\d+[.)])\s+(.*)$/u', $trimmed, $matches)) {
+                if ($current !== null) {
+                    $items[] = $this->normalizeListItem($current);
+                }
+
+                $current = $matches[1];
+                continue;
+            }
+
+            if ($current === null) {
+                $current = $trimmed;
+                continue;
+            }
+
+            $current .= ' '.$trimmed;
+        }
+
+        if ($current !== null) {
+            $items[] = $this->normalizeListItem($current);
+        }
+
+        return array_values(array_filter($items));
+    }
+
+    protected function normalizeListItem(string $item): string
+    {
+        $normalized = trim(preg_replace('/\s+/', ' ', $item) ?? $item);
+        $normalized = str_replace('**', '', $normalized);
+        $normalized = preg_replace('/^\s*[-•*]\s*/u', '', $normalized) ?? $normalized;
+
+        return trim($normalized);
     }
 
     public function failed(\Throwable $exception): void
