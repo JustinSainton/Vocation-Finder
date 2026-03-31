@@ -33,10 +33,10 @@ export default function ConversationScreen() {
     isComplete,
   } = useConversationFlow();
 
-  // Navigate to results when conversation is complete
+  // Navigate to after survey when conversation is complete
   useEffect(() => {
     if (isComplete) {
-      router.replace('/(assessment)/results');
+      router.replace('/(assessment)/after');
     }
   }, [isComplete]);
 

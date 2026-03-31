@@ -237,6 +237,38 @@ export default function ResultsScreen() {
           </>
         ) : null}
 
+        {/* Matched Pathway Blurbs */}
+        {results.matched_pathway_blurbs && results.matched_pathway_blurbs.length > 0 ? (
+          <>
+            <Typography variant="heading" style={styles.sectionHeading}>
+              {copy.results.headings.vocationalPathways}
+            </Typography>
+            {results.matched_pathway_blurbs.map((blurb, i) => (
+              <View key={i} style={styles.blurbCard}>
+                <Typography
+                  variant="small"
+                  family="sans"
+                  color={colors.accent}
+                  style={styles.blurbName}
+                >
+                  {blurb.name}
+                </Typography>
+                <Typography variant="body" style={styles.blurbDesc}>
+                  {blurb.description}
+                </Typography>
+                <Typography
+                  variant="small"
+                  color={colors.textSecondary}
+                  style={styles.blurbMinistry}
+                >
+                  {blurb.ministry_connection}
+                </Typography>
+              </View>
+            ))}
+            <View style={styles.divider} />
+          </>
+        ) : null}
+
         {/* Specific Considerations */}
         {results.specific_considerations ? (
           <>
@@ -427,6 +459,24 @@ const getStyles = (
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
       marginBottom: spacing.sm,
+    },
+    blurbCard: {
+      borderWidth: 1,
+      borderColor: colors.divider,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.lg,
+      marginBottom: spacing.md,
+    },
+    blurbName: {
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      marginBottom: spacing.sm,
+    },
+    blurbDesc: {
+      marginBottom: spacing.sm,
+    },
+    blurbMinistry: {
+      fontStyle: 'italic',
     },
     stepRow: {
       flexDirection: 'row',

@@ -221,6 +221,7 @@ export interface VocationalProfile {
   primary_domain: string;
   mode_of_work: string;
   secondary_orientation: string;
+  matched_pathway_blurbs: MatchedPathwayBlurb[];
   created_at: string;
 }
 
@@ -231,6 +232,13 @@ export interface AssessmentResults {
   tier?: 'free';
   locked_sections?: string[];
   upgrade_message?: string;
+}
+
+export interface MatchedPathwayBlurb {
+  name: string;
+  description: string;
+  ministry_connection: string;
+  career_pathways: string[];
 }
 
 export interface ConversationTurnResponse {
@@ -301,6 +309,20 @@ export const assessmentApi = {
       headers
     );
   },
+
+  /** Submit a before or after survey for an assessment */
+  submitSurvey: (
+    assessmentId: string,
+    type: 'before' | 'after',
+    clarityScore: number,
+    actionScore: number,
+    guestToken?: string
+  ) =>
+    api.post<{ id: string }>(
+      `/assessments/${assessmentId}/surveys`,
+      { type, clarity_score: clarityScore, action_score: actionScore },
+      guestToken ? { 'X-Guest-Token': guestToken } : undefined
+    ),
 
   /** Mark the assessment as complete, triggering synthesis */
   completeAssessment: (assessmentId: string, guestToken?: string) =>
