@@ -11,6 +11,7 @@ use App\Models\ConversationSession;
 use App\Models\ConversationTurn;
 use App\Models\Question;
 use App\Services\Ai\ConversationModelSelector;
+use App\Support\ConversationLocale;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -31,13 +32,23 @@ class AudioConversationController extends Controller
     {
         $validated = $request->validate([
             'assessment_id' => 'required|uuid|exists:assessments,id',
+            'locale' => 'nullable|string|max:16',
+            'speech_locale' => 'nullable|string|max:16',
+            'tts_voice_id' => 'nullable|string|max:64',
         ]);
 
         $assessment = Assessment::findOrFail($validated['assessment_id']);
+        $locale = ConversationLocale::normalize($validated['locale'] ?? $assessment->locale);
+        $speechLocale = ConversationLocale::normalize($validated['speech_locale'] ?? $assessment->speech_locale ?? $locale);
+        $questions = Question::with('translations')->orderBy('sort_order')->get();
+        $firstQuestion = $questions->first();
 
         $session = ConversationSession::create([
             'assessment_id' => $assessment->id,
             'status' => 'active',
+            'locale' => $locale,
+            'speech_locale' => $speechLocale,
+            'preferred_tts_voice' => $validated['tts_voice_id'] ?? null,
             'current_question_index' => 0,
         ]);
 
@@ -45,6 +56,12 @@ class AudioConversationController extends Controller
             'session_id' => $session->id,
             'current_question_index' => 0,
             'status' => 'active',
+            'locale' => $locale,
+            'speech_locale' => $speechLocale,
+            'question' => $firstQuestion ? [
+                'text' => $firstQuestion->localizedConversationPrompt($locale) ?? $firstQuestion->localizedQuestionText($locale),
+                'locale' => $locale,
+            ] : null,
         ], 201);
     }
 
@@ -52,7 +69,18 @@ class AudioConversationController extends Controller
     {
         $request->validate([
             'audio' => 'required|file|mimes:aac,m4a,mp3,wav|max:10240',
+            'locale' => 'nullable|string|max:16',
+            'speech_locale' => 'nullable|string|max:16',
         ]);
+
+        // Server-side transcription is disabled — the mobile app should transcribe
+        // on-device using sherpa-onnx and send the transcript via processTurn instead.
+        if (! $this->isServerTranscriptionAvailable()) {
+            return response()->json([
+                'message' => 'Server transcription is unavailable. Please use on-device transcription.',
+                'code' => 'transcription_unavailable',
+            ], 501);
+        }
 
         try {
             $disk = (string) config('vocation.audio.recording_audio_disk', 's3');
@@ -67,6 +95,7 @@ class AudioConversationController extends Controller
                 'audio_path' => $path,
                 'audio_disk' => $activeDisk,
                 'transcript' => $transcriptionResponse->text,
+                'transcript_locale' => ConversationLocale::normalize((string) ($request->input('locale') ?: $request->input('speech_locale') ?: $session->locale)),
                 'status' => 'transcribed',
             ]);
         } catch (Throwable $e) {
@@ -90,10 +119,26 @@ class AudioConversationController extends Controller
     public function processTurn(Request $request, ConversationSession $session): JsonResponse
     {
         $validated = $request->validate([
-            'content' => 'required|string',
+            'content' => 'nullable|string|required_without:transcript',
+            'transcript' => 'nullable|string|required_without:content',
+            'transcript_locale' => 'nullable|string|max:16',
+            'transcript_confidence' => 'nullable|numeric|min:0|max:1',
             'audio_storage_path' => 'nullable|string',
             'duration_seconds' => 'nullable|integer',
+            'client_processing' => 'nullable|array',
+            'client_processing.stt_engine' => 'nullable|string|max:64',
+            'client_processing.tts_engine' => 'nullable|string|max:64',
+            'client_processing.app_version' => 'nullable|string|max:32',
         ]);
+
+        $transcript = trim((string) ($validated['transcript'] ?? $validated['content'] ?? ''));
+        if ($transcript === '') {
+            return response()->json([
+                'message' => 'Transcript content is required.',
+            ], 422);
+        }
+
+        $transcriptLocale = ConversationLocale::normalize($validated['transcript_locale'] ?? $session->locale);
 
         $nextSortOrder = $session->turns()->max('sort_order') + 1;
 
@@ -101,13 +146,17 @@ class AudioConversationController extends Controller
         ConversationTurn::create([
             'conversation_session_id' => $session->id,
             'role' => 'user',
-            'content' => $validated['content'],
+            'content' => $transcript,
+            'content_locale' => $transcriptLocale,
+            'content_confidence' => isset($validated['transcript_confidence']) ? (float) $validated['transcript_confidence'] : null,
+            'stt_engine' => $validated['client_processing']['stt_engine'] ?? null,
+            'metadata' => $validated['client_processing'] ?? null,
             'audio_storage_path' => $validated['audio_storage_path'] ?? null,
             'duration_seconds' => $validated['duration_seconds'] ?? null,
             'sort_order' => $nextSortOrder,
         ]);
 
-        $questions = Question::orderBy('sort_order')->get();
+        $questions = Question::with('translations')->orderBy('sort_order')->get();
         $currentQuestion = $questions->get($session->current_question_index);
 
         if (! $currentQuestion) {
@@ -130,9 +179,10 @@ class AudioConversationController extends Controller
         $latestTurn = array_pop($previousTurns);
 
         $agent = new ConversationAgent(
-            questionText: $currentQuestion->question_text,
-            userResponse: $validated['content'],
-            followUpPrompts: $currentQuestion->follow_up_prompts ?? [],
+            questionText: $currentQuestion->localizedQuestionText($session->locale),
+            userResponse: $transcript,
+            followUpPrompts: $currentQuestion->localizedFollowUpPrompts($session->locale),
+            responseLocale: $session->locale,
             previousTurns: $previousTurns,
         );
 
@@ -160,6 +210,7 @@ class AudioConversationController extends Controller
                 'assessment_id' => $session->assessment_id,
                 'question_id' => $currentQuestion->id,
                 'response_text' => $result['synthesized_answer'],
+                'response_locale' => $session->locale,
                 'audio_storage_path' => $validated['audio_storage_path'] ?? null,
                 'duration_seconds' => $validated['duration_seconds'] ?? null,
             ]);
@@ -172,18 +223,21 @@ class AudioConversationController extends Controller
             $isComplete = $nextQuestion === null;
 
             $aiMessage = $nextQuestion
-                ? $nextQuestion->conversation_prompt ?? $nextQuestion->question_text
-                : 'Thank you for completing all the questions. Your responses have been recorded.';
+                ? $nextQuestion->localizedConversationPrompt($session->locale) ?? $nextQuestion->localizedQuestionText($session->locale)
+                : $this->localizedCompletionMessage($session->locale);
 
             ConversationTurn::create([
                 'conversation_session_id' => $session->id,
                 'role' => 'assistant',
                 'content' => $aiMessage,
+                'content_locale' => $session->locale,
                 'sort_order' => $nextSortOrder + 1,
             ]);
 
             return response()->json([
                 'response' => $aiMessage,
+                'response_locale' => $session->locale,
+                'response_kind' => $isComplete ? 'completion' : 'next_question',
                 'current_question_index' => $nextIndex,
                 'is_follow_up' => false,
                 'is_complete' => $isComplete,
@@ -199,11 +253,14 @@ class AudioConversationController extends Controller
             'conversation_session_id' => $session->id,
             'role' => 'assistant',
             'content' => $followUp,
+            'content_locale' => $session->locale,
             'sort_order' => $nextSortOrder + 1,
         ]);
 
         return response()->json([
             'response' => $followUp,
+            'response_locale' => $session->locale,
+            'response_kind' => 'follow_up',
             'current_question_index' => $session->current_question_index,
             'is_follow_up' => true,
             'is_complete' => false,
@@ -261,8 +318,18 @@ class AudioConversationController extends Controller
 
     public function synthesizeSpeech(Request $request): JsonResponse
     {
+        // Server-side TTS is disabled — the mobile app should synthesize
+        // on-device using sherpa-onnx local TTS models.
+        if (! $this->isServerTtsAvailable()) {
+            return response()->json([
+                'message' => 'Server TTS is unavailable. Please use on-device speech synthesis.',
+                'code' => 'tts_unavailable',
+            ], 501);
+        }
+
         $validated = $request->validate([
             'text' => 'required|string|max:2500',
+            'locale' => 'nullable|string|max:16',
         ]);
 
         try {
@@ -488,13 +555,15 @@ class AudioConversationController extends Controller
     {
         $retryAttempts = max((int) config('vocation.audio.transcription_retry_attempts', 2), 1);
         $retryDelayMs = max((int) config('vocation.audio.transcription_retry_delay_ms', 700), 100);
+        $locale = ConversationLocale::normalize((string) ($request->input('locale') ?: $request->input('speech_locale')));
+        $transcriptionLanguage = $this->transcriptionLanguageForLocale($locale);
 
         $lastException = null;
 
         for ($attempt = 1; $attempt <= $retryAttempts; $attempt++) {
             try {
                 return Transcription::fromUpload($request->file('audio'))
-                    ->language('en')
+                    ->language($transcriptionLanguage)
                     ->generate($provider, $model ?: null);
             } catch (Throwable $e) {
                 $lastException = $e;
@@ -702,14 +771,67 @@ class AudioConversationController extends Controller
 
         if ($dispatchMode === 'sync') {
             AnalyzeAssessmentJob::dispatchSync($assessment);
+
             return;
         }
 
         if ($dispatchMode === 'after_response') {
             AnalyzeAssessmentJob::dispatchAfterResponse($assessment);
+
             return;
         }
 
         AnalyzeAssessmentJob::dispatch($assessment);
+    }
+
+    protected function transcriptionLanguageForLocale(string $locale): string
+    {
+        return match (ConversationLocale::normalize($locale)) {
+            'es-419' => 'es',
+            'pt-BR' => 'pt',
+            default => 'en',
+        };
+    }
+
+    protected function localizedCompletionMessage(string $locale): string
+    {
+        return match (ConversationLocale::normalize($locale)) {
+            'es-419' => 'Gracias por completar todas las preguntas. Tus respuestas han sido registradas.',
+            'pt-BR' => 'Obrigado por concluir todas as perguntas. Suas respostas foram registradas.',
+            default => 'Thank you for completing all the questions. Your responses have been recorded.',
+        };
+    }
+
+    /**
+     * Check whether a working server-side transcription provider is configured.
+     * Returns false when only ElevenLabs is available and its quota is likely exhausted,
+     * or when no transcription provider key is configured at all.
+     */
+    protected function isServerTranscriptionAvailable(): bool
+    {
+        if (filled(config('ai.providers.openai.key'))) {
+            return true;
+        }
+
+        // If only ElevenLabs is available, treat server transcription as unavailable
+        // since the on-device path is preferred and ElevenLabs quota may be exhausted.
+        return false;
+    }
+
+    /**
+     * Check whether a working server-side TTS provider is configured.
+     * Returns false when only ElevenLabs is available and its quota is likely exhausted,
+     * or when no TTS provider key is configured at all.
+     */
+    protected function isServerTtsAvailable(): bool
+    {
+        $provider = (string) config('vocation.audio.tts_provider', 'openai');
+
+        if ($provider === 'openai' && filled(config('ai.providers.openai.key'))) {
+            return true;
+        }
+
+        // ElevenLabs-only or no provider configured — prefer on-device TTS.
+        return false;
     }
 }
