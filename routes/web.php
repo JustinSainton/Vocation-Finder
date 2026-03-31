@@ -1,5 +1,13 @@
 <?php
 
+use App\Http\Controllers\Web\Admin\AdminAssessmentController;
+use App\Http\Controllers\Web\Admin\AdminCourseController;
+use App\Http\Controllers\Web\Admin\AdminDashboardController;
+use App\Http\Controllers\Web\Admin\AdminOrganizationController;
+use App\Http\Controllers\Web\Admin\AdminQuestionCategoryController;
+use App\Http\Controllers\Web\Admin\AdminQuestionController;
+use App\Http\Controllers\Web\Admin\AdminUserController;
+use App\Http\Controllers\Web\Admin\AdminVocationalCategoryController;
 use App\Http\Controllers\Web\AssessmentController;
 use App\Http\Controllers\Web\Auth\ForgotPasswordController;
 use App\Http\Controllers\Web\Auth\LoginController;
@@ -9,17 +17,9 @@ use App\Http\Controllers\Web\Auth\SocialiteController;
 use App\Http\Controllers\Web\BillingController;
 use App\Http\Controllers\Web\CourseController;
 use App\Http\Controllers\Web\CurriculumPathwayController;
-use App\Http\Controllers\Web\Admin\AdminAssessmentController;
-use App\Http\Controllers\Web\Admin\AdminCourseController;
-use App\Http\Controllers\Web\Admin\AdminDashboardController;
-use App\Http\Controllers\Web\Admin\AdminOrganizationController;
-use App\Http\Controllers\Web\Admin\AdminQuestionCategoryController;
-use App\Http\Controllers\Web\Admin\AdminQuestionController;
-use App\Http\Controllers\Web\Admin\AdminUserController;
-use App\Http\Controllers\Web\Admin\AdminVocationalCategoryController;
 use App\Http\Controllers\Web\Org\OrgDashboardController;
-use App\Http\Controllers\Web\Org\OrgMemberController;
 use App\Http\Controllers\Web\Org\OrgInsightsController;
+use App\Http\Controllers\Web\Org\OrgMemberController;
 use App\Http\Controllers\Webhooks\StripeWebhookController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;

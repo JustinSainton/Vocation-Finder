@@ -87,6 +87,34 @@
             font-weight: bold;
         }
 
+        .pathway-blurb {
+            margin-bottom: 14px;
+            padding: 12px 14px;
+            border-left: 3px solid #a8a29e;
+            background: #f5f5f0;
+        }
+
+        .pathway-blurb-name {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .pathway-blurb-desc {
+            margin: 0 0 6px;
+            color: #1c1917;
+        }
+
+        .pathway-blurb-ministry {
+            margin: 0;
+            font-style: italic;
+            color: #57534e;
+        }
+
+        .career-chips {
+            margin-top: 6px;
+        }
+
         .footer {
             margin-top: 28px;
             padding-top: 14px;
@@ -152,6 +180,25 @@
     @if($profile->ministry_integration)
         <h2>{{ $copy['ministry_integration'] }}</h2>
         {!! nl2br(e($profile->ministry_integration)) !!}
+    @endif
+
+    @php $pathwayBlurbs = $profile->matchedPathwayBlurbs(3); @endphp
+    @if(!empty($pathwayBlurbs))
+        <h2>{{ $copy['vocational_pathways'] }}</h2>
+        @foreach($pathwayBlurbs as $blurb)
+            <div class="pathway-blurb">
+                <div class="pathway-blurb-name">{{ $blurb['name'] }}</div>
+                <p class="pathway-blurb-desc">{{ $blurb['description'] }}</p>
+                <p class="pathway-blurb-ministry">{{ $blurb['ministry_connection'] }}</p>
+                @if(!empty($blurb['career_pathways']))
+                    <div class="career-chips">
+                        @foreach($blurb['career_pathways'] as $cp)
+                            <span class="career-chip">· {{ $cp }}</span>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+        @endforeach
     @endif
 
     <div class="footer">

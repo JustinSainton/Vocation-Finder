@@ -159,6 +159,9 @@ INSTRUCTIONS;
             ->orderBy('id')
             ->get();
 
+        $questionCount = $answers->count();
+        $categoryCount = $answers->map(fn ($a) => $a->question->category?->name ?? 'Unknown')->unique()->count();
+
         $formatted = $answers->map(function ($answer) use ($locale) {
             $category = $answer->question->category->name ?? 'Unknown';
             $question = $answer->question->localizedQuestionText($locale);
@@ -168,7 +171,7 @@ INSTRUCTIONS;
         })->join("\n\n---\n\n");
 
         return <<<PROMPT
-Analyze the following vocational discernment assessment responses. The respondent answered 20 questions across 7 categories designed to reveal their vocational calling.
+Analyze the following vocational discernment assessment responses. The respondent answered {$questionCount} questions across {$categoryCount} categories designed to reveal their vocational calling.
 
 ## Response Language
 

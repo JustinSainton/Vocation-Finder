@@ -74,6 +74,7 @@ interface AssessmentState {
   fetchQuestions: () => Promise<void>;
   createAssessment: (mode: 'written' | 'conversation') => Promise<string>;
   saveAnswerToApi: (questionIndex: number, answer: string) => Promise<void>;
+  submitSurvey: (type: 'before' | 'after', clarityScore: number, actionScore: number) => Promise<void>;
   completeAssessment: () => Promise<void>;
   fetchResults: () => Promise<VocationalProfile | null>;
 
@@ -236,6 +237,23 @@ export const useAssessmentStore = create<AssessmentState>()(
 
         set({ status: 'analyzing' });
         await assessmentApi.completeAssessment(assessmentId, guestToken ?? undefined);
+      },
+
+      submitSurvey: async (type, clarityScore, actionScore) => {
+        const { assessmentId, guestToken } = get();
+        if (!assessmentId) return;
+
+        try {
+          await assessmentApi.submitSurvey(
+            assessmentId,
+            type,
+            clarityScore,
+            actionScore,
+            guestToken ?? undefined
+          );
+        } catch {
+          // Survey failures are non-fatal — do not block the user flow
+        }
       },
 
       fetchResults: async () => {
