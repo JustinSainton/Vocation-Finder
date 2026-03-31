@@ -19,7 +19,10 @@ class AssessmentController extends Controller
 
     public function written(Request $request): Response
     {
+        $betaEnabled = config('vocation.beta.questions_enabled');
+
         $questions = Question::with('category')
+            ->where('is_beta', $betaEnabled)
             ->orderBy('sort_order')
             ->get()
             ->map(fn (Question $q) => [

@@ -27,13 +27,13 @@ export default function SynthesisScreen() {
       await Haptics.notificationAsync(
         Haptics.NotificationFeedbackType.Success
       );
-      router.replace('/(assessment)/results');
+      router.replace('/(assessment)/after');
     } catch {
-      // If the API call fails, still navigate -- results screen will poll
+      // If the API call fails, still navigate -- after survey can be skipped
       await Haptics.notificationAsync(
         Haptics.NotificationFeedbackType.Success
       );
-      router.replace('/(assessment)/results');
+      router.replace('/(assessment)/after');
     }
   };
 

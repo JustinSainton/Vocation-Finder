@@ -23,11 +23,11 @@ export default function OrientationScreen() {
   const copy = getAssessmentCopy(locale);
 
   const handleSpeak = () => {
-    router.push('/(assessment)/conversation');
+    router.push('/(assessment)/before?mode=conversation');
   };
 
   const handleWrite = () => {
-    router.push('/(assessment)/written');
+    router.push('/(assessment)/before?mode=written');
   };
 
   const toggleCheck = async () => {

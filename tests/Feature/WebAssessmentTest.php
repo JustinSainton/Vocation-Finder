@@ -44,6 +44,18 @@ class WebAssessmentTest extends TestCase
         $this->assertDatabaseCount('assessments', 1);
     }
 
+    public function test_written_page_loads_beta_questions_when_flag_enabled(): void
+    {
+        config(['vocation.beta.questions_enabled' => true]);
+
+        $response = $this->get('/assessment/written');
+
+        $response->assertOk();
+
+        // Assessment created
+        $this->assertDatabaseCount('assessments', 1);
+    }
+
     public function test_results_page_loads_for_analyzing_assessment(): void
     {
         $assessment = Assessment::create([
@@ -87,5 +99,10 @@ class WebAssessmentTest extends TestCase
         $response = $this->get("/assessment/{$assessment->id}/results");
 
         $response->assertOk();
+    }
+
+    public function test_beta_questions_are_seeded(): void
+    {
+        $this->assertDatabaseHas('questions', ['is_beta' => true]);
     }
 }

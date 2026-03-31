@@ -117,6 +117,24 @@ type AssessmentCopy = {
     continueLabel: string;
     preparing: string;
   };
+  beforeSurvey: {
+    title: string;
+    subtitle: string;
+    clarityQuestion: string;
+    clarityScale: string;
+    readinessQuestion: string;
+    readinessScale: string;
+    beginButton: string;
+  };
+  afterSurvey: {
+    title: string;
+    subtitle: string;
+    clarityQuestion: string;
+    clarityScale: string;
+    likelihoodQuestion: string;
+    likelihoodScale: string;
+    submitButton: string;
+  };
   results: {
     notReadyTitle: string;
     notReadyBody: string;
@@ -132,6 +150,7 @@ type AssessmentCopy = {
       specificConsiderations: string;
       nextSteps: string;
       ministryIntegration: string;
+      vocationalPathways: string;
       saveResults: string;
     };
     emailPrompt: string;
@@ -207,6 +226,24 @@ const COPY: Record<AssessmentLocale, AssessmentCopy> = {
       continueLabel: 'Continue',
       preparing: 'Preparing...',
     },
+    beforeSurvey: {
+      title: 'Before You Begin',
+      subtitle: 'Answer honestly — this is for your clarity.',
+      clarityQuestion: 'How clear are you about your vocational direction right now?',
+      clarityScale: '1 = no clarity · 10 = extremely clear',
+      readinessQuestion: 'How ready do you feel to make a real decision about your future (career, education, or calling)?',
+      readinessScale: '1 = not ready at all · 10 = fully ready',
+      beginButton: 'Begin Assessment',
+    },
+    afterSurvey: {
+      title: 'One More Step',
+      subtitle: 'Take 20 seconds to reflect on your experience.',
+      clarityQuestion: 'After taking this assessment, how clear are you about your vocational direction?',
+      clarityScale: '1 = no clarity · 10 = extremely clear',
+      likelihoodQuestion: 'How likely are you to take a concrete next step based on this assessment?',
+      likelihoodScale: '1 = very unlikely · 10 = very likely',
+      submitButton: 'See My Results',
+    },
     results: {
       notReadyTitle: 'Your vocational portrait is being prepared.',
       notReadyBody:
@@ -224,6 +261,7 @@ const COPY: Record<AssessmentLocale, AssessmentCopy> = {
         specificConsiderations: 'Specific Considerations',
         nextSteps: 'Next Steps',
         ministryIntegration: 'Ministry Integration',
+        vocationalPathways: 'Your Vocational Pathways',
         saveResults: 'Save your results',
       },
       emailPrompt:
@@ -299,6 +337,24 @@ const COPY: Record<AssessmentLocale, AssessmentCopy> = {
       continueLabel: 'Continuar',
       preparing: 'Preparando...',
     },
+    beforeSurvey: {
+      title: 'Antes de comenzar',
+      subtitle: 'Responde con honestidad — esto es para tu propia claridad.',
+      clarityQuestion: '¿Qué tan claro tienes tu dirección vocacional ahora mismo?',
+      clarityScale: '1 = sin claridad · 10 = completamente claro',
+      readinessQuestion: '¿Qué tan listo(a) te sientes para tomar una decisión real sobre tu futuro (carrera, educación o llamado)?',
+      readinessScale: '1 = para nada listo(a) · 10 = completamente listo(a)',
+      beginButton: 'Comenzar evaluación',
+    },
+    afterSurvey: {
+      title: 'Un paso más',
+      subtitle: 'Tómate 20 segundos para reflexionar sobre tu experiencia.',
+      clarityQuestion: 'Después de esta evaluación, ¿qué tan claro tienes tu dirección vocacional?',
+      clarityScale: '1 = sin claridad · 10 = completamente claro',
+      likelihoodQuestion: '¿Qué tan probable es que des un próximo paso concreto basado en esta evaluación?',
+      likelihoodScale: '1 = muy poco probable · 10 = muy probable',
+      submitButton: 'Ver mis resultados',
+    },
     results: {
       notReadyTitle: 'Tu retrato vocacional se está preparando.',
       notReadyBody:
@@ -316,6 +372,7 @@ const COPY: Record<AssessmentLocale, AssessmentCopy> = {
         specificConsiderations: 'Consideraciones específicas',
         nextSteps: 'Próximos pasos',
         ministryIntegration: 'Integración con el ministerio',
+        vocationalPathways: 'Tus caminos vocacionales',
         saveResults: 'Guarda tus resultados',
       },
       emailPrompt:
@@ -392,6 +449,24 @@ const COPY: Record<AssessmentLocale, AssessmentCopy> = {
       continueLabel: 'Continuar',
       preparing: 'Preparando...',
     },
+    beforeSurvey: {
+      title: 'Antes de começarmos',
+      subtitle: 'Responda com honestidade — isso é para a sua própria clareza.',
+      clarityQuestion: 'Quão claro(a) você está sobre sua direção vocacional agora?',
+      clarityScale: '1 = nenhuma clareza · 10 = extremamente claro',
+      readinessQuestion: 'Quão pronto(a) você se sente para tomar uma decisão real sobre seu futuro (carreira, educação ou chamado)?',
+      readinessScale: '1 = nada pronto(a) · 10 = completamente pronto(a)',
+      beginButton: 'Iniciar avaliação',
+    },
+    afterSurvey: {
+      title: 'Mais um passo',
+      subtitle: 'Tire 20 segundos para refletir sobre sua experiência.',
+      clarityQuestion: 'Após esta avaliação, quão claro(a) você está sobre sua direção vocacional?',
+      clarityScale: '1 = nenhuma clareza · 10 = extremamente claro',
+      likelihoodQuestion: 'Qual a probabilidade de você dar um próximo passo concreto com base nesta avaliação?',
+      likelihoodScale: '1 = muito improvável · 10 = muito provável',
+      submitButton: 'Ver meus resultados',
+    },
     results: {
       notReadyTitle: 'Seu retrato vocacional está sendo preparado.',
       notReadyBody:
@@ -409,6 +484,7 @@ const COPY: Record<AssessmentLocale, AssessmentCopy> = {
         specificConsiderations: 'Considerações específicas',
         nextSteps: 'Próximos passos',
         ministryIntegration: 'Integração ministerial',
+        vocationalPathways: 'Seus caminhos vocacionais',
         saveResults: 'Guarde seus resultados',
       },
       emailPrompt:

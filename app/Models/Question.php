@@ -20,12 +20,14 @@ class Question extends Model
         'conversation_prompt',
         'follow_up_prompts',
         'sort_order',
+        'is_beta',
     ];
 
     protected function casts(): array
     {
         return [
             'follow_up_prompts' => 'array',
+            'is_beta' => 'boolean',
         ];
     }
 

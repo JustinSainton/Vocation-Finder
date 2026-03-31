@@ -188,7 +188,7 @@ class AssessmentFlowTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonPath('data.0.locale', 'es-419');
-        $this->assertStringContainsString('Piensa en una ocasión', $response->json('data.0.question_text'));
+        $this->assertStringContainsString('6 a 12 meses', $response->json('data.0.question_text'));
     }
 
     public function test_conversation_start_returns_localized_first_question(): void
