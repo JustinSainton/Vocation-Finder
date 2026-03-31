@@ -56,7 +56,7 @@ export default function Orientation() {
 
                 <div className="mt-16">
                     <button
-                        onClick={() => router.visit('/assessment/written')}
+                        onClick={() => router.visit('/assessment/before')}
                         disabled={!checked}
                         className="w-full bg-[var(--color-text)] py-4 font-sans text-sm tracking-wide text-[var(--color-background)] transition-colors hover:bg-[var(--color-stone-800)] disabled:cursor-not-allowed disabled:opacity-30"
                     >

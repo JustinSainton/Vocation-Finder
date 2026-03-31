@@ -68,6 +68,11 @@ class Assessment extends Model
         return $this->hasOne(CurriculumPathway::class);
     }
 
+    public function surveys(): HasMany
+    {
+        return $this->hasMany(AssessmentSurvey::class);
+    }
+
     public function isComplete(): bool
     {
         return $this->status === 'completed';

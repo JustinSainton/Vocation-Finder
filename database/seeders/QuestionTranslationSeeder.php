@@ -11,9 +11,26 @@ class QuestionTranslationSeeder extends Seeder
 {
     public function run(): void
     {
-        $questions = Question::orderBy('sort_order')->get()->keyBy('sort_order');
+        // Only process the original (non-beta) questions; beta questions have their own sort_order range
+        $questions = Question::where('is_beta', false)->orderBy('sort_order')->get()->keyBy('sort_order');
 
         foreach ($questions as $question) {
+            QuestionTranslation::updateOrCreate(
+                [
+                    'question_id' => $question->id,
+                    'locale' => ConversationLocale::DEFAULT,
+                ],
+                [
+                    'question_text' => $question->question_text,
+                    'conversation_prompt' => $question->conversation_prompt,
+                    'follow_up_prompts' => $question->follow_up_prompts ?? [],
+                ]
+            );
+        }
+
+        // Seed English translations for beta questions as well
+        $betaQuestions = Question::where('is_beta', true)->orderBy('sort_order')->get();
+        foreach ($betaQuestions as $question) {
             QuestionTranslation::updateOrCreate(
                 [
                     'question_id' => $question->id,
