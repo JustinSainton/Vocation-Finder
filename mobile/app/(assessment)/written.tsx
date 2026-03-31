@@ -10,6 +10,10 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  getAssessmentCopy,
+  translateQuestionCategory,
+} from '../../constants/assessmentLocale';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
 import { TextInput } from '../../components/ui/TextInput';
@@ -31,17 +35,20 @@ export default function WrittenAssessmentScreen() {
     questions,
     questionsLoading,
     questionsError,
+    questionsLocale,
+    locale,
     assessmentId,
     fetchQuestions,
     createAssessment,
     saveAnswerToApi,
     setCurrentQuestion,
   } = useAssessmentStore();
+  const copy = getAssessmentCopy(locale);
 
   // Fetch questions and create assessment on mount
   useEffect(() => {
     const init = async () => {
-      if (questions.length === 0) {
+      if (questions.length === 0 || questionsLocale !== locale) {
         await fetchQuestions();
       }
       if (!assessmentId) {
@@ -63,6 +70,11 @@ export default function WrittenAssessmentScreen() {
 
   const currentAnswer = answers[currentQuestion] ?? '';
   const question = questions[currentQuestion];
+  const localizedCategory = translateQuestionCategory(
+    question?.category_slug,
+    locale,
+    question?.category_name
+  );
   const isLastQuestion = currentQuestion === totalQuestions - 1;
 
   const handleTextChange = useCallback(
@@ -92,7 +104,7 @@ export default function WrittenAssessmentScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
           <Typography variant="body" color={colors.textSecondary}>
-            Preparing your questions...
+            {copy.written.loading}
           </Typography>
         </View>
       </SafeAreaView>
@@ -108,7 +120,7 @@ export default function WrittenAssessmentScreen() {
             {questionsError}
           </Typography>
           <View style={styles.retryAction}>
-            <Button title="Try again" onPress={fetchQuestions} />
+            <Button title={copy.common.tryAgain} onPress={fetchQuestions} />
           </View>
         </View>
       </SafeAreaView>
@@ -120,10 +132,10 @@ export default function WrittenAssessmentScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
           <Typography variant="body" color={colors.textSecondary}>
-            No questions are available yet. Please try again shortly.
+            {copy.written.noneAvailable}
           </Typography>
           <View style={styles.retryAction}>
-            <Button title="Retry" onPress={fetchQuestions} />
+            <Button title={copy.common.retry} onPress={fetchQuestions} />
           </View>
         </View>
       </SafeAreaView>
@@ -143,14 +155,14 @@ export default function WrittenAssessmentScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Category label */}
-          {question?.category_name ? (
+          {localizedCategory ? (
             <Typography
               variant="caption"
               family="sans"
               color={colors.accent}
               style={styles.category}
             >
-              {question.category_name}
+              {localizedCategory}
             </Typography>
           ) : null}
 
@@ -165,7 +177,7 @@ export default function WrittenAssessmentScreen() {
             key={`question-${currentQuestion}`}
             defaultValue={currentAnswer}
             onChangeText={handleTextChange}
-            placeholder="Take your time. Write freely."
+            placeholder={copy.written.placeholder}
             minHeight={200}
           />
 
@@ -178,12 +190,12 @@ export default function WrittenAssessmentScreen() {
               color={colors.accent}
               style={styles.indicator}
             >
-              Question {currentQuestion + 1} of {totalQuestions}
+              {copy.written.progress(currentQuestion, totalQuestions)}
             </Typography>
 
             {/* Continue button */}
             <Button
-              title={isLastQuestion ? 'Finish assessment' : 'Continue'}
+              title={isLastQuestion ? copy.written.finish : copy.written.continueLabel}
               onPress={handleContinue}
               disabled={currentAnswer.trim().length === 0}
             />
@@ -200,7 +212,7 @@ export default function WrittenAssessmentScreen() {
                   family="sans"
                   color={colors.textSecondary}
                 >
-                  Back
+                  {copy.common.back}
                 </Typography>
               </Pressable>
             ) : null}

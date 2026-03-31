@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import { getAssessmentCopy } from '../../constants/assessmentLocale';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
 import { useAssessmentStore } from '../../stores/assessmentStore';
@@ -13,7 +14,9 @@ export default function SynthesisScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = getStyles(colors);
+  const locale = useAssessmentStore((state) => state.locale);
   const { completeAssessment } = useAssessmentStore();
+  const copy = getAssessmentCopy(locale);
   const [submitting, setSubmitting] = useState(false);
 
   const handleContinue = async () => {
@@ -39,8 +42,7 @@ export default function SynthesisScreen() {
       <View style={styles.content}>
         <View style={styles.body}>
           <Typography variant="bodyLarge" style={styles.paragraph}>
-            We're now looking for patterns across what you shared — not isolated
-            answers, but the story they tell together.
+            {copy.synthesis.paragraphOne}
           </Typography>
 
           <Typography
@@ -48,15 +50,13 @@ export default function SynthesisScreen() {
             color={colors.textSecondary}
             style={styles.paragraph}
           >
-            Your reflections deserve careful attention. What comes next is not a
-            summary — it is an articulation of what already lives within your
-            responses.
+            {copy.synthesis.paragraphTwo}
           </Typography>
         </View>
 
         <View style={styles.actions}>
           <Button
-            title={submitting ? 'Preparing...' : 'Continue'}
+            title={submitting ? copy.synthesis.preparing : copy.synthesis.continueLabel}
             onPress={handleContinue}
             disabled={submitting}
           />

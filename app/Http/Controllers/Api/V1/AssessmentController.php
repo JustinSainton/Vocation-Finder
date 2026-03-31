@@ -5,8 +5,9 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\AssessmentResource;
 use App\Jobs\AnalyzeAssessmentJob;
-use App\Models\Assessment;
 use App\Models\Answer;
+use App\Models\Assessment;
+use App\Support\ConversationLocale;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -19,13 +20,20 @@ class AssessmentController extends Controller
         $validated = $request->validate([
             'mode' => 'required|in:conversation,written',
             'organization_id' => 'nullable|uuid|exists:organizations,id',
+            'locale' => 'nullable|string|max:16',
+            'speech_locale' => 'nullable|string|max:16',
         ]);
+
+        $locale = ConversationLocale::normalize($validated['locale'] ?? null);
+        $speechLocale = ConversationLocale::normalize($validated['speech_locale'] ?? $locale);
 
         $assessment = Assessment::create([
             'user_id' => $request->user()?->id,
             'organization_id' => $validated['organization_id'] ?? null,
             'mode' => $validated['mode'],
             'status' => 'in_progress',
+            'locale' => $locale,
+            'speech_locale' => $speechLocale,
             'guest_token' => $request->user() ? null : Str::random(64),
             'started_at' => now(),
         ]);
@@ -51,6 +59,7 @@ class AssessmentController extends Controller
         $validated = $request->validate([
             'question_id' => 'required|uuid|exists:questions,id',
             'response_text' => 'nullable|string',
+            'response_locale' => 'nullable|string|max:16',
         ]);
 
         $answer = Answer::updateOrCreate(
@@ -60,6 +69,7 @@ class AssessmentController extends Controller
             ],
             [
                 'response_text' => $validated['response_text'],
+                'response_locale' => ConversationLocale::normalize($validated['response_locale'] ?? $assessment->locale),
             ]
         );
 
@@ -111,11 +121,13 @@ class AssessmentController extends Controller
 
         if ($dispatchMode === 'sync') {
             AnalyzeAssessmentJob::dispatchSync($assessment);
+
             return;
         }
 
         if ($dispatchMode === 'after_response') {
             AnalyzeAssessmentJob::dispatchAfterResponse($assessment);
+
             return;
         }
 

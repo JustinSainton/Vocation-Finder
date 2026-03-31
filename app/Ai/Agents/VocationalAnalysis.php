@@ -3,6 +3,7 @@
 namespace App\Ai\Agents;
 
 use App\Models\Assessment;
+use App\Support\ConversationLocale;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Attributes\Model;
 use Laravel\Ai\Attributes\Provider;
@@ -21,6 +22,7 @@ class VocationalAnalysis implements Agent, HasStructuredOutput
 
     public function __construct(
         protected Assessment $assessment,
+        protected string $responseLocale = ConversationLocale::DEFAULT,
     ) {}
 
     public function instructions(): Stringable|string
@@ -150,14 +152,16 @@ INSTRUCTIONS;
 
     public function buildPrompt(): string
     {
+        $locale = ConversationLocale::normalize($this->responseLocale ?: $this->assessment->locale);
+        $languageName = ConversationLocale::displayName($locale);
         $answers = $this->assessment->answers()
-            ->with('question.category')
+            ->with('question.category', 'question.translations')
             ->orderBy('id')
             ->get();
 
-        $formatted = $answers->map(function ($answer) {
+        $formatted = $answers->map(function ($answer) use ($locale) {
             $category = $answer->question->category->name ?? 'Unknown';
-            $question = $answer->question->question_text;
+            $question = $answer->question->localizedQuestionText($locale);
             $response = $answer->response_text ?: $answer->audio_transcript;
 
             return "**[{$category}] Q: {$question}**\nResponse: {$response}";
@@ -165,6 +169,11 @@ INSTRUCTIONS;
 
         return <<<PROMPT
 Analyze the following vocational discernment assessment responses. The respondent answered 20 questions across 7 categories designed to reveal their vocational calling.
+
+## Response Language
+
+Write all descriptive string values, rationales, and the ministry connection in {$languageName} ({$locale}).
+Keep the JSON field names exactly as defined by the schema.
 
 ## Assessment Responses
 

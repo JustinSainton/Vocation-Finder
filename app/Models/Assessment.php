@@ -19,6 +19,8 @@ class Assessment extends Model
         'organization_id',
         'mode',
         'status',
+        'locale',
+        'speech_locale',
         'guest_token',
         'metadata',
         'started_at',

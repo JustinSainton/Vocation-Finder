@@ -2,6 +2,7 @@
 
 namespace App\Ai\Agents;
 
+use App\Support\ConversationLocale;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Attributes\Model;
 use Laravel\Ai\Attributes\Provider;
@@ -22,6 +23,7 @@ class ConversationAgent implements Agent, HasStructuredOutput
         protected string $questionText,
         protected string $userResponse,
         protected array $followUpPrompts,
+        protected string $responseLocale = ConversationLocale::DEFAULT,
         protected array $previousTurns = [],
     ) {}
 
@@ -93,7 +95,10 @@ INSTRUCTIONS;
 
     public function buildPrompt(): string
     {
+        $languageName = ConversationLocale::displayName($this->responseLocale);
+
         $prompt = "## Assessment Question\n\n{$this->questionText}\n\n";
+        $prompt .= "## Response Language\n\nWrite all follow-ups and synthesized answers in {$languageName} ({$this->responseLocale}).\n\n";
 
         $prompt .= "## Available Follow-Up Prompts\n\n";
         foreach ($this->followUpPrompts as $i => $followUp) {
@@ -109,7 +114,7 @@ INSTRUCTIONS;
         }
 
         $prompt .= "## Latest User Response\n\n{$this->userResponse}\n\n";
-        $prompt .= "Evaluate this response and decide whether to ask a follow-up or synthesize the answer.";
+        $prompt .= 'Evaluate this response and decide whether to ask a follow-up or synthesize the answer.';
 
         return $prompt;
     }

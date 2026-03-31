@@ -14,6 +14,9 @@ class ConversationSession extends Model
     protected $fillable = [
         'assessment_id',
         'status',
+        'locale',
+        'speech_locale',
+        'preferred_tts_voice',
         'current_question_index',
     ];
 

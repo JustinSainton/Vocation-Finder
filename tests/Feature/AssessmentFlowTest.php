@@ -41,6 +41,19 @@ class AssessmentFlowTest extends TestCase
         $this->assertEquals('conversation', $response->json('mode'));
     }
 
+    public function test_guest_can_create_assessment_with_locale_preferences(): void
+    {
+        $response = $this->postJson('/api/v1/assessments', [
+            'mode' => 'conversation',
+            'locale' => 'es-419',
+            'speech_locale' => 'pt-BR',
+        ]);
+
+        $response->assertCreated();
+        $this->assertEquals('es-419', $response->json('locale'));
+        $this->assertEquals('pt-BR', $response->json('speech_locale'));
+    }
+
     public function test_invalid_mode_returns_422(): void
     {
         $response = $this->postJson('/api/v1/assessments', [
@@ -167,5 +180,35 @@ class AssessmentFlowTest extends TestCase
         $response->assertJsonStructure([
             'data' => ['id', 'mode', 'status'],
         ]);
+    }
+
+    public function test_questions_can_be_requested_in_spanish(): void
+    {
+        $response = $this->getJson('/api/v1/questions?locale=es-419');
+
+        $response->assertOk();
+        $response->assertJsonPath('data.0.locale', 'es-419');
+        $this->assertStringContainsString('Piensa en una ocasión', $response->json('data.0.question_text'));
+    }
+
+    public function test_conversation_start_returns_localized_first_question(): void
+    {
+        $assessment = Assessment::create([
+            'mode' => 'conversation',
+            'status' => 'in_progress',
+            'locale' => 'es-419',
+            'speech_locale' => 'es-419',
+            'guest_token' => Str::random(64),
+            'started_at' => now(),
+        ]);
+
+        $response = $this->postJson('/api/v1/conversations/start', [
+            'assessment_id' => $assessment->id,
+            'locale' => 'es-419',
+        ]);
+
+        $response->assertCreated();
+        $response->assertJsonPath('locale', 'es-419');
+        $this->assertStringContainsString('Me gustaría empezar', $response->json('question.text'));
     }
 }

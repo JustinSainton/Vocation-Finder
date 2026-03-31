@@ -3,16 +3,24 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import {
+  ASSESSMENT_LOCALE_OPTIONS,
+  getAssessmentCopy,
+} from '../../constants/assessmentLocale';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
 import { spacing, layout } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
+import { useAssessmentStore } from '../../stores/assessmentStore';
 
 export default function OrientationScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = getStyles(colors);
   const [checked, setChecked] = useState(false);
+  const locale = useAssessmentStore((state) => state.locale);
+  const setLocalePreferences = useAssessmentStore((state) => state.setLocalePreferences);
+  const copy = getAssessmentCopy(locale);
 
   const handleSpeak = () => {
     router.push('/(assessment)/conversation');
@@ -32,20 +40,49 @@ export default function OrientationScreen() {
       <View style={styles.content}>
         <View style={styles.body}>
           <Typography variant="heading" style={styles.title}>
-            Before we begin
+            {copy.orientation.title}
+          </Typography>
+
+          <Typography
+            variant="small"
+            family="sans"
+            color={colors.textSecondary}
+            style={styles.languageLabel}
+          >
+            {copy.orientation.languageLabel}
+          </Typography>
+
+          <View style={styles.languageOptions}>
+            {ASSESSMENT_LOCALE_OPTIONS.map((option) => {
+              const isActive = option.locale === locale;
+
+              return (
+                <Pressable
+                  key={option.locale}
+                  onPress={() => setLocalePreferences(option.locale, option.speechLocale)}
+                  style={[
+                    styles.languageChip,
+                    isActive && styles.languageChipActive,
+                  ]}
+                >
+                  <Typography
+                    variant="small"
+                    family="sans"
+                    color={isActive ? colors.background : colors.text}
+                  >
+                    {option.nativeLabel}
+                  </Typography>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Typography variant="body" style={styles.paragraph}>
+            {copy.orientation.introOne}
           </Typography>
 
           <Typography variant="body" style={styles.paragraph}>
-            This is not a test. There are no right answers, no scores, and no
-            judgment. The questions ahead are invitations to think honestly about
-            what moves you, what frustrates you, and what you find yourself
-            returning to again and again.
-          </Typography>
-
-          <Typography variant="body" style={styles.paragraph}>
-            Set aside roughly 30-45 minutes. This is best done in a
-            quiet place, without distractions, when you can give your full
-            attention to the process.
+            {copy.orientation.introTwo}
           </Typography>
 
           <Typography
@@ -54,7 +91,7 @@ export default function OrientationScreen() {
             color={colors.textSecondary}
             style={styles.timeNote}
           >
-            ~30-45 minutes
+            {copy.orientation.timeNote}
           </Typography>
 
           <View style={styles.divider} />
@@ -78,19 +115,19 @@ export default function OrientationScreen() {
               variant="body"
               style={styles.checkboxLabel}
             >
-              I'm willing to answer honestly, not impressively.
+              {copy.orientation.checkbox}
             </Typography>
           </Pressable>
         </View>
 
         <View style={styles.actions}>
           <Button
-            title="Speak your answers"
+            title={copy.orientation.speak}
             onPress={handleSpeak}
             disabled={!checked}
           />
           <Button
-            title="Write your answers"
+            title={copy.orientation.write}
             onPress={handleWrite}
             variant="secondary"
             disabled={!checked}
@@ -122,6 +159,29 @@ const getStyles = (colors: {
     body: {},
     title: {
       marginBottom: spacing.xl,
+    },
+    languageLabel: {
+      marginBottom: spacing.sm,
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+    },
+    languageOptions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+      marginBottom: spacing.xl,
+    },
+    languageChip: {
+      borderWidth: 1,
+      borderColor: colors.divider,
+      borderRadius: 999,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      backgroundColor: colors.background,
+    },
+    languageChipActive: {
+      backgroundColor: colors.text,
+      borderColor: colors.text,
     },
     paragraph: {
       marginBottom: spacing.md,

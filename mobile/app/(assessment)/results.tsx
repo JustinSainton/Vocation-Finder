@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import { getAssessmentCopy } from '../../constants/assessmentLocale';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
 import { TextInput } from '../../components/ui/TextInput';
@@ -29,8 +30,10 @@ export default function ResultsScreen() {
     upgradeMessage,
     resultsError,
     resultsStatusMessage,
+    locale,
     reset,
   } = useAssessmentStore();
+  const copy = getAssessmentCopy(locale);
 
   const [emailValue, setEmailValue] = useState('');
   const [emailSending, setEmailSending] = useState(false);
@@ -78,7 +81,7 @@ export default function ResultsScreen() {
     await fetchResults();
   };
 
-  const handleEmailResults = async () => {
+  const handleEmailResults = useCallback(async () => {
     if (!assessmentId || !emailValue.trim()) return;
 
     setEmailSending(true);
@@ -87,14 +90,11 @@ export default function ResultsScreen() {
       setEmailSent(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
-      Alert.alert(
-        'Could not send',
-        'We were unable to email your results. Please try again later.'
-      );
+      Alert.alert(copy.results.emailErrorTitle, copy.results.emailErrorBody);
     } finally {
       setEmailSending(false);
     }
-  };
+  }, [assessmentId, copy.results.emailErrorBody, copy.results.emailErrorTitle, emailValue, guestToken]);
 
   const handleReturnHome = () => {
     reset();
@@ -114,7 +114,7 @@ export default function ResultsScreen() {
           {resultsError ? (
             <>
               <Typography variant="bodyLarge" style={styles.waitingText}>
-                We could not complete your assessment yet.
+                {copy.results.errorTitle}
               </Typography>
               <Typography
                 variant="body"
@@ -124,14 +124,18 @@ export default function ResultsScreen() {
                 {resultsError}
               </Typography>
               <View style={styles.waitingActions}>
-                <Button title="Try again" onPress={handleRetryResults} />
-                <Button title="Start over" variant="secondary" onPress={handleStartOver} />
+                <Button title={copy.common.tryAgain} onPress={handleRetryResults} />
+                <Button
+                  title={copy.common.startOver}
+                  variant="secondary"
+                  onPress={handleStartOver}
+                />
               </View>
             </>
           ) : (
             <>
               <Typography variant="bodyLarge" style={styles.waitingText}>
-                Your vocational portrait is being prepared.
+                {copy.results.notReadyTitle}
               </Typography>
               <Typography
                 variant="body"
@@ -139,7 +143,7 @@ export default function ResultsScreen() {
                 style={styles.waitingSub}
               >
                 {resultsStatusMessage ??
-                  'This may take a moment. Your reflections deserve careful attention.'}
+                  copy.results.notReadyBody}
               </Typography>
               {isTakingLong ? (
                 <>
@@ -149,11 +153,10 @@ export default function ResultsScreen() {
                     color={colors.textSecondary}
                     style={styles.waitingSub}
                   >
-                    This is taking longer than expected. If it remains stuck, the background
-                    analysis worker may be paused.
+                    {copy.results.takingLong}
                   </Typography>
                   <View style={styles.waitingActions}>
-                    <Button title="Check again" onPress={handleRetryResults} />
+                    <Button title={copy.results.checkAgain} onPress={handleRetryResults} />
                   </View>
                 </>
               ) : null}
@@ -179,7 +182,7 @@ export default function ResultsScreen() {
 
         {/* Vocational Orientation */}
         <Typography variant="heading" style={styles.sectionHeading}>
-          Vocational Orientation
+          {copy.results.headings.vocationalOrientation}
         </Typography>
         <Typography variant="body" style={styles.section}>
           {results.vocational_orientation}
@@ -189,7 +192,7 @@ export default function ResultsScreen() {
         <View style={styles.metaRow}>
           <View style={styles.metaBadge}>
             <Typography variant="caption" family="sans" color={colors.accent}>
-              Primary Domain
+              {copy.results.headings.primaryDomain}
             </Typography>
             <Typography variant="body" style={styles.metaValue}>
               {results.primary_domain}
@@ -197,7 +200,7 @@ export default function ResultsScreen() {
           </View>
           <View style={styles.metaBadge}>
             <Typography variant="caption" family="sans" color={colors.accent}>
-              Mode of Work
+              {copy.results.headings.modeOfWork}
             </Typography>
             <Typography variant="body" style={styles.metaValue}>
               {results.mode_of_work}
@@ -208,7 +211,7 @@ export default function ResultsScreen() {
           <View style={styles.metaRow}>
             <View style={styles.metaBadge}>
               <Typography variant="caption" family="sans" color={colors.accent}>
-                Secondary Orientation
+                {copy.results.headings.secondaryOrientation}
               </Typography>
               <Typography variant="body" style={styles.metaValue}>
                 {results.secondary_orientation}
@@ -223,7 +226,7 @@ export default function ResultsScreen() {
         {results.primary_pathways && results.primary_pathways.length > 0 ? (
           <>
             <Typography variant="heading" style={styles.sectionHeading}>
-              Primary Pathways
+              {copy.results.headings.primaryPathways}
             </Typography>
             {results.primary_pathways.map((pathway, i) => (
               <View key={i} style={styles.pathwayCard}>
@@ -238,7 +241,7 @@ export default function ResultsScreen() {
         {results.specific_considerations ? (
           <>
             <Typography variant="heading" style={styles.sectionHeading}>
-              Specific Considerations
+              {copy.results.headings.specificConsiderations}
             </Typography>
             <Typography variant="body" style={styles.section}>
               {results.specific_considerations}
@@ -251,7 +254,7 @@ export default function ResultsScreen() {
         {results.next_steps && results.next_steps.length > 0 ? (
           <>
             <Typography variant="heading" style={styles.sectionHeading}>
-              Next Steps
+              {copy.results.headings.nextSteps}
             </Typography>
             {results.next_steps.map((step, i) => (
               <View key={i} style={styles.stepRow}>
@@ -278,7 +281,7 @@ export default function ResultsScreen() {
         {results.ministry_integration ? (
           <>
             <Typography variant="heading" style={styles.sectionHeading}>
-              Ministry Integration
+              {copy.results.headings.ministryIntegration}
             </Typography>
             <Typography variant="body" style={styles.section}>
               {results.ministry_integration}
@@ -298,26 +301,25 @@ export default function ResultsScreen() {
 
         {/* Email results */}
         <Typography variant="heading" style={styles.sectionHeading}>
-          Save your results
+          {copy.results.headings.saveResults}
         </Typography>
         <Typography
           variant="body"
           color={colors.textSecondary}
           style={styles.emailBody}
         >
-          Enter your email to receive a beautifully formatted copy of your
-          vocational portrait.
+          {copy.results.emailPrompt}
         </Typography>
 
         {emailSent ? (
           <Typography variant="body" color={colors.accent}>
-            Sent — check your inbox.
+            {copy.results.emailSent}
           </Typography>
         ) : (
           <View style={styles.emailRow}>
             <View style={styles.emailInput}>
               <TextInput
-                placeholder="your@email.com"
+                placeholder={copy.results.emailPlaceholder}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 value={emailValue}
@@ -326,7 +328,7 @@ export default function ResultsScreen() {
             </View>
             <View style={styles.emailButtonWrap}>
               <Button
-                title={emailSending ? 'Sending...' : 'Send'}
+                title={emailSending ? copy.results.emailSending : copy.results.emailSend}
                 onPress={handleEmailResults}
                 disabled={emailSending || !emailValue.trim()}
               />
@@ -338,9 +340,9 @@ export default function ResultsScreen() {
 
         {/* Actions */}
         <View style={styles.actions}>
-          <Button title="Return home" onPress={handleReturnHome} />
+          <Button title={copy.results.returnHome} onPress={handleReturnHome} />
           <Button
-            title="Take assessment again"
+            title={copy.results.retake}
             variant="secondary"
             onPress={handleStartOver}
           />
@@ -352,11 +354,7 @@ export default function ResultsScreen() {
           color={colors.accent}
           style={styles.disclaimer}
         >
-          This vocational portrait was generated with the assistance of
-          artificial intelligence based on your written reflections. It is
-          intended as a tool for discernment, not a definitive assessment. We
-          encourage you to discuss these results with a trusted mentor, spiritual
-          director, or counselor.
+          {copy.results.disclaimer}
         </Typography>
       </ScrollView>
     </SafeAreaView>
