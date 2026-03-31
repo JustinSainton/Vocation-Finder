@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="x-apple-disable-message-reformatting">
     <meta name="format-detection" content="telephone=no, address=no, email=no, date=no, url=no">
-    <title>Your Vocational Profile</title>
+    <title>{{ $copy['title'] }}</title>
     <!--[if mso]>
     <noscript>
         <xml>
@@ -233,15 +233,15 @@
                         {{-- Header --}}
                         <tr>
                             <td class="email-body" style="padding: 40px 48px 0 48px;">
-                                <h1>Your Vocational Profile</h1>
-                                <p class="subtitle">A synthesis of your unique gifts, inclinations, and calling</p>
+                                <h1>{{ $copy['title'] }}</h1>
+                                <p class="subtitle">{{ $copy['subtitle'] }}</p>
                             </td>
                         </tr>
 
                         {{-- Opening Synthesis --}}
                         <tr>
                             <td class="email-body" style="padding: 0 48px;">
-                                <h2>Opening Synthesis</h2>
+                                <h2>{{ $copy['opening_synthesis'] }}</h2>
                                 <div class="section-content">
                                     {!! nl2br(e($profile->opening_synthesis)) !!}
                                 </div>
@@ -251,7 +251,7 @@
                         {{-- Vocational Orientation --}}
                         <tr>
                             <td class="email-body" style="padding: 0 48px;">
-                                <h2>Vocational Orientation</h2>
+                                <h2>{{ $copy['vocational_orientation'] }}</h2>
                                 <div class="section-content">
                                     {!! nl2br(e($profile->vocational_orientation)) !!}
                                 </div>
@@ -261,7 +261,7 @@
                         {{-- Primary Pathways --}}
                         <tr>
                             <td class="email-body" style="padding: 0 48px;">
-                                <h2>Primary Pathways</h2>
+                                <h2>{{ $copy['primary_pathways'] }}</h2>
                                 @if(is_array($profile->primary_pathways))
                                     @foreach($profile->primary_pathways as $pathway)
                                         <div class="pathway-card">
@@ -279,7 +279,7 @@
                         {{-- Specific Considerations --}}
                         <tr>
                             <td class="email-body" style="padding: 0 48px;">
-                                <h2>Specific Considerations</h2>
+                                <h2>{{ $copy['specific_considerations'] }}</h2>
                                 <div class="section-content">
                                     {!! nl2br(e($profile->specific_considerations)) !!}
                                 </div>
@@ -289,7 +289,7 @@
                         {{-- Next Steps --}}
                         <tr>
                             <td class="email-body" style="padding: 0 48px;">
-                                <h2>Next Steps</h2>
+                                <h2>{{ $copy['next_steps'] }}</h2>
                                 @if(is_array($profile->next_steps))
                                     @foreach($profile->next_steps as $index => $step)
                                         <div class="step-item">
@@ -316,7 +316,7 @@
                         {{-- Ministry Integration --}}
                         <tr>
                             <td class="email-body" style="padding: 0 48px;">
-                                <h2>Ministry Integration</h2>
+                                <h2>{{ $copy['ministry_integration'] }}</h2>
                                 <div class="section-content">
                                     {!! nl2br(e($profile->ministry_integration)) !!}
                                 </div>
@@ -328,7 +328,7 @@
                             <td class="email-body" style="padding: 16px 48px 40px 48px;">
                                 <hr class="divider" style="height: 1px; background-color: #D6D3D1; border: none; margin: 36px 0;">
                                 <div class="cta-wrapper" style="text-align: center; margin: 32px 0;">
-                                    <a href="{{ $resultsUrl }}" class="cta-button" style="display: inline-block; background-color: #1C1917; color: #FAFAF7; font-family: Georgia, 'Times New Roman', Times, serif; font-size: 15px; line-height: 1; text-decoration: none; padding: 14px 32px; border-radius: 4px;">Return to Your Results</a>
+                                    <a href="{{ $resultsUrl }}" class="cta-button" style="display: inline-block; background-color: #1C1917; color: #FAFAF7; font-family: Georgia, 'Times New Roman', Times, serif; font-size: 15px; line-height: 1; text-decoration: none; padding: 14px 32px; border-radius: 4px;">{{ $copy['return_to_results'] }}</a>
                                 </div>
                             </td>
                         </tr>
@@ -337,10 +337,10 @@
                         <tr>
                             <td class="email-footer" style="background-color: #F5F5F0; padding: 32px 48px; border-top: 1px solid #D6D3D1;">
                                 <p class="footer-text" style="font-size: 13px; line-height: 1.6; color: #78716C; margin-bottom: 12px;">
-                                    <a href="{{ $resultsUrl }}" style="color: #57534E; text-decoration: underline; font-family: Georgia, 'Times New Roman', Times, serif;">Return to your results anytime</a>
+                                    <a href="{{ $resultsUrl }}" style="color: #57534E; text-decoration: underline; font-family: Georgia, 'Times New Roman', Times, serif;">{{ $copy['return_to_results_anytime'] }}</a>
                                 </p>
                                 <p class="disclaimer" style="font-size: 12px; line-height: 1.5; color: #A8A29E; font-style: italic; margin-top: 16px; padding-top: 16px; border-top: 1px solid #E7E5E4; font-family: Georgia, 'Times New Roman', Times, serif;">
-                                    This vocational profile was generated by AI and is intended as a tool for reflection and discernment, not as professional career counseling.
+                                    {{ $copy['disclaimer'] }}
                                 </p>
                             </td>
                         </tr>

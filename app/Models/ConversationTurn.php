@@ -14,10 +14,22 @@ class ConversationTurn extends Model
         'conversation_session_id',
         'role',
         'content',
+        'content_locale',
+        'content_confidence',
+        'stt_engine',
+        'metadata',
         'audio_storage_path',
         'duration_seconds',
         'sort_order',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'metadata' => 'array',
+            'content_confidence' => 'float',
+        ];
+    }
 
     public function session(): BelongsTo
     {

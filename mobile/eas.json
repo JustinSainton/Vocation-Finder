@@ -9,27 +9,30 @@
       "distribution": "internal",
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://127.0.0.1:8000"
+        "EXPO_PUBLIC_API_URL": "http://127.0.0.1:8000",
+        "SHERPA_ONNX_DISABLE_FFMPEG": "1"
       }
     },
     "preview": {
       "distribution": "internal",
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://vocation-finder-main-f14jpf.laravel.cloud"
+        "EXPO_PUBLIC_API_URL": "https://vocation-finder-main-f14jpf.laravel.cloud",
+        "SHERPA_ONNX_DISABLE_FFMPEG": "1"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://vocation-finder-main-f14jpf.laravel.cloud"
+        "EXPO_PUBLIC_API_URL": "https://vocation-finder-main-f14jpf.laravel.cloud",
+        "SHERPA_ONNX_DISABLE_FFMPEG": "1"
       }
     }
   },
   "submit": {
     "production": {
       "ios": {
-        "appleId": "justinsanton@gmail.com",
+        "appleId": "justinsainton@gmail.com",
         "appleTeamId": "6CJ76J3665",
         "ascAppId": "6760142511"
       }

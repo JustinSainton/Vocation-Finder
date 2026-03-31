@@ -1,14 +1,30 @@
 import { Platform } from 'react-native';
 import type { TtsEngine, TTSModelType } from 'react-native-sherpa-onnx/tts';
 import type { TtsModelMeta } from 'react-native-sherpa-onnx/download';
+import {
+  AssessmentLocale,
+  normalizeAssessmentLocale,
+} from '../constants/assessmentLocale';
 
-const LOCAL_TTS_ENABLED = process.env.EXPO_PUBLIC_LOCAL_TTS_ENABLED === 'true';
+const LOCAL_TTS_ENABLED = process.env.EXPO_PUBLIC_LOCAL_TTS_ENABLED !== 'false';
 const LOCAL_TTS_MODEL_ID = process.env.EXPO_PUBLIC_LOCAL_TTS_MODEL_ID?.trim();
 const LOCAL_TTS_MODEL_TYPE = parseModelType(process.env.EXPO_PUBLIC_LOCAL_TTS_MODEL_TYPE);
+const LOCAL_TTS_MODEL_IDS: Record<AssessmentLocale, string> = {
+  'en-US':
+    process.env.EXPO_PUBLIC_LOCAL_TTS_MODEL_ID_EN_US?.trim() ??
+    'vits-piper-en_US-lessac-medium-int8',
+  'es-419':
+    process.env.EXPO_PUBLIC_LOCAL_TTS_MODEL_ID_ES_419?.trim() ??
+    'vits-piper-es_MX-ald-medium-int8',
+  'pt-BR':
+    process.env.EXPO_PUBLIC_LOCAL_TTS_MODEL_ID_PT_BR?.trim() ??
+    'vits-piper-pt_BR-cadu-medium-int8',
+};
 
 interface InitializedTts {
   engine: TtsEngine;
   modelId: string;
+  locale: AssessmentLocale;
 }
 
 let initializedTts: InitializedTts | null = null;
@@ -115,7 +131,8 @@ function parseModelType(value: string | undefined): TTSModelType | undefined {
     normalized === 'kokoro' ||
     normalized === 'kitten' ||
     normalized === 'pocket' ||
-    normalized === 'zipvoice'
+    normalized === 'zipvoice' ||
+    normalized === 'supertonic'
   ) {
     return normalized;
   }
@@ -123,8 +140,22 @@ function parseModelType(value: string | undefined): TTSModelType | undefined {
   return undefined;
 }
 
-function isEnglishModel(model: TtsModelMeta): boolean {
-  return model.languages.some((language) => language.toLowerCase().startsWith('en'));
+function localeMatchesModel(model: TtsModelMeta, locale: AssessmentLocale): boolean {
+  const normalizedLocale = normalizeAssessmentLocale(locale);
+
+  return model.languages.some((language) => {
+    const normalized = language.toLowerCase();
+
+    if (normalizedLocale === 'es-419') {
+      return normalized.startsWith('es');
+    }
+
+    if (normalizedLocale === 'pt-BR') {
+      return normalized.startsWith('pt');
+    }
+
+    return normalized.startsWith('en');
+  });
 }
 
 function modelTypePriority(type: TtsModelMeta['type']): number {
@@ -176,14 +207,15 @@ function modelQuantPriority(quantization: TtsModelMeta['quantization']): number 
   }
 }
 
-function chooseBestModel(models: TtsModelMeta[]): TtsModelMeta | null {
+function chooseBestModel(models: TtsModelMeta[], locale: AssessmentLocale): TtsModelMeta | null {
   if (models.length === 0) {
     return null;
   }
 
   return [...models].sort((a, b) => {
-    const englishDelta = Number(isEnglishModel(b)) - Number(isEnglishModel(a));
-    if (englishDelta !== 0) return englishDelta;
+    const localeDelta =
+      Number(localeMatchesModel(b, locale)) - Number(localeMatchesModel(a, locale));
+    if (localeDelta !== 0) return localeDelta;
 
     const typeDelta = modelTypePriority(a.type) - modelTypePriority(b.type);
     if (typeDelta !== 0) return typeDelta;
@@ -198,16 +230,32 @@ function chooseBestModel(models: TtsModelMeta[]): TtsModelMeta | null {
   })[0]!;
 }
 
-async function pickModelId(): Promise<string> {
+async function pickModelId(locale: AssessmentLocale): Promise<string> {
   if (LOCAL_TTS_MODEL_ID) {
     return LOCAL_TTS_MODEL_ID;
   }
 
+  const normalizedLocale = normalizeAssessmentLocale(locale);
+  const localeDefaultModelId = LOCAL_TTS_MODEL_IDS[normalizedLocale];
   const { download } = requireNativeModules();
+
+  const localDefaultPath = await download.getLocalModelPathByCategory(
+    download.ModelCategory.Tts,
+    localeDefaultModelId
+  );
+  if (localDefaultPath) {
+    return localeDefaultModelId;
+  }
+
   const downloadedModels = await download.listDownloadedModelsByCategory<TtsModelMeta>(
     download.ModelCategory.Tts
   );
-  const downloadedChoice = chooseBestModel(downloadedModels);
+  const downloadedExact = downloadedModels.find((model) => model.id === localeDefaultModelId);
+  if (downloadedExact) {
+    return downloadedExact.id;
+  }
+
+  const downloadedChoice = chooseBestModel(downloadedModels, normalizedLocale);
   if (downloadedChoice) {
     return downloadedChoice.id;
   }
@@ -215,7 +263,12 @@ async function pickModelId(): Promise<string> {
   const availableModels = await download.refreshModelsByCategory<TtsModelMeta>(
     download.ModelCategory.Tts
   );
-  const availableChoice = chooseBestModel(availableModels);
+  const availableExact = availableModels.find((model) => model.id === localeDefaultModelId);
+  if (availableExact) {
+    return availableExact.id;
+  }
+
+  const availableChoice = chooseBestModel(availableModels, normalizedLocale);
   if (!availableChoice) {
     throw new Error('No local TTS model available.');
   }
@@ -263,8 +316,10 @@ async function createEngine(modelPath: string): Promise<TtsEngine> {
   throw lastError instanceof Error ? lastError : new Error('Local TTS initialization failed.');
 }
 
-async function ensureInitialized(): Promise<InitializedTts> {
-  if (initializedTts) {
+async function ensureInitialized(locale: AssessmentLocale): Promise<InitializedTts> {
+  const normalizedLocale = normalizeAssessmentLocale(locale);
+
+  if (initializedTts && initializedTts.locale === normalizedLocale) {
     return initializedTts;
   }
 
@@ -273,13 +328,23 @@ async function ensureInitialized(): Promise<InitializedTts> {
   }
 
   initializePromise = (async () => {
-    const modelId = await pickModelId();
+    if (initializedTts && initializedTts.locale !== normalizedLocale) {
+      try {
+        await initializedTts.engine.destroy();
+      } catch {
+        // best effort cleanup
+      }
+      initializedTts = null;
+    }
+
+    const modelId = await pickModelId(normalizedLocale);
     const modelPath = await ensureModelPath(modelId);
     const engine = await createEngine(modelPath);
 
     const initialized = {
       engine,
       modelId,
+      locale: normalizedLocale,
     };
 
     initializedTts = initialized;
@@ -316,15 +381,18 @@ export function isLocalTtsEnabled(): boolean {
   return LOCAL_TTS_ENABLED && tryLoadNativeModules();
 }
 
-export async function warmupLocalTts(): Promise<void> {
+export async function warmupLocalTts(locale: AssessmentLocale): Promise<void> {
   if (!LOCAL_TTS_ENABLED) {
     return;
   }
 
-  await ensureInitialized();
+  await ensureInitialized(locale);
 }
 
-export async function synthesizeLocalSpeech(text: string): Promise<{ uri: string; modelId: string }> {
+export async function synthesizeLocalSpeech(
+  text: string,
+  locale: AssessmentLocale
+): Promise<{ uri: string; modelId: string }> {
   const content = text.trim();
   if (!isLocalTtsEnabled()) {
     throw new Error('Local TTS is disabled.');
@@ -334,7 +402,7 @@ export async function synthesizeLocalSpeech(text: string): Promise<{ uri: string
     throw new Error('Cannot synthesize empty text.');
   }
 
-  const initialized = await ensureInitialized();
+  const initialized = await ensureInitialized(locale);
   const generatedAudio = await initialized.engine.generateSpeech(content, {
     sid: 0,
     speed: 0.93,

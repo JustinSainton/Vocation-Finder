@@ -2,6 +2,12 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
+  AssessmentLocale,
+  DEFAULT_ASSESSMENT_LOCALE,
+  getAssessmentCopy,
+  normalizeAssessmentLocale,
+} from '../constants/assessmentLocale';
+import {
   assessmentApi,
   Question,
   VocationalProfile,
@@ -33,6 +39,9 @@ interface AssessmentState {
   currentQuestion: number;
   totalQuestions: number;
   answers: Record<number, string>;
+  locale: AssessmentLocale;
+  speechLocale: AssessmentLocale;
+  questionsLocale: AssessmentLocale | null;
 
   // Questions fetched from the API
   questions: Question[];
@@ -59,6 +68,7 @@ interface AssessmentState {
   setStatus: (status: AssessmentStatus) => void;
   setCurrentQuestion: (index: number) => void;
   setAnswer: (questionIndex: number, answer: string) => void;
+  setLocalePreferences: (locale: AssessmentLocale, speechLocale?: AssessmentLocale) => void;
 
   // API actions
   fetchQuestions: () => Promise<void>;
@@ -70,7 +80,18 @@ interface AssessmentState {
   // Conversation actions
   setConversationState: (state: ConversationState) => void;
   startConversationSession: () => Promise<void>;
-  handleConversationTurn: (audioUri: string) => Promise<ConversationTurnResponse | null>;
+  handleConversationTurn: (payload: {
+    transcript?: string;
+    transcriptLocale?: AssessmentLocale;
+    transcriptConfidence?: number | null;
+    audioUri?: string;
+    durationSeconds?: number;
+    clientProcessing?: {
+      stt_engine?: string;
+      tts_engine?: string;
+      app_version?: string;
+    };
+  }) => Promise<ConversationTurnResponse | null>;
   completeConversationSession: () => Promise<void>;
 
   reset: () => void;
@@ -84,6 +105,9 @@ const initialState = {
   currentQuestion: 0,
   totalQuestions: 0,
   answers: {} as Record<number, string>,
+  locale: DEFAULT_ASSESSMENT_LOCALE,
+  speechLocale: DEFAULT_ASSESSMENT_LOCALE,
+  questionsLocale: null as AssessmentLocale | null,
   questions: [] as Question[],
   questionsLoading: false,
   questionsError: null as string | null,
@@ -110,6 +134,21 @@ export const useAssessmentStore = create<AssessmentState>()(
       setMode: (mode) => set({ mode }),
       setStatus: (status) => set({ status }),
       setCurrentQuestion: (index) => set({ currentQuestion: index }),
+      setLocalePreferences: (locale, speechLocale) =>
+        set((state) => {
+          const nextLocale = normalizeAssessmentLocale(locale);
+          const nextSpeechLocale = normalizeAssessmentLocale(speechLocale ?? locale);
+          const localeChanged =
+            state.locale !== nextLocale || state.speechLocale !== nextSpeechLocale;
+
+          return {
+            locale: nextLocale,
+            speechLocale: nextSpeechLocale,
+            questions: localeChanged ? [] : state.questions,
+            totalQuestions: localeChanged ? 0 : state.totalQuestions,
+            questionsLocale: localeChanged ? null : state.questionsLocale,
+          };
+        }),
 
       setAnswer: (questionIndex, answer) =>
         set((state) => ({
@@ -117,18 +156,21 @@ export const useAssessmentStore = create<AssessmentState>()(
         })),
 
       fetchQuestions: async () => {
+        const locale = get().locale;
+        const copy = getAssessmentCopy(locale);
+
         set({ questionsLoading: true, questionsError: null });
         try {
-          const data = await assessmentApi.getQuestions();
+          const data = await assessmentApi.getQuestions(locale);
           const questions = data.data;
 
           if (questions.length === 0) {
             set({
               questions: [],
               totalQuestions: 0,
+              questionsLocale: locale,
               questionsLoading: false,
-              questionsError:
-                'No assessment questions are available yet. Please try again shortly.',
+              questionsError: copy.written.noneAvailable,
             });
             return;
           }
@@ -136,18 +178,20 @@ export const useAssessmentStore = create<AssessmentState>()(
           set({
             questions,
             totalQuestions: questions.length,
+            questionsLocale: locale,
             questionsLoading: false,
           });
         } catch (err: any) {
           set({
             questionsLoading: false,
-            questionsError: err?.message ?? 'Failed to load questions',
+            questionsError: err?.message ?? copy.written.noneAvailable,
           });
         }
       },
 
       createAssessment: async (mode) => {
-        const data = await assessmentApi.createAssessment(mode);
+        const { locale, speechLocale } = get();
+        const data = await assessmentApi.createAssessment(mode, locale, speechLocale);
         set({
           assessmentId: data.id,
           guestToken: data.guest_token,
@@ -177,7 +221,8 @@ export const useAssessmentStore = create<AssessmentState>()(
               assessmentId,
               questions[questionIndex].id,
               answer,
-              guestToken ?? undefined
+              guestToken ?? undefined,
+              get().locale
             );
           } catch {
             // Saved locally, will retry
@@ -244,11 +289,14 @@ export const useAssessmentStore = create<AssessmentState>()(
       setConversationState: (conversationState) => set({ conversationState }),
 
       startConversationSession: async () => {
-        const { assessmentId } = get();
+        const { assessmentId, locale, speechLocale } = get();
         if (!assessmentId) return;
 
         try {
-          const data = await assessmentApi.startConversation(assessmentId);
+          const data = await assessmentApi.startConversation(assessmentId, {
+            locale,
+            speechLocale,
+          });
           set({
             sessionId: data.session_id,
             currentQuestion: data.current_question_index,
@@ -263,26 +311,51 @@ export const useAssessmentStore = create<AssessmentState>()(
         }
       },
 
-      handleConversationTurn: async (audioUri) => {
-        const { sessionId } = get();
+      handleConversationTurn: async (payload) => {
+        const { sessionId, locale, speechLocale } = get();
         if (!sessionId) return null;
+        const copy = getAssessmentCopy(locale);
 
         set({ conversationState: 'processing', conversationError: null });
 
         try {
-          const audioUpload = await assessmentApi.uploadConversationAudio(sessionId, audioUri);
-          if (!audioUpload.transcript?.trim()) {
+          let transcript = payload.transcript?.trim() ?? '';
+          let transcriptLocale = payload.transcriptLocale ?? speechLocale;
+          let audioPath: string | undefined;
+
+          if (!transcript) {
+            if (!payload.audioUri) {
+              throw {
+                message: copy.conversation.noSpeechDetected,
+                status: 422,
+              };
+            }
+
+            const audioUpload = await assessmentApi.uploadConversationAudio(sessionId, payload.audioUri, {
+              locale,
+              speechLocale,
+            });
+
+            transcript = audioUpload.transcript?.trim() ?? '';
+            transcriptLocale = audioUpload.transcript_locale;
+            audioPath = audioUpload.audio_path;
+          }
+
+          if (!transcript) {
             throw {
-              message: 'No speech detected. Please speak a little closer to the mic and try again.',
+              message: copy.conversation.noSpeechDetected,
               status: 422,
             };
           }
 
-          const response = await assessmentApi.processTurn(
-            sessionId,
-            audioUpload.transcript,
-            audioUpload.audio_path
-          );
+          const response = await assessmentApi.processTurn(sessionId, {
+            transcript,
+            transcriptLocale,
+            transcriptConfidence: payload.transcriptConfidence,
+            audioPath,
+            durationSeconds: payload.durationSeconds,
+            clientProcessing: payload.clientProcessing,
+          });
           set({
             aiResponseText: response.response,
             currentQuestion: response.current_question_index,
@@ -315,7 +388,13 @@ export const useAssessmentStore = create<AssessmentState>()(
 
       reset: () => {
         if (saveTimeout) clearTimeout(saveTimeout);
-        set(initialState);
+        const { locale, speechLocale } = get();
+
+        set({
+          ...initialState,
+          locale,
+          speechLocale,
+        });
       },
     }),
     {
@@ -329,7 +408,10 @@ export const useAssessmentStore = create<AssessmentState>()(
         currentQuestion: state.currentQuestion,
         totalQuestions: state.totalQuestions,
         answers: state.answers,
+        locale: state.locale,
+        speechLocale: state.speechLocale,
         questions: state.questions,
+        questionsLocale: state.questionsLocale,
         results: state.results,
         sessionId: state.sessionId,
       }),

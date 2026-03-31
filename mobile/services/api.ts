@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { AssessmentLocale } from '../constants/assessmentLocale';
 import { useAuthStore } from '../stores/authStore';
 
 function normalizeApiBaseUrl(url: string): string {
@@ -190,8 +191,10 @@ async function uploadAudio<T>(
 
 export interface Question {
   id: string;
+  locale: AssessmentLocale;
   sort_order: number;
   category_name: string;
+  category_slug?: string | null;
   question_text: string;
   conversation_prompt: string | null;
   follow_up_prompts: string[];
@@ -201,6 +204,8 @@ export interface Assessment {
   id: string;
   status: 'in_progress' | 'analyzing' | 'completed' | 'failed';
   mode: 'written' | 'conversation';
+  locale: AssessmentLocale;
+  speech_locale: AssessmentLocale;
   guest_token: string | null;
   created_at: string;
 }
@@ -230,6 +235,8 @@ export interface AssessmentResults {
 
 export interface ConversationTurnResponse {
   response: string;
+  response_locale: AssessmentLocale;
+  response_kind: 'follow_up' | 'next_question' | 'completion';
   current_question_index: number;
   is_follow_up: boolean;
   is_complete: boolean;
@@ -240,6 +247,7 @@ export interface ConversationAudioUploadResponse {
   audio_path: string;
   audio_disk?: string;
   transcript: string;
+  transcript_locale: AssessmentLocale;
   status: 'transcribed';
 }
 
@@ -255,20 +263,43 @@ export interface ConversationSpeechResponse {
 
 export const assessmentApi = {
   /** Fetch the list of assessment questions */
-  getQuestions: () => api.get<{ data: Question[] }>('/questions'),
+  getQuestions: (locale?: AssessmentLocale) => {
+    const query = locale ? `?locale=${encodeURIComponent(locale)}` : '';
+    const headers = locale ? { 'X-Locale': locale } : undefined;
+    return api.get<{ data: Question[] }>(`/questions${query}`, headers);
+  },
 
   /** Create a new assessment session */
-  createAssessment: (mode: 'written' | 'conversation') =>
-    api.post<Assessment>('/assessments', { mode }),
+  createAssessment: (
+    mode: 'written' | 'conversation',
+    locale?: AssessmentLocale,
+    speechLocale?: AssessmentLocale
+  ) =>
+    api.post<Assessment>('/assessments', {
+      mode,
+      locale,
+      speech_locale: speechLocale ?? locale,
+    }),
 
   /** Save an answer for a specific question */
-  saveAnswer: (assessmentId: string, questionId: string, responseText: string, guestToken?: string) => {
+  saveAnswer: (
+    assessmentId: string,
+    questionId: string,
+    responseText: string,
+    guestToken?: string,
+    responseLocale?: AssessmentLocale
+  ) => {
     const headers: Record<string, string> = {};
     if (guestToken) headers['X-Guest-Token'] = guestToken;
-    return api.post<{ id: string }>(`/assessments/${assessmentId}/answers`, {
-      question_id: questionId,
-      response_text: responseText,
-    }, headers);
+    return api.post<{ id: string }>(
+      `/assessments/${assessmentId}/answers`,
+      {
+        question_id: questionId,
+        response_text: responseText,
+        response_locale: responseLocale,
+      },
+      headers
+    );
   },
 
   /** Mark the assessment as complete, triggering synthesis */
@@ -340,32 +371,86 @@ export const assessmentApi = {
   // ── Conversation mode ───────────────────────────────────────
 
   /** Start a conversation session */
-  startConversation: (assessmentId: string) =>
-    api.post<{ session_id: string; current_question_index: number; status: string }>(
-      '/conversations/start',
-      { assessment_id: assessmentId }
-    ),
+  startConversation: (
+    assessmentId: string,
+    options?: {
+      locale?: AssessmentLocale;
+      speechLocale?: AssessmentLocale;
+      ttsVoiceId?: string;
+    }
+  ) =>
+    api.post<{
+      session_id: string;
+      current_question_index: number;
+      status: string;
+      locale: AssessmentLocale;
+      speech_locale: AssessmentLocale;
+      question: { text: string; locale: AssessmentLocale } | null;
+    }>('/conversations/start', {
+      assessment_id: assessmentId,
+      locale: options?.locale,
+      speech_locale: options?.speechLocale ?? options?.locale,
+      tts_voice_id: options?.ttsVoiceId,
+    }),
 
   /** Process a conversation turn */
-  processTurn: (sessionId: string, content: string, audioPath?: string, duration?: number) =>
+  processTurn: (
+    sessionId: string,
+    payload: {
+      content?: string;
+      transcript?: string;
+      transcriptLocale?: AssessmentLocale;
+      transcriptConfidence?: number | null;
+      audioPath?: string;
+      durationSeconds?: number;
+      clientProcessing?: {
+        stt_engine?: string;
+        tts_engine?: string;
+        app_version?: string;
+      };
+    }
+  ) =>
     api.post<ConversationTurnResponse>(`/conversations/${sessionId}/turn`, {
-      content,
-      audio_storage_path: audioPath,
-      duration_seconds: duration,
+      content: payload.content,
+      transcript: payload.transcript,
+      transcript_locale: payload.transcriptLocale,
+      transcript_confidence: payload.transcriptConfidence,
+      audio_storage_path: payload.audioPath,
+      duration_seconds: payload.durationSeconds,
+      client_processing: payload.clientProcessing,
     }),
 
   /** Upload audio for a conversation turn */
-  uploadConversationAudio: (sessionId: string, audioUri: string) =>
-    uploadAudio<ConversationAudioUploadResponse>(
+  uploadConversationAudio: (
+    sessionId: string,
+    audioUri: string,
+    fields?: {
+      locale?: AssessmentLocale;
+      speechLocale?: AssessmentLocale;
+    }
+  ) => {
+    const uploadFields: Record<string, string> = {};
+
+    if (fields?.locale) {
+      uploadFields.locale = fields.locale;
+    }
+
+    if (fields?.speechLocale ?? fields?.locale) {
+      uploadFields.speech_locale = fields?.speechLocale ?? fields?.locale ?? '';
+    }
+
+    return uploadAudio<ConversationAudioUploadResponse>(
       `/conversations/${sessionId}/audio`,
-      audioUri
-    ),
+      audioUri,
+      uploadFields
+    );
+  },
 
   /** Complete a conversation session */
   completeConversation: (sessionId: string) =>
     api.post<{ status: string }>(`/conversations/${sessionId}/complete`),
 
   /** Synthesize assistant text into speech audio */
-  synthesizeConversationSpeech: (text: string) =>
-    api.post<ConversationSpeechResponse>('/conversations/speech', { text }),
+  synthesizeConversationSpeech: (text: string, locale?: AssessmentLocale) =>
+    api.post<ConversationSpeechResponse>('/conversations/speech', { text, locale }),
 };

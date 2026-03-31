@@ -4,9 +4,8 @@ namespace App\Jobs;
 
 use App\Ai\Agents\NarrativeSynthesis;
 use App\Ai\Agents\VocationalAnalysis;
-use App\Jobs\GenerateCurriculumJob;
 use App\Models\Assessment;
-use App\Models\VocationalProfile;
+use App\Support\ConversationLocale;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -39,9 +38,10 @@ class AnalyzeAssessmentJob implements ShouldQueue
         ]);
 
         $model = $this->resolveModel();
+        $locale = ConversationLocale::normalize($this->assessment->locale);
 
         // Phase A: Structured pattern analysis
-        $agent = new VocationalAnalysis($this->assessment);
+        $agent = new VocationalAnalysis($this->assessment, $locale);
         $analysisResponse = $agent->prompt(
             $agent->buildPrompt(),
             model: $model,
@@ -53,7 +53,7 @@ class AnalyzeAssessmentJob implements ShouldQueue
         $this->validateAnalysis($analysisData);
 
         // Phase B: Narrative synthesis
-        [$narrative, $sections] = $this->synthesizeNarrative($analysisData, $model);
+        [$narrative, $sections] = $this->synthesizeNarrative($analysisData, $model, $locale);
 
         // Save vocational profile
         $this->assessment->vocationalProfile()->updateOrCreate(
@@ -175,14 +175,14 @@ class AnalyzeAssessmentJob implements ShouldQueue
         }
     }
 
-    protected function synthesizeNarrative(array $analysisData, string $model): array
+    protected function synthesizeNarrative(array $analysisData, string $model, string $locale): array
     {
         $feedback = '';
         $lastException = null;
 
         for ($attempt = 1; $attempt <= 2; $attempt++) {
             try {
-                $narrativeAgent = new NarrativeSynthesis($analysisData, $feedback);
+                $narrativeAgent = new NarrativeSynthesis($analysisData, $feedback, $locale);
                 $narrativeResponse = $narrativeAgent->prompt(
                     $narrativeAgent->buildPrompt(),
                     model: $model,
@@ -245,6 +245,7 @@ TEXT;
             foreach ($sectionMap as $needle => $key) {
                 if (str_contains($normalized, $needle)) {
                     $currentSection = $key;
+
                     continue 2;
                 }
             }
@@ -282,11 +283,13 @@ TEXT;
                 }
 
                 $current = $matches[1];
+
                 continue;
             }
 
             if ($current === null) {
                 $current = $trimmed;
+
                 continue;
             }
 

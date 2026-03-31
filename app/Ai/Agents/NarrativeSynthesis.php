@@ -2,6 +2,7 @@
 
 namespace App\Ai\Agents;
 
+use App\Support\ConversationLocale;
 use Laravel\Ai\Attributes\Model;
 use Laravel\Ai\Attributes\Provider;
 use Laravel\Ai\Attributes\Timeout;
@@ -19,6 +20,7 @@ class NarrativeSynthesis implements Agent
     public function __construct(
         protected array $analysisData,
         protected string $respondentContext = '',
+        protected string $responseLocale = ConversationLocale::DEFAULT,
     ) {}
 
     public function instructions(): Stringable|string
@@ -80,6 +82,8 @@ INSTRUCTIONS;
 
     public function buildPrompt(): string
     {
+        $locale = ConversationLocale::normalize($this->responseLocale);
+        $languageName = ConversationLocale::displayName($locale);
         $analysis = json_encode($this->analysisData, JSON_PRETTY_PRINT);
 
         $context = $this->respondentContext
@@ -93,6 +97,9 @@ Based on the following vocational analysis data, write a complete vocational pro
 
 {$analysis}
 {$context}
+
+Write all body paragraphs, bullet items, and numbered steps in {$languageName} ({$locale}).
+Keep the exact English markdown headers specified in the instructions so the output can be parsed correctly.
 
 Write the complete vocational profile now. Remember: this person is reading about their own calling. Make it worthy of that moment.
 Return the result with the exact markdown headers specified in the instructions.

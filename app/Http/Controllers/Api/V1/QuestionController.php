@@ -5,13 +5,17 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\QuestionResource;
 use App\Models\Question;
+use App\Support\ConversationLocale;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class QuestionController extends Controller
 {
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
-        $questions = Question::with('category')
+        $locale = ConversationLocale::normalize($request->query('locale', $request->header('X-Locale')));
+
+        $questions = Question::with(['category', 'translations' => fn ($query) => $query->where('locale', $locale)])
             ->orderBy('sort_order')
             ->get();
 
