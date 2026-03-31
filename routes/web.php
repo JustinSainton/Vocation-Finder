@@ -27,11 +27,7 @@ use Inertia\Inertia;
 Route::get('/', fn () => Inertia::render('Welcome'));
 
 Route::get('/assessment', [AssessmentController::class, 'orientation']);
-Route::get('/assessment/before', [AssessmentController::class, 'before']);
-Route::post('/assessment/begin', [AssessmentController::class, 'storeBefore']);
 Route::get('/assessment/written', [AssessmentController::class, 'written']);
-Route::get('/assessment/{assessment}/after', [AssessmentController::class, 'after']);
-Route::post('/assessment/{assessment}/after', [AssessmentController::class, 'storeAfter']);
 Route::get('/assessment/{assessment}/results', [AssessmentController::class, 'results']);
 
 // Guest-only routes (redirect if authenticated)

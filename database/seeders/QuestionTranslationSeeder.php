@@ -29,7 +29,7 @@ class QuestionTranslationSeeder extends Seeder
         }
 
         // Seed English translations for beta questions as well
-        $betaQuestions = Question::where('is_beta', true)->orderBy('sort_order')->get();
+        $betaQuestions = Question::where('is_beta', true)->orderBy('sort_order')->get()->keyBy('sort_order');
         foreach ($betaQuestions as $question) {
             QuestionTranslation::updateOrCreate(
                 [
@@ -41,6 +41,37 @@ class QuestionTranslationSeeder extends Seeder
                     'conversation_prompt' => $question->conversation_prompt,
                     'follow_up_prompts' => $question->follow_up_prompts ?? [],
                 ]
+            );
+        }
+
+        // Seed Spanish and Portuguese translations for beta questions
+        foreach ($this->betaSpanishTranslations() as $sortOrder => $translation) {
+            $question = $betaQuestions->get($sortOrder);
+            if (! $question) {
+                continue;
+            }
+
+            QuestionTranslation::updateOrCreate(
+                [
+                    'question_id' => $question->id,
+                    'locale' => 'es-419',
+                ],
+                $translation
+            );
+        }
+
+        foreach ($this->betaPortugueseTranslations() as $sortOrder => $translation) {
+            $question = $betaQuestions->get($sortOrder);
+            if (! $question) {
+                continue;
+            }
+
+            QuestionTranslation::updateOrCreate(
+                [
+                    'question_id' => $question->id,
+                    'locale' => 'pt-BR',
+                ],
+                $translation
             );
         }
 
@@ -410,6 +441,114 @@ class QuestionTranslationSeeder extends Seeder
                 'follow_up_prompts' => [
                     'Qual dessas opções parece mais autenticamente sua, e não apenas aquilo que os outros esperam?',
                     'Se dinheiro e expectativas não fossem um fator, sua resposta mudaria?',
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<int, array{question_text:string, conversation_prompt:string, follow_up_prompts: array<int, string>}>
+     */
+    protected function betaSpanishTranslations(): array
+    {
+        return [
+            1 => [
+                'question_text' => 'En los últimos 6 a 12 meses, ¿qué sentido de dirección o llamado se ha vuelto más claro en tu vida? Describe momentos, pensamientos o experiencias específicos que lo hayan moldeado. (Si eres una persona de fe, incluye cualquier cosa que creas que Dios te está hablando.)',
+                'conversation_prompt' => 'Comencemos con tu sentido de dirección. En los últimos 6 a 12 meses, ¿qué se ha vuelto más claro para ti sobre hacia dónde te diriges — tu llamado o propósito? Cuéntame sobre momentos, pensamientos o experiencias específicos que lo hayan moldeado. Si la fe es parte de tu historia, incluye cualquier cosa que sientas que Dios te ha estado hablando.',
+                'follow_up_prompts' => [
+                    '¿Hubo un momento o conversación específica que lo haya cristalizado para ti?',
+                    '¿Cómo ha cambiado o se ha agudizado ese sentido de dirección con el tiempo?',
+                    '¿Qué significaría para ti actuar según esta dirección?',
+                ],
+            ],
+            2 => [
+                'question_text' => '¿Para qué te busca la gente con frecuencia? ¿Qué han afirmado repetidamente en ti mentores, líderes o amigos?',
+                'conversation_prompt' => 'Piensa en las personas de tu vida: mentores, amigos, colegas, familia. ¿Para qué te buscan con frecuencia? ¿Qué han afirmado en ti, quizás tan a menudo que casi lo das por sentado?',
+                'follow_up_prompts' => [
+                    '¿Esa afirmación te sorprende, o coincide con cómo te ves a ti mismo?',
+                    '¿Hay un patrón en lo que la gente te busca — un tipo de problema o un tipo de apoyo?',
+                    '¿Cómo te hace sentir ser necesitado de esa manera?',
+                ],
+            ],
+            3 => [
+                'question_text' => '¿Cuándo te sientes más eficaz y "en tu elemento"? Describe el tipo de trabajo, entorno y problemas en los que sobresales naturalmente.',
+                'conversation_prompt' => '¿Cuándo estás más en tu elemento, haciendo tu mejor trabajo, sintiéndote completamente vivo y eficaz? Describe el tipo de trabajo, el entorno y los tipos de problemas en los que sobresales naturalmente.',
+                'follow_up_prompts' => [
+                    '¿Qué tiene ese contexto que saca lo mejor de ti?',
+                    '¿Es el tipo de trabajo, las personas a tu alrededor o el problema en sí lo que más te da energía?',
+                    '¿Con qué frecuencia te encuentras en ese tipo de entorno ahora mismo?',
+                ],
+            ],
+            4 => [
+                'question_text' => '¿Qué problemas del mundo te frustran o te mueven tan profundamente que sientes la compulsión de actuar? Sé específico sobre el tipo de personas o situaciones involucradas.',
+                'conversation_prompt' => '¿Qué problemas del mundo te frustran o te mueven tan profundamente que sientes la necesidad de hacer algo al respecto? Sé lo más específico posible: ¿qué tipo de personas están involucradas, qué tipo de situaciones, y por qué te afecta de esa manera?',
+                'follow_up_prompts' => [
+                    '¿Cuándo comenzaste a notar este problema o a sentirte así al respecto?',
+                    '¿Esto es más una carga personal — algo que te pesa — o más bien una convicción intelectual?',
+                    '¿Alguna vez has intentado actuar al respecto? ¿Qué pasó?',
+                ],
+            ],
+            5 => [
+                'question_text' => '¿Qué oportunidades, responsabilidades o puertas ya están frente a ti ahora mismo que requieren tu fidelidad?',
+                'conversation_prompt' => 'Cerremos echando un vistazo a dónde estás ahora mismo. ¿Qué oportunidades, responsabilidades o puertas abiertas ya están frente a ti que requieren tu fidelidad — cosas que quizás no sean glamorosas ni definitivas, pero que claramente son tuyas para administrar?',
+                'follow_up_prompts' => [
+                    '¿Te sientes preparado para esas responsabilidades, o se sienten más grandes que tú?',
+                    '¿Hay algo que hayas estado aplazando o evitando que sientes que deberías enfrentar?',
+                    '¿Cómo crees que ser fiel en las cosas pequeñas se conecta con hacia dónde te diriges en última instancia?',
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<int, array{question_text:string, conversation_prompt:string, follow_up_prompts: array<int, string>}>
+     */
+    protected function betaPortugueseTranslations(): array
+    {
+        return [
+            1 => [
+                'question_text' => 'Nos últimos 6 a 12 meses, que sentido de direção ou chamado ficou mais claro na sua vida? Descreva momentos, pensamentos ou experiências específicos que moldaram isso. (Se você é uma pessoa de fé, inclua qualquer coisa que acredite que Deus está falando com você.)',
+                'conversation_prompt' => 'Vamos começar com seu senso de direção. Nos últimos 6 a 12 meses, o que ficou mais claro para você sobre para onde está indo — seu chamado ou propósito? Conte-me sobre momentos, pensamentos ou experiências específicos que moldaram isso. Se a fé faz parte da sua história, inclua qualquer coisa que sinta que Deus tem falado com você.',
+                'follow_up_prompts' => [
+                    'Houve um momento ou conversa específica que cristalizou isso para você?',
+                    'Como esse sentido de direção mudou ou se aprofundou ao longo do tempo?',
+                    'O que significaria para você agir de acordo com essa direção?',
+                ],
+            ],
+            2 => [
+                'question_text' => 'Com o que as pessoas consistentemente buscam sua ajuda? O que mentores, líderes ou amigos afirmaram repetidamente em você?',
+                'conversation_prompt' => 'Pense nas pessoas da sua vida: mentores, amigos, colegas, família. Com o que elas consistentemente buscam você? O que elas afirmaram em você, talvez com tanta frequência que você quase considera garantido?',
+                'follow_up_prompts' => [
+                    'Essa afirmação te surpreende, ou corresponde a como você se vê?',
+                    'Existe um padrão no que as pessoas buscam em você — um tipo de problema ou um tipo de suporte?',
+                    'Como você se sente ao ser necessário dessa forma?',
+                ],
+            ],
+            3 => [
+                'question_text' => 'Quando você se sente mais eficaz e "em seu elemento"? Descreva o tipo de trabalho, ambiente e problemas em que você naturalmente se destaca.',
+                'conversation_prompt' => 'Quando você está mais em seu elemento — fazendo seu melhor trabalho, sentindo-se completamente vivo e eficaz? Descreva o tipo de trabalho, o ambiente e os tipos de problemas em que você naturalmente se destaca.',
+                'follow_up_prompts' => [
+                    'O que tem nesse contexto que traz o seu melhor?',
+                    'É o tipo de trabalho, as pessoas ao seu redor ou o problema em si que mais lhe dá energia?',
+                    'Com que frequência você se encontra nesse tipo de ambiente agora?',
+                ],
+            ],
+            4 => [
+                'question_text' => 'Que problemas do mundo te frustram ou movem tão profundamente que você se sente compelido a agir? Seja específico sobre o tipo de pessoas ou situações envolvidas.',
+                'conversation_prompt' => 'Que problemas do mundo te frustram ou movem tão profundamente que você sente que precisa fazer algo a respeito? Seja o mais específico possível: que tipo de pessoas estão envolvidas, que tipo de situações, e por que isso te afeta dessa forma?',
+                'follow_up_prompts' => [
+                    'Quando você começou a notar esse problema ou a se sentir assim a respeito dele?',
+                    'Isso é mais um fardo pessoal — algo que pesa sobre você — ou mais uma convicção intelectual?',
+                    'Você já tentou agir a respeito? O que aconteceu?',
+                ],
+            ],
+            5 => [
+                'question_text' => 'Que oportunidades, responsabilidades ou portas já estão à sua frente agora que requerem sua fidelidade?',
+                'conversation_prompt' => 'Vamos encerrar olhando para onde você está agora. Que oportunidades, responsabilidades ou portas abertas já estão à sua frente que requerem sua fidelidade — coisas que talvez não sejam glamorosas ou definitivas, mas que claramente são suas para cuidar?',
+                'follow_up_prompts' => [
+                    'Você se sente pronto para essas responsabilidades, ou elas parecem maiores do que você?',
+                    'Há algo que você tem adiado ou evitado que sente que deveria enfrentar?',
+                    'Como você acha que ser fiel nas pequenas coisas se conecta com para onde você está indo, em última análise?',
                 ],
             ],
         ];

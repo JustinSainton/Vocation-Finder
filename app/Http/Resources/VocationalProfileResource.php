@@ -20,6 +20,7 @@ class VocationalProfileResource extends JsonResource
             'mode_of_work' => $this->mode_of_work,
             'secondary_orientation' => $this->secondary_orientation,
             'ministry_integration' => $this->ministry_integration,
+            'matched_pathway_blurbs' => $this->matchedPathwayBlurbs(3),
             'created_at' => $this->created_at->toISOString(),
         ];
     }

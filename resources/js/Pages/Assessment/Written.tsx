@@ -73,7 +73,7 @@ export default function Written({ questions, assessment_id, guest_token }: Props
                 method: 'POST',
                 headers,
             }).then(() => {
-                router.visit(`/assessment/${assessment_id}/after`);
+                router.visit(`/assessment/${assessment_id}/results`);
             });
         } else {
             setCurrentIndex((i) => i + 1);

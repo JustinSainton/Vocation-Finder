@@ -14,8 +14,10 @@ class QuestionController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $locale = ConversationLocale::normalize($request->query('locale', $request->header('X-Locale')));
+        $betaEnabled = config('vocation.beta.questions_enabled');
 
         $questions = Question::with(['category', 'translations' => fn ($query) => $query->where('locale', $locale)])
+            ->where('is_beta', $betaEnabled)
             ->orderBy('sort_order')
             ->get();
 
