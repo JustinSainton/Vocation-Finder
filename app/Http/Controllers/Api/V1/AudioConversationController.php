@@ -40,7 +40,11 @@ class AudioConversationController extends Controller
         $assessment = Assessment::findOrFail($validated['assessment_id']);
         $locale = ConversationLocale::normalize($validated['locale'] ?? $assessment->locale);
         $speechLocale = ConversationLocale::normalize($validated['speech_locale'] ?? $assessment->speech_locale ?? $locale);
-        $questions = Question::with('translations')->orderBy('sort_order')->get();
+        $betaEnabled = config('vocation.beta.questions_enabled');
+        $questions = Question::with('translations')
+            ->where('is_beta', $betaEnabled)
+            ->orderBy('sort_order')
+            ->get();
         $firstQuestion = $questions->first();
 
         $session = ConversationSession::create([
@@ -156,7 +160,11 @@ class AudioConversationController extends Controller
             'sort_order' => $nextSortOrder,
         ]);
 
-        $questions = Question::with('translations')->orderBy('sort_order')->get();
+        $betaEnabled = config('vocation.beta.questions_enabled');
+        $questions = Question::with('translations')
+            ->where('is_beta', $betaEnabled)
+            ->orderBy('sort_order')
+            ->get();
         $currentQuestion = $questions->get($session->current_question_index);
 
         if (! $currentQuestion) {
