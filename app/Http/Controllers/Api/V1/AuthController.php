@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
+use App\Services\FeatureFlagService;
 use App\Services\GuestUpgradeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -110,10 +111,11 @@ class AuthController extends Controller
         return response()->json(['message' => __($status)]);
     }
 
-    public function me(Request $request): JsonResponse
+    public function me(Request $request, FeatureFlagService $flags): JsonResponse
     {
         return response()->json([
             'user' => $this->formatUser($request->user()),
+            'features' => $flags->allFlags(),
         ]);
     }
 

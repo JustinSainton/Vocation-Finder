@@ -81,6 +81,11 @@ class User extends Authenticatable
         return $this->hasOne(CurriculumPathway::class)->latestOfMany();
     }
 
+    public function careerProfile(): HasOne
+    {
+        return $this->hasOne(CareerProfile::class);
+    }
+
     public function hasActiveSubscription(): bool
     {
         if ($this->subscribed()) {

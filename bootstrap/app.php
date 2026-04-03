@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'org.subscribed' => \App\Http\Middleware\EnsureOrganizationSubscribed::class,
             'org.admin' => \App\Http\Middleware\EnsureOrgAdmin::class,
             'org.role' => \App\Http\Middleware\EnsureOrgRole::class,
+            'feature' => \App\Http\Middleware\CheckFeatureFlag::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

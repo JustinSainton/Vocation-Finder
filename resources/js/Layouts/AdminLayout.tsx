@@ -15,6 +15,7 @@ const navItems = [
     { label: 'Question Categories', href: '/admin/question-categories' },
     { label: 'Vocational Categories', href: '/admin/vocational-categories' },
     { label: 'Courses', href: '/admin/courses' },
+    { label: 'Feature Flags', href: '/admin/feature-flags' },
 ];
 
 export default function AdminLayout({ title, children }: Props) {
