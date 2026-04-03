@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web\Org;
 use App\Http\Controllers\Controller;
 use App\Models\Organization;
 use App\Models\User;
+use App\Services\MentorService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -12,6 +13,9 @@ use Inertia\Response;
 
 class OrgMemberController extends Controller
 {
+    public function __construct(
+        private MentorService $mentorService,
+    ) {}
     public function index(Organization $organization): Response
     {
         $members = $organization->users()
@@ -54,7 +58,7 @@ class OrgMemberController extends Controller
     {
         $validated = $request->validate([
             'email' => 'required|email',
-            'role' => 'required|in:member,admin',
+            'role' => 'required|in:member,mentor,admin',
         ]);
 
         $currentCount = $organization->users()->count();
@@ -87,7 +91,7 @@ class OrgMemberController extends Controller
             }
         }
 
-        $organization->users()->detach($user->id);
+        $this->mentorService->removeFromOrganization($organization, $user);
 
         return redirect()->back();
     }
