@@ -55,6 +55,30 @@ class Organization extends Model
             ->withTimestamps();
     }
 
+    public function mentors(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class)
+            ->wherePivot('role', 'mentor')
+            ->withTimestamps();
+    }
+
+    public function members(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class)
+            ->wherePivot('role', 'member')
+            ->withTimestamps();
+    }
+
+    public function mentorAssignments(): HasMany
+    {
+        return $this->hasMany(MentorAssignment::class);
+    }
+
+    public function mentorNotes(): HasMany
+    {
+        return $this->hasMany(MentorNote::class);
+    }
+
     public function invitations(): HasMany
     {
         return $this->hasMany(OrganizationInvitation::class);
