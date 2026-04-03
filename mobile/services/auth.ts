@@ -1,12 +1,23 @@
 import { api } from './api';
 
+interface UserOrganization {
+  id: string;
+  name: string;
+  slug: string;
+  role: 'admin' | 'mentor' | 'member';
+}
+
+interface UserData {
+  id: string;
+  email: string;
+  name: string;
+  role: 'individual' | 'admin' | 'org_admin';
+  organizations: UserOrganization[];
+}
+
 interface AuthResponse {
   token: string;
-  user: {
-    id: string;
-    email: string;
-    name: string;
-  };
+  user: UserData;
 }
 
 export const authApi = {
@@ -37,5 +48,5 @@ export const authApi = {
     api.post<{ message: string }>('/auth/forgot-password', { email }),
 
   me: () =>
-    api.get<{ id: string; email: string; name: string }>('/auth/me'),
+    api.get<{ user: UserData }>('/auth/me'),
 };

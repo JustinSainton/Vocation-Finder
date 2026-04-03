@@ -1,23 +1,39 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { ReactNode } from 'react';
 
 interface Props {
     title?: string;
-    orgName: string;
-    orgSlug: string;
+    orgName?: string;
+    orgSlug?: string;
     children: ReactNode;
 }
 
+/**
+ * Organization layout. Reads org context from shared Inertia data
+ * (set by EnsureOrgRole middleware) or falls back to explicit props.
+ * This enables persistent layouts across org page navigations.
+ */
 export default function OrgLayout({ title, orgName, orgSlug, children }: Props) {
+    const { currentOrg, orgRole } = usePage<{
+        currentOrg?: { id: string; name: string; slug: string };
+        orgRole?: string;
+    }>().props;
+
+    const name = orgName ?? currentOrg?.name ?? 'Organization';
+    const slug = orgSlug ?? currentOrg?.slug ?? '';
+    const role = orgRole ?? 'member';
+
     const navItems = [
-        { label: 'Dashboard', href: `/org/${orgSlug}` },
-        { label: 'Members', href: `/org/${orgSlug}/members` },
-        { label: 'Insights', href: `/org/${orgSlug}/insights` },
+        { label: 'Dashboard', href: `/org/${slug}` },
+        { label: 'Members', href: `/org/${slug}/members` },
+        ...(role === 'admin' || role === 'mentor'
+            ? [{ label: 'Insights', href: `/org/${slug}/insights` }]
+            : []),
     ];
 
     return (
         <>
-            <Head title={title ? `${title} — ${orgName}` : `${orgName} — Vocation Finder`} />
+            <Head title={title ? `${title} — ${name}` : `${name} — Vocation Finder`} />
             <div className="min-h-screen bg-[var(--color-background)]">
                 <div className="flex">
                     {/* Sidebar */}
@@ -29,7 +45,7 @@ export default function OrgLayout({ title, orgName, orgSlug, children }: Props) 
                             Vocation Finder
                         </Link>
                         <p className="mb-8 font-sans text-xs text-[var(--color-accent)]">
-                            {orgName}
+                            {name}
                         </p>
                         <nav className="space-y-1">
                             {navItems.map((item) => (

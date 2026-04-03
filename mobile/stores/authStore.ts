@@ -3,10 +3,19 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authApi } from '../services/auth';
 
+interface UserOrganization {
+  id: string;
+  name: string;
+  slug: string;
+  role: 'admin' | 'mentor' | 'member';
+}
+
 interface User {
   id: string;
   email: string;
   name?: string;
+  role?: 'individual' | 'admin' | 'org_admin';
+  organizations?: UserOrganization[];
 }
 
 interface AuthState {
@@ -117,8 +126,9 @@ export const useAuthStore = create<AuthState>()(
 
         set({ isLoading: true });
         try {
-          const user = await authApi.me();
-          set({ user, isLoading: false });
+          const data = await authApi.me();
+          // API returns { user: { id, name, email, role, organizations } }
+          set({ user: data.user ?? data, isLoading: false });
         } catch {
           // Token expired or invalid
           set({ token: null, user: null, isGuest: false, isLoading: false });
