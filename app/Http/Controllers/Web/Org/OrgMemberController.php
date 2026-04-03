@@ -78,6 +78,15 @@ class OrgMemberController extends Controller
 
     public function remove(Organization $organization, User $user): RedirectResponse
     {
+        // Prevent removing the last admin
+        $pivot = $organization->users()->where('user_id', $user->id)->first()?->pivot;
+        if ($pivot?->role === 'admin') {
+            $adminCount = $organization->users()->wherePivot('role', 'admin')->count();
+            if ($adminCount <= 1) {
+                return redirect()->back()->with('error', 'Cannot remove the last administrator.');
+            }
+        }
+
         $organization->users()->detach($user->id);
 
         return redirect()->back();
