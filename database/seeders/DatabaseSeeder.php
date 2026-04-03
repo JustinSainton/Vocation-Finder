@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             QuestionTranslationSeeder::class,
             VocationalCategorySeeder::class,
             FeatureFlagSeeder::class,
+            SocVocationalMappingSeeder::class,
         ]);
     }
 }

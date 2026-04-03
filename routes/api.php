@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AssessmentController;
 use App\Http\Controllers\Api\V1\CareerProfileController;
 use App\Http\Controllers\Api\V1\FeatureFlagController;
+use App\Http\Controllers\Api\V1\JobListingController;
 use App\Http\Controllers\Api\V1\AssessmentSurveyController;
 use App\Http\Controllers\Api\V1\AudioConversationController;
 use App\Http\Controllers\Api\V1\AuthController;
@@ -102,6 +103,15 @@ Route::prefix('v1')->group(function () {
         // User dashboard (aggregated)
         Route::get('me/dashboard', [\App\Http\Controllers\Api\V1\UserDashboardController::class, 'index']);
         Route::get('me/mentor-notes', [\App\Http\Controllers\Api\V1\UserDashboardController::class, 'mentorNotes']);
+
+        // Job Discovery (gated behind feature flag)
+        Route::middleware('feature:job_discovery')->group(function () {
+            Route::get('jobs', [JobListingController::class, 'index']);
+            Route::get('jobs/recommended', [JobListingController::class, 'recommended']);
+            Route::get('jobs/{jobListing}', [JobListingController::class, 'show']);
+            Route::post('jobs/{jobListing}/save', [JobListingController::class, 'save']);
+            Route::delete('jobs/{jobListing}/save', [JobListingController::class, 'unsave']);
+        });
 
         // Career Profile (gated behind feature flag)
         Route::middleware('feature:career_profile')->group(function () {
