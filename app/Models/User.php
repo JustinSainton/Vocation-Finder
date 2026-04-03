@@ -51,6 +51,21 @@ class User extends Authenticatable
         return $this->hasMany(Assessment::class);
     }
 
+    public function mentorAssignments(): HasMany
+    {
+        return $this->hasMany(MentorAssignment::class, 'mentor_id');
+    }
+
+    public function studentAssignments(): HasMany
+    {
+        return $this->hasMany(MentorAssignment::class, 'student_id');
+    }
+
+    public function mentorNotes(): HasMany
+    {
+        return $this->hasMany(MentorNote::class, 'mentor_id');
+    }
+
     public function courseEnrollments(): HasMany
     {
         return $this->hasMany(CourseEnrollment::class);

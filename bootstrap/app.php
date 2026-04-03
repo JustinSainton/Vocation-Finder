@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'assessment.access' => \App\Http\Middleware\CheckAssessmentAccess::class,
             'org.subscribed' => \App\Http\Middleware\EnsureOrganizationSubscribed::class,
             'org.admin' => \App\Http\Middleware\EnsureOrgAdmin::class,
+            'org.role' => \App\Http\Middleware\EnsureOrgRole::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
