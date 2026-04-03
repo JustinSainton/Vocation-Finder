@@ -75,14 +75,23 @@ class PlatformAnalyticsService
 
     public function computeAssessmentVolume(int $days = 90): array
     {
-        // Use daily buckets for <90d, weekly for <365d, monthly for >365d
-        $format = $days <= 90 ? '%Y-%m-%d' : ($days <= 365 ? '%Y-W%W' : '%Y-%m');
+        $driver = DB::getDriverName();
+        $isSqlite = $driver === 'sqlite';
 
-        $data = Assessment::selectRaw("strftime(?, created_at) as period", [$format])
+        // Use daily buckets for <90d, weekly for <365d, monthly for >365d
+        if ($isSqlite) {
+            $format = $days <= 90 ? '%Y-%m-%d' : ($days <= 365 ? '%Y-W%W' : '%Y-%m');
+            $expr = "strftime('{$format}', created_at)";
+        } else {
+            $format = $days <= 90 ? '%Y-%m-%d' : ($days <= 365 ? '%Y-%u' : '%Y-%m');
+            $expr = "DATE_FORMAT(created_at, '{$format}')";
+        }
+
+        $data = Assessment::selectRaw("{$expr} as period")
             ->selectRaw('count(*) as started')
             ->selectRaw("sum(case when status = 'completed' then 1 else 0 end) as completed")
             ->where('created_at', '>=', now()->subDays($days))
-            ->groupByRaw("strftime(?, created_at)", [$format])
+            ->groupByRaw($expr)
             ->orderBy('period')
             ->get()
             ->toArray();
