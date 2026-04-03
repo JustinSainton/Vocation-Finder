@@ -94,6 +94,10 @@ Route::prefix('v1')->group(function () {
         Route::get('pathway', [PathwayController::class, 'index']);
         Route::get('pathway/{pathway}', [PathwayController::class, 'show']);
 
+        // User dashboard (aggregated)
+        Route::get('me/dashboard', [\App\Http\Controllers\Api\V1\UserDashboardController::class, 'index']);
+        Route::get('me/mentor-notes', [\App\Http\Controllers\Api\V1\UserDashboardController::class, 'mentorNotes']);
+
         // Admin API (platform admins only)
         Route::middleware('admin')->prefix('admin')->group(function () {
             Route::get('stats', [\App\Http\Controllers\Api\V1\AdminStatsController::class, 'index']);
