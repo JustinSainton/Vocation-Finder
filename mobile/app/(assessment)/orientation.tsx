@@ -1,17 +1,20 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import {
-  ASSESSMENT_LOCALE_OPTIONS,
   getAssessmentCopy,
 } from '../../constants/assessmentLocale';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
+import { SingleLineInput } from '../../components/ui/SingleLineInput';
 import { spacing, layout } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { useAssessmentStore } from '../../stores/assessmentStore';
+import { useAuthStore } from '../../stores/authStore';
+import { warmupStt } from '../../services/sttService';
+import { warmupTts } from '../../services/ttsService';
 
 export default function OrientationScreen() {
   const router = useRouter();
@@ -19,14 +22,32 @@ export default function OrientationScreen() {
   const styles = getStyles(colors);
   const [checked, setChecked] = useState(false);
   const locale = useAssessmentStore((state) => state.locale);
-  const setLocalePreferences = useAssessmentStore((state) => state.setLocalePreferences);
   const copy = getAssessmentCopy(locale);
 
+  // Pre-fill name from auth store if user is logged in
+  const authUser = useAuthStore((s) => s.user);
+  const [firstName, setFirstName] = useState(authUser?.name?.split(' ')[0] ?? '');
+
+  useEffect(() => {
+    const prefetch = async () => {
+      const state = useAssessmentStore.getState();
+      if (state.questions.length === 0 || state.questionsLocale !== state.locale) {
+        await state.fetchQuestions();
+      }
+      warmupStt();
+      warmupTts();
+    };
+    prefetch();
+  }, [locale]);
+
   const handleSpeak = () => {
+    // Store the name for use in the conversation greeting
+    useAssessmentStore.setState({ guestName: firstName.trim() || undefined });
     router.push('/(assessment)/before?mode=conversation');
   };
 
   const handleWrite = () => {
+    useAssessmentStore.setState({ guestName: firstName.trim() || undefined });
     router.push('/(assessment)/before?mode=written');
   };
 
@@ -35,46 +56,35 @@ export default function OrientationScreen() {
     setChecked((prev) => !prev);
   };
 
+  const canProceed = checked && firstName.trim().length > 0;
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <View style={styles.content}>
         <View style={styles.body}>
           <Typography variant="heading" style={styles.title}>
             {copy.orientation.title}
           </Typography>
 
-          <Typography
-            variant="small"
-            family="sans"
-            color={colors.textSecondary}
-            style={styles.languageLabel}
-          >
-            {copy.orientation.languageLabel}
-          </Typography>
-
-          <View style={styles.languageOptions}>
-            {ASSESSMENT_LOCALE_OPTIONS.map((option) => {
-              const isActive = option.locale === locale;
-
-              return (
-                <Pressable
-                  key={option.locale}
-                  onPress={() => setLocalePreferences(option.locale, option.speechLocale)}
-                  style={[
-                    styles.languageChip,
-                    isActive && styles.languageChipActive,
-                  ]}
-                >
-                  <Typography
-                    variant="small"
-                    family="sans"
-                    color={isActive ? colors.background : colors.text}
-                  >
-                    {option.nativeLabel}
-                  </Typography>
-                </Pressable>
-              );
-            })}
+          {/* Name input */}
+          <View style={styles.nameSection}>
+            <Typography
+              variant="caption"
+              family="sans"
+              color={colors.textSecondary}
+              style={styles.nameLabel}
+            >
+              What should we call you?
+            </Typography>
+            <SingleLineInput
+              value={firstName}
+              onChangeText={setFirstName}
+              placeholder="Your first name"
+              autoCapitalize="words"
+              autoFocus={!firstName}
+              returnKeyType="done"
+            />
           </View>
 
           <Typography variant="body" style={styles.paragraph}>
@@ -121,20 +131,26 @@ export default function OrientationScreen() {
         </View>
 
         <View style={styles.actions}>
-          <Button
-            title={copy.orientation.speak}
-            onPress={handleSpeak}
-            disabled={!checked}
-          />
-          <Button
-            title={copy.orientation.write}
-            onPress={handleWrite}
-            variant="secondary"
-            disabled={!checked}
-            style={styles.secondaryButton}
-          />
+          <View style={styles.actionRow}>
+            <View style={styles.actionHalf}>
+              <Button
+                title="Speak"
+                onPress={handleSpeak}
+                disabled={!canProceed}
+              />
+            </View>
+            <View style={styles.actionHalf}>
+              <Button
+                title="Write"
+                onPress={handleWrite}
+                variant="secondary"
+                disabled={!canProceed}
+              />
+            </View>
+          </View>
         </View>
-      </View>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -149,6 +165,9 @@ const getStyles = (colors: {
       flex: 1,
       backgroundColor: colors.background,
     },
+    scrollContent: {
+      flexGrow: 1,
+    },
     content: {
       flex: 1,
       paddingHorizontal: spacing.lg,
@@ -160,28 +179,13 @@ const getStyles = (colors: {
     title: {
       marginBottom: spacing.xl,
     },
-    languageLabel: {
-      marginBottom: spacing.sm,
-      textTransform: 'uppercase',
-      letterSpacing: 0.8,
-    },
-    languageOptions: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: spacing.sm,
+    nameSection: {
       marginBottom: spacing.xl,
     },
-    languageChip: {
-      borderWidth: 1,
-      borderColor: colors.divider,
-      borderRadius: 999,
-      paddingVertical: 10,
-      paddingHorizontal: 14,
-      backgroundColor: colors.background,
-    },
-    languageChipActive: {
-      backgroundColor: colors.text,
-      borderColor: colors.text,
+    nameLabel: {
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      marginBottom: spacing.sm,
     },
     paragraph: {
       marginBottom: spacing.md,
@@ -225,7 +229,11 @@ const getStyles = (colors: {
     actions: {
       marginTop: spacing.xxl,
     },
-    secondaryButton: {
-      marginTop: spacing.md,
+    actionRow: {
+      flexDirection: 'row',
+      gap: spacing.md,
+    },
+    actionHalf: {
+      flex: 1,
     },
   });

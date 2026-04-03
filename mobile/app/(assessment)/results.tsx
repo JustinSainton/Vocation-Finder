@@ -3,17 +3,34 @@ import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import { getAssessmentCopy } from '../../constants/assessmentLocale';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
 import { TextInput } from '../../components/ui/TextInput';
 import { useAssessmentStore } from '../../stores/assessmentStore';
+import { useAuthStore } from '../../stores/authStore';
 import { assessmentApi } from '../../services/api';
+import { authApi } from '../../services/auth';
 import { spacing } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 
 const POLL_INTERVAL = 5000;
 const POLL_TIMEOUT_MS = 120000;
+
+const STAGE_MESSAGES = [
+  'Reflecting on your responses',
+  'Identifying patterns and themes',
+  'Mapping vocational resonances',
+  'Building your portrait',
+  'Crafting personalized insights',
+];
 
 export default function ResultsScreen() {
   const router = useRouter();
@@ -36,9 +53,15 @@ export default function ResultsScreen() {
   const copy = getAssessmentCopy(locale);
 
   const [emailValue, setEmailValue] = useState('');
+  const [passwordValue, setPasswordValue] = useState('');
   const [emailSending, setEmailSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [creatingAccount, setCreatingAccount] = useState(false);
+  const [accountCreated, setAccountCreated] = useState(false);
   const [isTakingLong, setIsTakingLong] = useState(false);
+
+  const isLoggedIn = !!useAuthStore((s) => s.token);
+  const guestName = useAssessmentStore((s) => s.guestName);
 
   // Poll for results until they arrive
   useEffect(() => {
@@ -96,6 +119,27 @@ export default function ResultsScreen() {
     }
   }, [assessmentId, copy.results.emailErrorBody, copy.results.emailErrorTitle, emailValue, guestToken]);
 
+  const handleCreateAccount = useCallback(async () => {
+    if (!emailValue.trim() || passwordValue.length < 6) return;
+    setCreatingAccount(true);
+    try {
+      const data = await authApi.register(
+        guestName ?? 'User',
+        emailValue.trim(),
+        passwordValue,
+        passwordValue,
+        guestToken ?? undefined
+      );
+      useAuthStore.getState().setAuth(data.token, data.user);
+      setAccountCreated(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (err: any) {
+      Alert.alert('Could not create account', err?.message ?? 'Please try again.');
+    } finally {
+      setCreatingAccount(false);
+    }
+  }, [emailValue, passwordValue, guestName, guestToken]);
+
   const handleReturnHome = () => {
     reset();
     router.replace('/(dashboard)');
@@ -105,6 +149,37 @@ export default function ResultsScreen() {
     reset();
     router.replace('/(assessment)');
   };
+
+  // Animated stage messages while waiting
+  const [stageIndex, setStageIndex] = useState(0);
+  const [dots, setDots] = useState('');
+  const pulseScale = useSharedValue(1);
+
+  useEffect(() => {
+    if (results || resultsError) return;
+    pulseScale.value = withRepeat(
+      withTiming(1.08, { duration: 1800, easing: Easing.inOut(Easing.sin) }),
+      -1, true
+    );
+    const stageTimer = setInterval(() => {
+      setStageIndex((prev) => (prev + 1) % STAGE_MESSAGES.length);
+    }, 4000);
+    const dotsTimer = setInterval(() => {
+      setDots((prev) => (prev.length >= 3 ? '' : prev + '.'));
+    }, 500);
+    const hapticTimer = setInterval(() => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }, 3000);
+    return () => {
+      clearInterval(stageTimer);
+      clearInterval(dotsTimer);
+      clearInterval(hapticTimer);
+    };
+  }, [results, resultsError]);
+
+  const pulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulseScale.value }],
+  }));
 
   // Waiting for results
   if (!results) {
@@ -134,6 +209,10 @@ export default function ResultsScreen() {
             </>
           ) : (
             <>
+              <Animated.View style={[styles.pulseOrb, pulseStyle]}>
+                <View style={[styles.pulseOrbInner, { backgroundColor: isDark ? '#1E293B' : colors.text }]} />
+              </Animated.View>
+
               <Typography variant="bodyLarge" style={styles.waitingText}>
                 {copy.results.notReadyTitle}
               </Typography>
@@ -142,8 +221,7 @@ export default function ResultsScreen() {
                 color={colors.textSecondary}
                 style={styles.waitingSub}
               >
-                {resultsStatusMessage ??
-                  copy.results.notReadyBody}
+                {STAGE_MESSAGES[stageIndex]}{dots}
               </Typography>
               {isTakingLong ? (
                 <>
@@ -151,7 +229,7 @@ export default function ResultsScreen() {
                     variant="small"
                     family="sans"
                     color={colors.textSecondary}
-                    style={styles.waitingSub}
+                    style={[styles.waitingSub, { marginTop: spacing.xl }]}
                   >
                     {copy.results.takingLong}
                   </Typography>
@@ -331,44 +409,84 @@ export default function ResultsScreen() {
           </View>
         ) : null}
 
-        {/* Email results */}
-        <Typography variant="heading" style={styles.sectionHeading}>
-          {copy.results.headings.saveResults}
-        </Typography>
-        <Typography
-          variant="body"
-          color={colors.textSecondary}
-          style={styles.emailBody}
-        >
-          {copy.results.emailPrompt}
-        </Typography>
+        {/* Save results — account creation for guests, email for logged-in users */}
+        {!isLoggedIn ? (
+          <>
+            <Typography variant="heading" style={styles.sectionHeading}>
+              Save your portrait
+            </Typography>
+            <Typography
+              variant="body"
+              color={colors.textSecondary}
+              style={styles.emailBody}
+            >
+              Create an account to access your vocational portrait anytime and track your journey.
+            </Typography>
 
-        {emailSent ? (
-          <Typography variant="body" color={colors.accent}>
-            {copy.results.emailSent}
-          </Typography>
+            {accountCreated ? (
+              <Typography variant="body" color="#16a34a">
+                Account created! Your portrait is saved.
+              </Typography>
+            ) : (
+              <View style={styles.emailStack}>
+                <TextInput
+                  placeholder="Email address"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  value={emailValue}
+                  onChangeText={setEmailValue}
+                />
+                <TextInput
+                  placeholder="Choose a password"
+                  secureTextEntry
+                  value={passwordValue}
+                  onChangeText={setPasswordValue}
+                />
+                <Button
+                  title={creatingAccount ? 'Creating account...' : 'Create account'}
+                  onPress={handleCreateAccount}
+                  disabled={creatingAccount || !emailValue.trim() || passwordValue.length < 6}
+                />
+              </View>
+            )}
+            <View style={styles.divider} />
+          </>
         ) : (
-          <View style={styles.emailRow}>
-            <View style={styles.emailInput}>
-              <TextInput
-                placeholder={copy.results.emailPlaceholder}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={emailValue}
-                onChangeText={setEmailValue}
-              />
-            </View>
-            <View style={styles.emailButtonWrap}>
-              <Button
-                title={emailSending ? copy.results.emailSending : copy.results.emailSend}
-                onPress={handleEmailResults}
-                disabled={emailSending || !emailValue.trim()}
-              />
-            </View>
-          </View>
-        )}
+          <>
+            <Typography variant="heading" style={styles.sectionHeading}>
+              {copy.results.headings.saveResults}
+            </Typography>
+            <Typography
+              variant="body"
+              color={colors.textSecondary}
+              style={styles.emailBody}
+            >
+              {copy.results.emailPrompt}
+            </Typography>
 
-        <View style={styles.divider} />
+            {emailSent ? (
+              <Typography variant="body" color={colors.accent}>
+                {copy.results.emailSent}
+              </Typography>
+            ) : (
+              <View style={styles.emailStack}>
+                <TextInput
+                  placeholder={copy.results.emailPlaceholder}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  value={emailValue}
+                  onChangeText={setEmailValue}
+                />
+                <Button
+                  title={emailSending ? copy.results.emailSending : copy.results.emailSend}
+                  onPress={handleEmailResults}
+                  disabled={emailSending || !emailValue.trim()}
+                />
+              </View>
+            )}
+            <View style={styles.divider} />
+          </>
+        )}
 
         {/* Actions */}
         <View style={styles.actions}>
@@ -511,15 +629,23 @@ const getStyles = (
     emailBody: {
       marginBottom: spacing.md,
     },
-    emailRow: {
-      flexDirection: 'row',
-      gap: spacing.sm,
+    emailStack: {
+      gap: spacing.md,
     },
-    emailInput: {
-      flex: 1,
+    pulseOrb: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: isDark ? 'rgba(148,163,184,0.12)' : 'rgba(168,162,158,0.18)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      alignSelf: 'center',
+      marginBottom: spacing.xl,
     },
-    emailButtonWrap: {
-      justifyContent: 'flex-end',
+    pulseOrbInner: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
     },
     actions: {
       gap: spacing.md,
