@@ -92,6 +92,21 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
+    public function voiceProfile(): HasOne
+    {
+        return $this->hasOne(VoiceProfile::class);
+    }
+
+    public function resumeVersions(): HasMany
+    {
+        return $this->hasMany(ResumeVersion::class);
+    }
+
+    public function coverLetters(): HasMany
+    {
+        return $this->hasMany(CoverLetter::class);
+    }
+
     public function hasActiveSubscription(): bool
     {
         if ($this->subscribed()) {

@@ -10,9 +10,13 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BillingController;
 use App\Http\Controllers\Api\V1\CourseController;
 use App\Http\Controllers\Api\V1\OrganizationInvitationController;
+use App\Http\Controllers\Api\V1\CoverLetterController;
 use App\Http\Controllers\Api\V1\PathwayController;
 use App\Http\Controllers\Api\V1\QuestionController;
+use App\Http\Controllers\Api\V1\ResumeController;
+use App\Http\Controllers\Api\V1\ResumeConversationController;
 use App\Http\Controllers\Api\V1\ResultsController;
+use App\Http\Controllers\Api\V1\VoiceProfileController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -111,6 +115,38 @@ Route::prefix('v1')->group(function () {
             Route::get('jobs/{jobListing}', [JobListingController::class, 'show']);
             Route::post('jobs/{jobListing}/save', [JobListingController::class, 'save']);
             Route::delete('jobs/{jobListing}/save', [JobListingController::class, 'unsave']);
+        });
+
+        // Voice Profile (gated behind feature flag)
+        Route::middleware('feature:voice_profile')->group(function () {
+            Route::get('voice-profile', [VoiceProfileController::class, 'show']);
+            Route::post('voice-profile/samples', [VoiceProfileController::class, 'submitSamples']);
+            Route::put('voice-profile', [VoiceProfileController::class, 'update']);
+        });
+
+        // Resume Builder (gated behind feature flag)
+        Route::middleware('feature:resume_builder')->group(function () {
+            Route::get('resumes', [ResumeController::class, 'index']);
+            Route::post('resumes/generate', [ResumeController::class, 'generate']);
+            Route::get('resumes/{resumeVersion}', [ResumeController::class, 'show']);
+            Route::get('resumes/{resumeVersion}/download', [ResumeController::class, 'download']);
+            Route::delete('resumes/{resumeVersion}', [ResumeController::class, 'destroy']);
+        });
+
+        // Cover Letter Builder (gated behind feature flag)
+        Route::middleware('feature:cover_letter_builder')->group(function () {
+            Route::get('cover-letters', [CoverLetterController::class, 'index']);
+            Route::post('cover-letters/generate', [CoverLetterController::class, 'generate']);
+            Route::get('cover-letters/{coverLetter}', [CoverLetterController::class, 'show']);
+            Route::get('cover-letters/{coverLetter}/download', [CoverLetterController::class, 'download']);
+            Route::delete('cover-letters/{coverLetter}', [CoverLetterController::class, 'destroy']);
+        });
+
+        // Resume Conversation Coach (gated behind resume_builder flag)
+        Route::middleware('feature:resume_builder')->group(function () {
+            Route::post('resume-conversation/start', [ResumeConversationController::class, 'start']);
+            Route::post('resume-conversation/message', [ResumeConversationController::class, 'message']);
+            Route::get('resume-conversation/history', [ResumeConversationController::class, 'history']);
         });
 
         // Career Profile (gated behind feature flag)
