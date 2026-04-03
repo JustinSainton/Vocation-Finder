@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   AssessmentLocale,
   DEFAULT_ASSESSMENT_LOCALE,
+  detectDeviceLocale,
   getAssessmentCopy,
   normalizeAssessmentLocale,
 } from '../constants/assessmentLocale';
@@ -34,6 +35,7 @@ interface AssessmentState {
   // Core state
   assessmentId: string | null;
   guestToken: string | null;
+  guestName: string | undefined;
   mode: AssessmentMode;
   status: AssessmentStatus;
   currentQuestion: number;
@@ -101,13 +103,14 @@ interface AssessmentState {
 const initialState = {
   assessmentId: null as string | null,
   guestToken: null as string | null,
+  guestName: undefined as string | undefined,
   mode: null as AssessmentMode,
   status: 'idle' as AssessmentStatus,
   currentQuestion: 0,
   totalQuestions: 0,
   answers: {} as Record<number, string>,
-  locale: DEFAULT_ASSESSMENT_LOCALE,
-  speechLocale: DEFAULT_ASSESSMENT_LOCALE,
+  locale: detectDeviceLocale(),
+  speechLocale: detectDeviceLocale(),
   questionsLocale: null as AssessmentLocale | null,
   questions: [] as Question[],
   questionsLoading: false,
@@ -431,7 +434,8 @@ export const useAssessmentStore = create<AssessmentState>()(
         questions: state.questions,
         questionsLocale: state.questionsLocale,
         results: state.results,
-        sessionId: state.sessionId,
+        // sessionId intentionally NOT persisted — sessions are ephemeral
+        // and stale IDs cause errors on next launch
       }),
     }
   )
