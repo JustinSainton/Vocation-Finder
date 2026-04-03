@@ -43,6 +43,15 @@ class HandleInertiaRequests extends Middleware
                     'name' => $request->user()->name,
                     'email' => $request->user()->email,
                     'role' => $request->user()->role,
+                    'organizations' => fn () => $request->user()->organizations()
+                        ->withPivot('role')
+                        ->get()
+                        ->map(fn ($org) => [
+                            'id' => $org->id,
+                            'name' => $org->name,
+                            'slug' => $org->slug,
+                            'role' => $org->pivot->role,
+                        ]),
                 ] : null,
             ],
             'flash' => [

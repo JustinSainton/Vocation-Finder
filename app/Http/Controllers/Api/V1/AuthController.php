@@ -27,16 +27,7 @@ class AuthController extends Controller
 
         $upgradeService->upgrade($user, $request->guest_token);
 
-        $token = $user->createToken('mobile')->plainTextToken;
-
-        return response()->json([
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-            ],
-            'token' => $token,
-        ], 201);
+        return $this->respondWithToken($user, 201);
     }
 
     public function login(Request $request): JsonResponse
@@ -53,16 +44,8 @@ class AuthController extends Controller
         }
 
         $user = User::where('email', $request->email)->firstOrFail();
-        $token = $user->createToken('mobile')->plainTextToken;
 
-        return response()->json([
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-            ],
-            'token' => $token,
-        ]);
+        return $this->respondWithToken($user);
     }
 
     public function logout(Request $request): JsonResponse
@@ -105,16 +88,7 @@ class AuthController extends Controller
 
         $upgradeService->upgrade($user, $request->guest_token);
 
-        $token = $user->createToken('mobile')->plainTextToken;
-
-        return response()->json([
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-            ],
-            'token' => $token,
-        ]);
+        return $this->respondWithToken($user);
     }
 
     public function forgotPassword(Request $request): JsonResponse
@@ -134,5 +108,41 @@ class AuthController extends Controller
         }
 
         return response()->json(['message' => __($status)]);
+    }
+
+    public function me(Request $request): JsonResponse
+    {
+        return response()->json([
+            'user' => $this->formatUser($request->user()),
+        ]);
+    }
+
+    private function respondWithToken(User $user, int $status = 200): JsonResponse
+    {
+        $token = $user->createToken('mobile')->plainTextToken;
+
+        return response()->json([
+            'user' => $this->formatUser($user),
+            'token' => $token,
+        ], $status);
+    }
+
+    private function formatUser(User $user): array
+    {
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'organizations' => $user->organizations()
+                ->withPivot('role')
+                ->get()
+                ->map(fn ($org) => [
+                    'id' => $org->id,
+                    'name' => $org->name,
+                    'slug' => $org->slug,
+                    'role' => $org->pivot->role,
+                ]),
+        ];
     }
 }
