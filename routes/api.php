@@ -93,5 +93,10 @@ Route::prefix('v1')->group(function () {
         // Learning pathway
         Route::get('pathway', [PathwayController::class, 'index']);
         Route::get('pathway/{pathway}', [PathwayController::class, 'show']);
+
+        // Admin API (platform admins only)
+        Route::middleware('admin')->prefix('admin')->group(function () {
+            Route::get('stats', [\App\Http\Controllers\Api\V1\AdminStatsController::class, 'index']);
+        });
     });
 });
