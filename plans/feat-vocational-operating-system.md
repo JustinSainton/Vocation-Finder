@@ -622,13 +622,13 @@ All gated behind `feature:job_discovery` middleware.
 - **Empty state**: "Complete your assessment to see personalized job matches" (if no VocationalProfile)
 
 - [x] Create `JobListingController` with filtering, pagination, match scoring
-- [ ] Build web browse/search page with filters
-- [ ] Build web job detail page with match breakdown
-- [ ] Build mobile jobs tab with recommended feed
-- [ ] Build mobile job detail screen
-- [ ] Build mobile search with filters
+- [x] Build web browse/search page with filters
+- [x] Build web job detail page with match breakdown
+- [x] Build mobile jobs tab with recommended feed
+- [ ] Build mobile job detail screen (navigate from card to detail)
+- [ ] Build mobile search with filters (search bar + filter sheet)
 - [x] Implement save/bookmark functionality
-- [ ] Handle empty states (no assessment, no matches, no results)
+- [x] Handle empty states (no assessment, no matches, no results)
 
 ---
 

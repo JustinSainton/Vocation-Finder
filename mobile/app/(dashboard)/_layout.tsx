@@ -34,6 +34,13 @@ export default function DashboardLayout() {
         options={{ title: 'Assessments' }}
       />
       <Tabs.Screen
+        name="jobs"
+        options={{
+          title: 'Jobs',
+          href: isEnabled('job_discovery') ? '/(dashboard)/jobs' : null,
+        }}
+      />
+      <Tabs.Screen
         name="career"
         options={{
           title: 'Career',
