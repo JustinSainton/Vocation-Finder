@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AssessmentController;
+use App\Http\Controllers\Api\V1\CareerProfileController;
+use App\Http\Controllers\Api\V1\FeatureFlagController;
 use App\Http\Controllers\Api\V1\AssessmentSurveyController;
 use App\Http\Controllers\Api\V1\AudioConversationController;
 use App\Http\Controllers\Api\V1\AuthController;
@@ -31,6 +33,9 @@ Route::prefix('v1')->group(function () {
         Route::get('auth/me', [AuthController::class, 'me']);
         Route::post('auth/logout', [AuthController::class, 'logout']);
     });
+
+    // Feature flags (public, cached)
+    Route::get('features', [FeatureFlagController::class, 'index']);
 
     // Public — no auth required
     Route::get('questions', [QuestionController::class, 'index']);
@@ -97,6 +102,14 @@ Route::prefix('v1')->group(function () {
         // User dashboard (aggregated)
         Route::get('me/dashboard', [\App\Http\Controllers\Api\V1\UserDashboardController::class, 'index']);
         Route::get('me/mentor-notes', [\App\Http\Controllers\Api\V1\UserDashboardController::class, 'mentorNotes']);
+
+        // Career Profile (gated behind feature flag)
+        Route::middleware('feature:career_profile')->group(function () {
+            Route::get('career-profile', [CareerProfileController::class, 'show']);
+            Route::put('career-profile', [CareerProfileController::class, 'update']);
+            Route::post('career-profile/import', [CareerProfileController::class, 'import']);
+            Route::delete('career-profile', [CareerProfileController::class, 'destroy']);
+        });
 
         // Admin API (platform admins only)
         Route::middleware('admin')->prefix('admin')->group(function () {

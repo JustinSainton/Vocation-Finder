@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Web\Admin\AdminAssessmentController;
+use App\Http\Controllers\Web\Admin\AdminFeatureFlagController;
 use App\Http\Controllers\Web\Admin\AdminCourseController;
 use App\Http\Controllers\Web\Admin\AdminDashboardController;
 use App\Http\Controllers\Web\Admin\AdminOrganizationController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\Web\Auth\RegisterController;
 use App\Http\Controllers\Web\Auth\ResetPasswordController;
 use App\Http\Controllers\Web\Auth\SocialiteController;
 use App\Http\Controllers\Web\BillingController;
+use App\Http\Controllers\Web\CareerProfileController;
 use App\Http\Controllers\Web\CourseController;
 use App\Http\Controllers\Web\CurriculumPathwayController;
 use App\Http\Controllers\Web\Org\OrgDashboardController;
@@ -105,6 +107,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/billing/portal', [BillingController::class, 'billingPortal'])->name('billing.portal');
     Route::get('/billing/success', [BillingController::class, 'checkoutSuccess'])->name('billing.success');
 
+    // Career Profile (gated behind feature flag)
+    Route::middleware('feature:career_profile')->group(function () {
+        Route::get('/career-profile', [CareerProfileController::class, 'index']);
+        Route::get('/career-profile/import', [CareerProfileController::class, 'import']);
+        Route::post('/career-profile/import', [CareerProfileController::class, 'storeImport']);
+        Route::put('/career-profile', [CareerProfileController::class, 'update']);
+        Route::delete('/career-profile', [CareerProfileController::class, 'destroy']);
+    });
+
     // Learning pathway
     Route::get('/pathway/{pathway}', [CurriculumPathwayController::class, 'show']);
 
@@ -165,6 +176,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/courses/{course}/edit', [AdminCourseController::class, 'edit']);
         Route::put('/courses/{course}', [AdminCourseController::class, 'update']);
         Route::delete('/courses/{course}', [AdminCourseController::class, 'destroy']);
+
+        // Feature Flags
+        Route::get('/feature-flags', [AdminFeatureFlagController::class, 'index']);
+        Route::put('/feature-flags/{featureFlag}', [AdminFeatureFlagController::class, 'update']);
     });
 });
 

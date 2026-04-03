@@ -1,8 +1,10 @@
 import { Tabs } from 'expo-router';
 import { useTheme } from '../../hooks/useTheme';
+import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 
 export default function DashboardLayout() {
   const { colors } = useTheme();
+  const { isEnabled } = useFeatureFlags();
 
   return (
     <Tabs
@@ -30,6 +32,13 @@ export default function DashboardLayout() {
       <Tabs.Screen
         name="assessments"
         options={{ title: 'Assessments' }}
+      />
+      <Tabs.Screen
+        name="career"
+        options={{
+          title: 'Career',
+          href: isEnabled('career_profile') ? '/(dashboard)/career' : null,
+        }}
       />
       <Tabs.Screen
         name="profile"

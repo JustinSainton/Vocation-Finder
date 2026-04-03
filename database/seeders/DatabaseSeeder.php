@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             BetaQuestionSeeder::class,
             QuestionTranslationSeeder::class,
             VocationalCategorySeeder::class,
+            FeatureFlagSeeder::class,
         ]);
     }
 }

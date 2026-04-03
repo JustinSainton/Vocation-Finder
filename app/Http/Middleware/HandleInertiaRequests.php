@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\FeatureFlagService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -54,6 +55,7 @@ class HandleInertiaRequests extends Middleware
                         ]),
                 ] : null,
             ],
+            'features' => fn () => app(FeatureFlagService::class)->allFlags(),
             'flash' => [
                 'status' => $request->session()->get('status'),
                 'success' => $request->session()->get('success'),
