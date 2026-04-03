@@ -113,7 +113,7 @@ class ResultsController extends Controller
             return;
         }
 
-        if (! $user && $request->header('X-Guest-Token') === $assessment->guest_token) {
+        if (! $user && $assessment->guest_token && hash_equals($assessment->guest_token, (string) $request->header('X-Guest-Token'))) {
             return;
         }
 

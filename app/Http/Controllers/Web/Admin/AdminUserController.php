@@ -71,7 +71,12 @@ class AdminUserController extends Controller
             'role' => ['required', 'in:individual,admin,org_admin'],
         ]);
 
-        $user->update($validated);
+        $user->update([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+        ]);
+        $user->role = $validated['role'];
+        $user->save();
 
         return redirect("/admin/users/{$user->id}")->with('success', 'User updated.');
     }

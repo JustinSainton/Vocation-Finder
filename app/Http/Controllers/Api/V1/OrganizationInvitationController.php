@@ -20,7 +20,9 @@ class OrganizationInvitationController extends Controller
             'role' => ['sometimes', 'in:member,admin'],
         ]);
 
-        $org = $request->user()->organizations()->findOrFail($validated['organization_id']);
+        $org = $request->user()->organizations()
+            ->wherePivot('role', 'admin')
+            ->findOrFail($validated['organization_id']);
 
         $invitation = OrganizationInvitation::create([
             'organization_id' => $org->id,
