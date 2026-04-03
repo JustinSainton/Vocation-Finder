@@ -17,7 +17,7 @@ class OrganizationInvitationController extends Controller
         $validated = $request->validate([
             'organization_id' => ['required', 'uuid', 'exists:organizations,id'],
             'email' => ['required', 'email'],
-            'role' => ['sometimes', 'in:member,admin'],
+            'role' => ['sometimes', 'in:member,mentor,admin'],
         ]);
 
         $org = $request->user()->organizations()

@@ -168,14 +168,24 @@ Route::middleware('auth')->group(function () {
     });
 });
 
-// Organization admin
-Route::prefix('org/{organization}')->middleware(['auth', 'org.admin'])->group(function () {
+// Organization — admin-only routes
+Route::prefix('org/{organization}')->middleware(['auth', 'org.role:admin'])->group(function () {
     Route::get('/', [OrgDashboardController::class, 'index']);
     Route::get('/members', [OrgMemberController::class, 'index']);
     Route::post('/members/invite', [OrgMemberController::class, 'invite']);
     Route::delete('/members/{user}', [OrgMemberController::class, 'remove']);
+    Route::get('/mentors', [\App\Http\Controllers\Web\Org\OrgMentorController::class, 'index']);
+    Route::post('/mentors/assign', [\App\Http\Controllers\Web\Org\OrgMentorController::class, 'assign']);
+    Route::delete('/mentors/{assignment}', [\App\Http\Controllers\Web\Org\OrgMentorController::class, 'unassign']);
+});
+
+// Organization — admin and mentor routes
+Route::prefix('org/{organization}')->middleware(['auth', 'org.role:admin,mentor'])->group(function () {
     Route::get('/members/{user}', [OrgMemberController::class, 'show']);
     Route::get('/insights', [OrgInsightsController::class, 'index']);
+    Route::post('/members/{member}/notes', [\App\Http\Controllers\Web\Org\OrgMentorNoteController::class, 'store']);
+    Route::patch('/notes/{note}', [\App\Http\Controllers\Web\Org\OrgMentorNoteController::class, 'update']);
+    Route::delete('/notes/{note}', [\App\Http\Controllers\Web\Org\OrgMentorNoteController::class, 'destroy']);
 });
 
 // Courses (public)
