@@ -127,8 +127,12 @@ class GenerateResumeJob implements ShouldQueue
             ],
         ]);
 
-        // Generate PDF using DomPDF (reuse existing ResultsPdf pattern)
+        // Generate documents
         $this->generatePdf($resumeData, $resumeText);
+        $this->generateDocx($resumeData);
+
+        // Track usage for billing
+        $this->trackUsage();
     }
 
     public function failed(\Throwable $exception): void
@@ -195,6 +199,39 @@ class GenerateResumeJob implements ShouldQueue
         }
 
         return implode("\n", $lines);
+    }
+
+    private function generateDocx(array $resumeData): void
+    {
+        try {
+            $service = new \App\Services\ResumeDocxService;
+            $path = $service->generate(
+                $resumeData,
+                $this->resumeVersion->user_id,
+                $this->resumeVersion->id
+            );
+
+            if ($path) {
+                $this->resumeVersion->update(['file_path_docx' => $path]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Resume DOCX generation failed', [
+                'resume_id' => $this->resumeVersion->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function trackUsage(): void
+    {
+        try {
+            $user = $this->resumeVersion->user;
+            if (method_exists($user, 'reportMeterEvent')) {
+                $user->reportMeterEvent('resume_generations', quantity: 1);
+            }
+        } catch (\Throwable $e) {
+            Log::info('Resume usage metering skipped', ['error' => $e->getMessage()]);
+        }
     }
 
     private function generatePdf(array $resumeData, string $resumeText): void
