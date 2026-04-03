@@ -90,8 +90,9 @@ class GenerateCoverLetterJob implements ShouldQueue
             ],
         ]);
 
-        // Generate PDF
+        // Generate PDF and track usage
         $this->generatePdf($content);
+        $this->trackUsage();
     }
 
     public function failed(\Throwable $exception): void
@@ -102,6 +103,18 @@ class GenerateCoverLetterJob implements ShouldQueue
         ]);
 
         $this->coverLetter->update(['status' => 'failed']);
+    }
+
+    private function trackUsage(): void
+    {
+        try {
+            $user = $this->coverLetter->user;
+            if (method_exists($user, 'reportMeterEvent')) {
+                $user->reportMeterEvent('cover_letter_generations', quantity: 1);
+            }
+        } catch (\Throwable $e) {
+            Log::info('Cover letter usage metering skipped', ['error' => $e->getMessage()]);
+        }
     }
 
     private function generatePdf(string $content): void
