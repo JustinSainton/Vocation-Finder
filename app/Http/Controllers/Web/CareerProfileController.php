@@ -78,6 +78,13 @@ class CareerProfileController extends Controller
         return redirect('/career-profile')->with('success', 'Career profile updated.');
     }
 
+    public function voiceProfile(Request $request): Response
+    {
+        return Inertia::render('CareerProfile/VoiceProfile', [
+            'voiceProfile' => $request->user()->voiceProfile,
+        ]);
+    }
+
     public function destroy(Request $request): RedirectResponse
     {
         $request->user()->careerProfile?->delete();

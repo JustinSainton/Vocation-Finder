@@ -120,6 +120,7 @@ Route::middleware('auth')->group(function () {
     // Resumes & Cover Letters (gated behind feature flag)
     Route::middleware('feature:resume_builder')->group(function () {
         Route::get('/resumes', [ResumeController::class, 'index']);
+        Route::get('/resumes/conversation', [ResumeController::class, 'conversation']);
     });
 
     // Career Profile (gated behind feature flag)
@@ -129,6 +130,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/career-profile/import', [CareerProfileController::class, 'storeImport']);
         Route::put('/career-profile', [CareerProfileController::class, 'update']);
         Route::delete('/career-profile', [CareerProfileController::class, 'destroy']);
+        Route::get('/career-profile/voice', [CareerProfileController::class, 'voiceProfile']);
     });
 
     // Learning pathway

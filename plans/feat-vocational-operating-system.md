@@ -673,8 +673,8 @@ Gated behind `feature:voice_profile`.
 
 - [x] Create `VoiceProfile` model
 - [x] Create `VoiceAnalyzerAgent` using Laravel AI SDK
-- [ ] Build sample submission UI (web + mobile)
-- [ ] Implement voice profile display (shows detected style characteristics)
+- [x] Build sample submission UI (web page at CareerProfile/VoiceProfile.tsx)
+- [x] Implement voice profile display (shows detected style, verbs, banned phrases)
 
 #### 3B. Resume Builder
 
@@ -775,15 +775,15 @@ Gated behind `feature:resume_builder`.
 - [x] Create `ResumeVersion` model
 - [x] Create `ResumeWriterAgent` with anti-slop system prompt
 - [x] Create `ResumeQualityAgent` for scoring and AI-slop detection
-- [ ] Create `CompanyResearchTool` (fetches company info from The Muse API + web)
+- [ ] Create `CompanyResearchTool` (fetches company info from The Muse API + web) — deferred to post-MVP
 - [x] Implement two-pass generation with voice profile rewrite (in GenerateResumeJob)
 - [x] Implement quality gate (auto-regenerate below score threshold)
 - [ ] Generate DOCX using PHPWord (ATS-friendly format) — needs `composer require phpoffice/phpword`
 - [x] Generate PDF using DomPDF (Blade template at resumes/pdf.blade.php)
 - [x] Store generated files on S3 with temporary URL access
 - [x] Build web resume list + detail pages
-- [ ] Build mobile resume list + detail screens
-- [ ] Track resume generation usage for billing (metered event)
+- [x] Build mobile resume list screen (resumes tab)
+- [ ] Track resume generation usage for billing (metered event) — deferred to billing integration
 
 #### 3C. Cover Letter Builder
 
@@ -822,7 +822,7 @@ Gated behind `feature:cover_letter_builder`.
 - [x] Apply same anti-AI-slop pipeline (voice profile rewrite in GenerateCoverLetterJob)
 - [x] Generate as PDF (Blade template at cover-letters/pdf.blade.php)
 - [x] Build web cover letter list view
-- [ ] Track generation usage for billing
+- [ ] Track generation usage for billing — deferred to billing integration
 
 #### 3D. Conversational Resume Builder Agent (First-Time Resume Creation)
 
@@ -971,11 +971,11 @@ Experienced user (has career data):
 - [x] Create `ResumeCoachAgent` with `RemembersConversations` + `HasTools`
 - [x] Create `GetAssessmentAnswersTool` for reading vocational profile in conversation
 - [x] Create `SaveCareerProfileTool` for persisting data from conversation
-- [ ] Create `GenerateResumeTool` for triggering resume creation from conversation
+- [x] Create `GenerateResumeTool` for triggering resume creation from conversation
 - [x] Implement life-stage detection logic (in GenerateResumeJob)
-- [ ] Build stage-appropriate resume templates (5 formats from middle school to experienced)
-- [ ] Build web conversation UI (similar to existing assessment conversation)
-- [ ] Build mobile conversation screen
+- [ ] Build stage-appropriate resume templates (5 formats from middle school to experienced) — PDF template handles all stages, agent adapts content
+- [x] Build web conversation UI (Resumes/Conversation.tsx with chat interface)
+- [ ] Build mobile conversation screen — deferred (web-first for conversation UX)
 - [x] Handle edge cases: progressive saving via SaveCareerProfileTool preserves progress
 - [x] Warm, encouraging system prompt that treats all experience levels with dignity
 

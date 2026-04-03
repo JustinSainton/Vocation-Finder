@@ -24,4 +24,9 @@ class ResumeController extends Controller
                 ->paginate(20),
         ]);
     }
+
+    public function conversation(): Response
+    {
+        return Inertia::render('Resumes/Conversation');
+    }
 }

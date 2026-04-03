@@ -2,6 +2,7 @@
 
 namespace App\Ai\Agents;
 
+use App\Ai\Tools\GenerateResumeTool;
 use App\Ai\Tools\GetAssessmentAnswersTool;
 use App\Ai\Tools\SaveCareerProfileTool;
 use App\Models\User;
@@ -31,6 +32,7 @@ class ResumeCoachAgent implements Agent, Conversational, HasTools
         return [
             new GetAssessmentAnswersTool($this->user),
             new SaveCareerProfileTool($this->user),
+            new GenerateResumeTool($this->user),
         ];
     }
 
