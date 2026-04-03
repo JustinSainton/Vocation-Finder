@@ -44,8 +44,8 @@ class UserDashboardController extends Controller
             ->first(['id', 'mode', 'status', 'created_at']);
 
         // Curriculum pathway status
-        $pathway = $user->latestCurriculumPathway()
-            ?->load('pathwayCourses.course:id,title,short_description');
+        $pathway = $user->latestCurriculumPathway;
+        $pathway?->load('pathwayCourses.course:id,title,short_description');
 
         $pathwaySummary = null;
         if ($pathway) {

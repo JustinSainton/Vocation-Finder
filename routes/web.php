@@ -73,8 +73,8 @@ Route::middleware('auth')->group(function () {
             ]);
 
         // Get latest curriculum pathway
-        $pathway = $user->latestCurriculumPathway()
-            ?->load('pathwayCourses.enrollment');
+        $pathway = $user->latestCurriculumPathway;
+        $pathway?->load('pathwayCourses.enrollment');
 
         $pathwayData = null;
         if ($pathway) {
