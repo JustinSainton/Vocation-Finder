@@ -19,6 +19,7 @@ use App\Http\Controllers\Web\BillingController;
 use App\Http\Controllers\Web\CareerProfileController;
 use App\Http\Controllers\Web\CourseController;
 use App\Http\Controllers\Web\JobController;
+use App\Http\Controllers\Web\ResumeController;
 use App\Http\Controllers\Web\CurriculumPathwayController;
 use App\Http\Controllers\Web\Org\OrgDashboardController;
 use App\Http\Controllers\Web\Org\OrgInsightsController;
@@ -114,6 +115,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/jobs/{jobListing}', [JobController::class, 'show']);
         Route::post('/jobs/{jobListing}/save', [JobController::class, 'save']);
         Route::delete('/jobs/{jobListing}/save', [JobController::class, 'unsave']);
+    });
+
+    // Resumes & Cover Letters (gated behind feature flag)
+    Route::middleware('feature:resume_builder')->group(function () {
+        Route::get('/resumes', [ResumeController::class, 'index']);
     });
 
     // Career Profile (gated behind feature flag)

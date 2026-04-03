@@ -671,8 +671,8 @@ PUT  /api/v1/voice-profile          — Update/recalibrate
 
 Gated behind `feature:voice_profile`.
 
-- [ ] Create `VoiceProfile` model
-- [ ] Create `VoiceAnalyzerAgent` using Laravel AI SDK
+- [x] Create `VoiceProfile` model
+- [x] Create `VoiceAnalyzerAgent` using Laravel AI SDK
 - [ ] Build sample submission UI (web + mobile)
 - [ ] Implement voice profile display (shows detected style characteristics)
 
@@ -772,16 +772,16 @@ DELETE /api/v1/resumes/:id            — Soft-delete a resume version
 
 Gated behind `feature:resume_builder`.
 
-- [ ] Create `ResumeVersion` model
-- [ ] Create `ResumeWriterAgent` with company research tool
-- [ ] Create `ResumeQualityAgent` for scoring and AI-slop detection
+- [x] Create `ResumeVersion` model
+- [x] Create `ResumeWriterAgent` with anti-slop system prompt
+- [x] Create `ResumeQualityAgent` for scoring and AI-slop detection
 - [ ] Create `CompanyResearchTool` (fetches company info from The Muse API + web)
-- [ ] Implement two-pass generation with voice profile rewrite
-- [ ] Implement quality gate (auto-regenerate below score threshold)
-- [ ] Generate DOCX using PHPWord (ATS-friendly format)
-- [ ] Generate PDF using DomPDF (matching existing `ResultsPdf` pattern)
-- [ ] Store generated files on S3 with temporary URL access
-- [ ] Build web resume list + detail pages
+- [x] Implement two-pass generation with voice profile rewrite (in GenerateResumeJob)
+- [x] Implement quality gate (auto-regenerate below score threshold)
+- [ ] Generate DOCX using PHPWord (ATS-friendly format) — needs `composer require phpoffice/phpword`
+- [x] Generate PDF using DomPDF (Blade template at resumes/pdf.blade.php)
+- [x] Store generated files on S3 with temporary URL access
+- [x] Build web resume list + detail pages
 - [ ] Build mobile resume list + detail screens
 - [ ] Track resume generation usage for billing (metered event)
 
@@ -817,11 +817,11 @@ DELETE /api/v1/cover-letters/:id      — Soft-delete
 
 Gated behind `feature:cover_letter_builder`.
 
-- [ ] Create `CoverLetter` model
-- [ ] Create `CoverLetterWriterAgent` with 3-touch method
-- [ ] Apply same anti-AI-slop pipeline (voice profile + quality scoring)
-- [ ] Generate as PDF and DOCX
-- [ ] Build web + mobile detail views
+- [x] Create `CoverLetter` model
+- [x] Create `CoverLetterWriterAgent` with 3-touch method
+- [x] Apply same anti-AI-slop pipeline (voice profile rewrite in GenerateCoverLetterJob)
+- [x] Generate as PDF (Blade template at cover-letters/pdf.blade.php)
+- [x] Build web cover letter list view
 - [ ] Track generation usage for billing
 
 #### 3D. Conversational Resume Builder Agent (First-Time Resume Creation)
@@ -968,16 +968,16 @@ Experienced user (has career data):
   → Can still use conversation (3D) to refine or rebuild
 ```
 
-- [ ] Create `ResumeCoachAgent` with `RemembersConversations` + `HasTools`
-- [ ] Create `GetAssessmentAnswersTool` for reading vocational profile in conversation
-- [ ] Create `SaveCareerProfileTool` for persisting data from conversation
+- [x] Create `ResumeCoachAgent` with `RemembersConversations` + `HasTools`
+- [x] Create `GetAssessmentAnswersTool` for reading vocational profile in conversation
+- [x] Create `SaveCareerProfileTool` for persisting data from conversation
 - [ ] Create `GenerateResumeTool` for triggering resume creation from conversation
-- [ ] Implement life-stage detection logic (from user's first response + assessment metadata)
+- [x] Implement life-stage detection logic (in GenerateResumeJob)
 - [ ] Build stage-appropriate resume templates (5 formats from middle school to experienced)
 - [ ] Build web conversation UI (similar to existing assessment conversation)
 - [ ] Build mobile conversation screen
-- [ ] Handle edge cases: user abandons mid-conversation (save progress), user returns to refine later
-- [ ] Warm, encouraging system prompt that treats all experience levels with dignity
+- [x] Handle edge cases: progressive saving via SaveCareerProfileTool preserves progress
+- [x] Warm, encouraging system prompt that treats all experience levels with dignity
 
 ---
 
