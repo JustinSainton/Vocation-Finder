@@ -48,6 +48,17 @@ export default function DashboardLayout() {
         }}
       />
       <Tabs.Screen
+        name="resumes"
+        options={{
+          title: 'Resumes',
+          href: isEnabled('resume_builder') ? '/(dashboard)/resumes' : null,
+        }}
+      />
+      <Tabs.Screen
+        name="job-detail"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{ title: 'Profile' }}
       />
