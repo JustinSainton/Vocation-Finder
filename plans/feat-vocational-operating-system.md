@@ -570,19 +570,19 @@ Schedule::command('jobs:ingest --source=muse')->everyFourHours();
 Schedule::command('jobs:expire-stale')->daily();
 ```
 
-- [ ] Create `JobListing` model with full schema (title, company, location, salary, source, SOC code, etc.)
-- [ ] Create `JobListingCategory` pivot model (many-to-many with VocationalCategory + relevance score)
-- [ ] Build `AdzunaAdapter` with rate limiting and pagination
+- [x] Create `JobListing` model with full schema (title, company, location, salary, source, SOC code, etc.)
+- [x] Create `JobListingCategory` pivot model (many-to-many with VocationalCategory + relevance score)
+- [x] Build `AdzunaAdapter` with rate limiting and pagination
 - [ ] Build `JSearchAdapter` with RapidAPI auth and rate limiting
-- [ ] Build `TheMuseAdapter` for company data enrichment
+- [x] Build `TheMuseAdapter` for company data enrichment
 - [ ] Create `JobNormalizerService` to unify data across sources
-- [ ] Create `JobDeduplicationService` (fuzzy match on company + title + location)
-- [ ] Create `JobClassifierAgent` AI agent with O*NET lookup tool
-- [ ] Seed `soc_vocational_mappings` table with all major group mappings
-- [ ] Create `JobMatchingService` with three-factor scoring algorithm
-- [ ] Create scheduled artisan commands for ingestion + stale expiry
+- [x] Create `JobDeduplicationService` (fuzzy match on company + title + location)
+- [x] Create `JobClassifierAgent` AI agent with O*NET lookup tool
+- [x] Seed `soc_vocational_mappings` table with all major group mappings
+- [x] Create `JobMatchingService` with three-factor scoring algorithm
+- [x] Create scheduled artisan commands for ingestion + stale expiry
 - [ ] Configure Horizon queue for `job-pipeline` worker
-- [ ] Store API keys in `config/jobs.php` (Adzuna app_id/key, RapidAPI key)
+- [x] Store API keys in `config/jobs.php` (Adzuna app_id/key, RapidAPI key)
 
 #### 2B. Job Discovery UI
 
@@ -621,13 +621,13 @@ All gated behind `feature:job_discovery` middleware.
 - **Job detail** shows: full description, match breakdown (vocational/skills/values), one-tap "Save" and "Apply" actions, company info
 - **Empty state**: "Complete your assessment to see personalized job matches" (if no VocationalProfile)
 
-- [ ] Create `JobListingController` with filtering, pagination, match scoring
+- [x] Create `JobListingController` with filtering, pagination, match scoring
 - [ ] Build web browse/search page with filters
 - [ ] Build web job detail page with match breakdown
 - [ ] Build mobile jobs tab with recommended feed
 - [ ] Build mobile job detail screen
 - [ ] Build mobile search with filters
-- [ ] Implement save/bookmark functionality
+- [x] Implement save/bookmark functionality
 - [ ] Handle empty states (no assessment, no matches, no results)
 
 ---

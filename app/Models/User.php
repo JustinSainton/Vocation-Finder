@@ -86,6 +86,12 @@ class User extends Authenticatable
         return $this->hasOne(CareerProfile::class);
     }
 
+    public function savedJobs(): BelongsToMany
+    {
+        return $this->belongsToMany(JobListing::class, 'saved_jobs')
+            ->withTimestamps();
+    }
+
     public function hasActiveSubscription(): bool
     {
         if ($this->subscribed()) {
