@@ -18,6 +18,7 @@ use App\Http\Controllers\Web\Auth\SocialiteController;
 use App\Http\Controllers\Web\BillingController;
 use App\Http\Controllers\Web\CareerProfileController;
 use App\Http\Controllers\Web\CourseController;
+use App\Http\Controllers\Web\JobController;
 use App\Http\Controllers\Web\CurriculumPathwayController;
 use App\Http\Controllers\Web\Org\OrgDashboardController;
 use App\Http\Controllers\Web\Org\OrgInsightsController;
@@ -106,6 +107,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/billing/checkout/organization', [BillingController::class, 'checkoutOrganization']);
     Route::get('/billing/portal', [BillingController::class, 'billingPortal'])->name('billing.portal');
     Route::get('/billing/success', [BillingController::class, 'checkoutSuccess'])->name('billing.success');
+
+    // Job Discovery (gated behind feature flag)
+    Route::middleware('feature:job_discovery')->group(function () {
+        Route::get('/jobs', [JobController::class, 'index']);
+        Route::get('/jobs/{jobListing}', [JobController::class, 'show']);
+        Route::post('/jobs/{jobListing}/save', [JobController::class, 'save']);
+        Route::delete('/jobs/{jobListing}/save', [JobController::class, 'unsave']);
+    });
 
     // Career Profile (gated behind feature flag)
     Route::middleware('feature:career_profile')->group(function () {
