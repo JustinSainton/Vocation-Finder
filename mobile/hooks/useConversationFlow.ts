@@ -18,21 +18,18 @@ import {
   normalizeAssessmentLocale,
 } from '../constants/assessmentLocale';
 import { assessmentApi } from '../services/api';
-// Dynamic imports to prevent native module crash at startup
-function getSttService() {
-  try { return require('../services/sttService'); } catch { return null; }
-}
-function getTtsService() {
-  try { return require('../services/ttsService'); } catch { return null; }
-}
-const isLocalSttEnabled = () => getSttService()?.isSttEnabled() ?? false;
-const isLocalTtsEnabled = () => getTtsService()?.isTtsEnabled() ?? false;
-const warmupLocalStt = () => { try { getSttService()?.warmupStt(); } catch {} };
-const warmupLocalTts = () => { try { getTtsService()?.warmupTts(); } catch {} };
-const releaseLocalStt = async () => { try { await getSttService()?.releaseStt(); } catch {} };
-const releaseLocalTts = async () => { try { await getTtsService()?.releaseTts(); } catch {} };
-const transcribeLocalAudio = async (uri: string, locale: any) => getSttService()?.transcribeAudio(uri, locale);
-const synthesizeLocalSpeech = async (text: string) => getTtsService()?.synthesizeSpeech(text);
+import {
+  isLocalSttEnabled,
+  releaseLocalStt,
+  transcribeLocalAudio,
+  warmupLocalStt,
+} from '../services/localStt';
+import {
+  isLocalTtsEnabled,
+  releaseLocalTts,
+  synthesizeLocalSpeech,
+  warmupLocalTts,
+} from '../services/localTts';
 import { useAssessmentStore } from '../stores/assessmentStore';
 
 const METERING_INTERVAL_MS = 100;
@@ -195,11 +192,11 @@ export function useConversationFlow() {
     }
 
     if (isLocalTtsEnabled()) {
-      warmupLocalTts();
+      void warmupLocalTts(normalizedSpeechLocale).catch(() => {});
     }
 
     if (isLocalSttEnabled()) {
-      warmupLocalStt();
+      void warmupLocalStt(normalizedSpeechLocale).catch(() => {});
     }
   }, [normalizedSpeechLocale]);
 
@@ -269,7 +266,7 @@ export function useConversationFlow() {
       try {
         try {
           if (isLocalTtsEnabled()) {
-            const localSpeech = await synthesizeLocalSpeech(text);
+            const localSpeech = await synthesizeLocalSpeech(text, normalizedSpeechLocale);
 
             await setAudioModeAsync({
               allowsRecording: false,
@@ -448,10 +445,11 @@ export function useConversationFlow() {
           response = await handleConversationTurn({
             transcript: localTranscript.text,
             transcriptLocale: localTranscript.locale,
+            transcriptConfidence: localTranscript.confidence,
             durationSeconds,
             clientProcessing: {
-              stt_engine: 'sherpa-onnx:whisper-tiny',
-              tts_engine: isLocalTtsEnabled() ? 'sherpa-onnx:kokoro' : 'remote-or-native',
+              stt_engine: `${localTranscript.engine}:${localTranscript.modelId}`,
+              tts_engine: isLocalTtsEnabled() ? 'sherpa-onnx' : 'remote-or-native',
               app_version:
                 Constants.expoConfig?.version ??
                 Constants.nativeAppVersion ??
