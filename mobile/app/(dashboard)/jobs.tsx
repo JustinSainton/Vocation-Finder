@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,6 +6,7 @@ import {
   Pressable,
   ActivityIndicator,
   Linking,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -61,10 +62,12 @@ function JobCard({
   job,
   colors,
   onSave,
+  onPress,
 }: {
   job: JobListingSummary;
   colors: any;
   onSave: (id: string, saved: boolean) => void;
+  onPress: () => void;
 }) {
   const handleApply = () => {
     if (job.source_url) {
@@ -73,7 +76,7 @@ function JobCard({
   };
 
   return (
-    <View style={[styles.card, { borderColor: colors.divider }]}>
+    <Pressable onPress={onPress} style={[styles.card, { borderColor: colors.divider }]}>
       <View style={styles.cardHeader}>
         <View style={styles.cardTitleRow}>
           <Typography variant="body" style={styles.jobTitle} numberOfLines={2}>
@@ -130,7 +133,7 @@ function JobCard({
           </Typography>
         </Pressable>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -138,6 +141,7 @@ export default function JobsScreen() {
   const { colors } = useTheme();
   const { isEnabled } = useFeatureFlags();
   const { user } = useAuthStore();
+  const router = useRouter();
   const {
     recommended,
     isLoading,
@@ -167,6 +171,18 @@ export default function JobsScreen() {
     return null;
   }
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const { jobs, fetchJobs, setFilters } = useJobStore();
+
+  const handleSearch = useCallback(() => {
+    if (searchQuery.trim()) {
+      setFilters({ search: searchQuery.trim() });
+      fetchJobs(true);
+    }
+  }, [searchQuery, setFilters, fetchJobs]);
+
+  const displayJobs = searchQuery.trim() ? jobs : recommended;
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
@@ -176,9 +192,27 @@ export default function JobsScreen() {
         </Typography>
       </View>
 
+      {/* Search Bar */}
+      <View style={styles.searchRow}>
+        <TextInput
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          onSubmitEditing={handleSearch}
+          placeholder="Search by title, company..."
+          placeholderTextColor={colors.accent}
+          returnKeyType="search"
+          style={[styles.searchInput, { color: colors.text, borderColor: colors.divider }]}
+        />
+        {searchQuery.trim() ? (
+          <Pressable onPress={() => { setSearchQuery(''); }} style={styles.clearBtn}>
+            <Typography variant="small" family="sans" color={colors.textSecondary}>Clear</Typography>
+          </Pressable>
+        ) : null}
+      </View>
+
       <View style={[styles.divider, { backgroundColor: colors.divider }]} />
 
-      {recommended.length === 0 && !isLoading ? (
+      {displayJobs.length === 0 && !isLoading ? (
         <View style={styles.emptyState}>
           <Typography variant="body" style={styles.emptyTitle}>
             {user
@@ -196,10 +230,10 @@ export default function JobsScreen() {
         </View>
       ) : (
         <FlatList
-          data={recommended}
+          data={displayJobs}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <JobCard job={item} colors={colors} onSave={handleSave} />
+            <JobCard job={item} colors={colors} onSave={handleSave} onPress={() => router.push({ pathname: '/(dashboard)/job-detail', params: { id: item.id } })} />
           )}
           contentContainerStyle={styles.listContent}
           ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
@@ -225,7 +259,24 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xl,
+    paddingBottom: spacing.sm,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    borderWidth: 1,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 8,
+    fontSize: 13,
+  },
+  clearBtn: {
+    paddingVertical: 8,
   },
   divider: {
     height: 1,

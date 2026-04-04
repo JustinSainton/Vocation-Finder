@@ -23,6 +23,7 @@ class AdminDashboardController extends Controller
             'recentAssessments' => $this->analytics->getRecentAssessments(),
             'orgUsage' => $this->analytics->getOrgUsage(),
             'jobPlatformMetrics' => $this->analytics->getJobPlatformMetrics(),
+            'costTracking' => $this->analytics->getCostTracking(),
         ]);
     }
 }

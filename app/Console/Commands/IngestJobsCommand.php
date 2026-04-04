@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Jobs\ClassifyJobListingJob;
 use App\Models\JobListing;
 use App\Services\Jobs\Adapters\AdzunaAdapter;
+use App\Services\Jobs\Adapters\JSearchAdapter;
 use App\Services\Jobs\Adapters\TheMuseAdapter;
 use App\Services\Jobs\Contracts\JobSourceAdapter;
 use App\Services\Jobs\JobDeduplicationService;
@@ -88,6 +89,7 @@ class IngestJobsCommand extends Command
     {
         $map = [
             'adzuna' => AdzunaAdapter::class,
+            'jsearch' => JSearchAdapter::class,
             'muse' => TheMuseAdapter::class,
         ];
 
