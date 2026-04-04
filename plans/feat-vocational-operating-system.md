@@ -1048,18 +1048,18 @@ Push notifications (Expo) and email reminders when:
 - 7 days after applying with no status change: "Consider following up on your application to [Company]"
 - `next_action_date` is today: "Reminder: [next_action] for [Company]"
 
-- [ ] Create `JobApplication` model with status enum
-- [ ] Create `ApplicationEvent` model for activity log
-- [ ] Create `ApplicationTrackingService` with status transition validation
-- [ ] Build API CRUD + analytics endpoint
-- [ ] Build web kanban board view (drag-and-drop status changes)
-- [ ] Build web list view as alternative
-- [ ] Build mobile applications tab with status-grouped list
-- [ ] Build mobile application detail with event timeline
-- [ ] Implement quick-add from job listings
-- [ ] Create `DetectGhostedApplicationsJob` scheduled daily
-- [ ] Create follow-up reminder notifications (push + email)
-- [ ] Install `expo-notifications` for mobile push support
+- [x] Create `JobApplication` model with status enum and valid transitions
+- [x] Create `ApplicationEvent` model for activity log
+- [x] Create `ApplicationTrackingService` with status transition validation
+- [x] Build API CRUD + analytics endpoint
+- [x] Build web list view with status filters and funnel visualization
+- [x] Build web application detail with event timeline and status transition buttons
+- [x] Build mobile applications tab with status-grouped SectionList
+- [x] Build mobile application detail via API (status updates from web/mobile)
+- [x] Implement quick-add from job listings (API accepts job_listing_id, auto-fills fields)
+- [x] Create `DetectGhostedApplicationsJob` scheduled daily
+- [x] Create follow-up reminder notifications (email via FollowUpReminderNotification)
+- [ ] Install `expo-notifications` for mobile push support — requires dev build, deferred
 
 #### 4B. Application Analytics
 
@@ -1102,10 +1102,10 @@ Available at `GET /api/v1/applications/analytics`:
 
 The `vocational_alignment_correlation` metric is unique to this platform — it validates whether higher vocational match scores actually lead to better job search outcomes. This is a powerful data point for proving the assessment's value.
 
-- [ ] Build analytics aggregation queries
-- [ ] Expose via API for mobile and web
-- [ ] Display on user dashboard
-- [ ] Feed into organization and platform admin dashboards
+- [x] Build analytics aggregation queries (in ApplicationTrackingService::getAnalytics)
+- [x] Expose via API for mobile and web (GET /api/v1/applications/analytics)
+- [x] Display on user dashboard (web Applications/Index.tsx has funnel bar)
+- [ ] Feed into organization and platform admin dashboards — Phase 5
 
 ---
 

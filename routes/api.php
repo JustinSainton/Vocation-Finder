@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\BillingController;
 use App\Http\Controllers\Api\V1\CourseController;
 use App\Http\Controllers\Api\V1\OrganizationInvitationController;
 use App\Http\Controllers\Api\V1\CoverLetterController;
+use App\Http\Controllers\Api\V1\JobApplicationController;
 use App\Http\Controllers\Api\V1\PathwayController;
 use App\Http\Controllers\Api\V1\QuestionController;
 use App\Http\Controllers\Api\V1\ResumeController;
@@ -147,6 +148,17 @@ Route::prefix('v1')->group(function () {
             Route::post('resume-conversation/start', [ResumeConversationController::class, 'start']);
             Route::post('resume-conversation/message', [ResumeConversationController::class, 'message']);
             Route::get('resume-conversation/history', [ResumeConversationController::class, 'history']);
+        });
+
+        // Application Tracking (gated behind feature flag)
+        Route::middleware('feature:application_tracking')->group(function () {
+            Route::get('applications/analytics', [JobApplicationController::class, 'analytics']);
+            Route::get('applications', [JobApplicationController::class, 'index']);
+            Route::post('applications', [JobApplicationController::class, 'store']);
+            Route::get('applications/{jobApplication}', [JobApplicationController::class, 'show']);
+            Route::put('applications/{jobApplication}', [JobApplicationController::class, 'update']);
+            Route::delete('applications/{jobApplication}', [JobApplicationController::class, 'destroy']);
+            Route::post('applications/{jobApplication}/events', [JobApplicationController::class, 'logEvent']);
         });
 
         // Career Profile (gated behind feature flag)

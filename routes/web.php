@@ -18,6 +18,7 @@ use App\Http\Controllers\Web\Auth\SocialiteController;
 use App\Http\Controllers\Web\BillingController;
 use App\Http\Controllers\Web\CareerProfileController;
 use App\Http\Controllers\Web\CourseController;
+use App\Http\Controllers\Web\ApplicationController;
 use App\Http\Controllers\Web\JobController;
 use App\Http\Controllers\Web\ResumeController;
 use App\Http\Controllers\Web\CurriculumPathwayController;
@@ -115,6 +116,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/jobs/{jobListing}', [JobController::class, 'show']);
         Route::post('/jobs/{jobListing}/save', [JobController::class, 'save']);
         Route::delete('/jobs/{jobListing}/save', [JobController::class, 'unsave']);
+    });
+
+    // Application Tracking (gated behind feature flag)
+    Route::middleware('feature:application_tracking')->group(function () {
+        Route::get('/applications', [ApplicationController::class, 'index']);
+        Route::get('/applications/{jobApplication}', [ApplicationController::class, 'show']);
     });
 
     // Resumes & Cover Letters (gated behind feature flag)
