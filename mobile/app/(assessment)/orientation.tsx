@@ -3,6 +3,7 @@ import { View, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import { useAudioPlayer } from 'expo-audio';
 import {
   getAssessmentCopy,
 } from '../../constants/assessmentLocale';
@@ -20,6 +21,18 @@ export default function OrientationScreen() {
   const [checked, setChecked] = useState(false);
   const locale = useAssessmentStore((state) => state.locale);
   const copy = getAssessmentCopy(locale);
+
+  // Ambient music — starts playing immediately on orientation screen
+  const ambientPlayer = useAudioPlayer(require('../../assets/audio/calm-space.mp3'));
+
+  useEffect(() => {
+    try {
+      ambientPlayer.loop = true;
+      ambientPlayer.volume = 0.08;
+      ambientPlayer.play();
+    } catch {}
+    return () => { try { ambientPlayer.pause(); } catch {} };
+  }, [ambientPlayer]);
 
   // Pre-fill name from auth store if user is logged in
   const authUser = useAuthStore((s) => s.user);
