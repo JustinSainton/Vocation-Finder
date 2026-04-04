@@ -3,7 +3,9 @@
 namespace App\Jobs;
 
 use App\Ai\Agents\CoverLetterWriterAgent;
+use App\Ai\Tools\CompanyResearchTool;
 use App\Models\CoverLetter;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -11,6 +13,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Ai\Tools\Request;
 
 class GenerateCoverLetterJob implements ShouldQueue
 {
@@ -67,7 +70,20 @@ class GenerateCoverLetterJob implements ShouldQueue
             'banned_phrases' => $voiceProfile->banned_phrases,
         ] : null;
 
+        // Fetch company research if not already present
         $companyResearch = $this->coverLetter->company_research;
+        if (! $companyResearch && ! empty($jobData['company'])) {
+            try {
+                $tool = new CompanyResearchTool;
+                $result = json_decode($tool->handle(new Request(['company_name' => $jobData['company']])), true);
+                if (is_array($result) && ! empty($result['description'])) {
+                    $companyResearch = $result;
+                    $this->coverLetter->update(['company_research' => $companyResearch]);
+                }
+            } catch (\Throwable $e) {
+                Log::info('Company research failed, proceeding without', ['error' => $e->getMessage()]);
+            }
+        }
 
         $agent = new CoverLetterWriterAgent(
             careerProfile: $careerData,
@@ -121,7 +137,7 @@ class GenerateCoverLetterJob implements ShouldQueue
     {
         try {
             $html = view('cover-letters.pdf', ['content' => $content])->render();
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html);
+            $pdf = Pdf::loadHTML($html);
             $output = $pdf->output();
 
             $path = "cover-letters/{$this->coverLetter->user_id}/{$this->coverLetter->id}.pdf";

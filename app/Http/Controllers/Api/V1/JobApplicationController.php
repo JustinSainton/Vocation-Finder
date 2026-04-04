@@ -8,6 +8,7 @@ use App\Models\JobListing;
 use App\Services\ApplicationTrackingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class JobApplicationController extends Controller
 {
@@ -78,7 +79,7 @@ class JobApplicationController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => ['nullable', 'in:' . implode(',', JobApplication::STATUSES)],
+            'status' => ['nullable', 'in:'.implode(',', JobApplication::STATUSES)],
             'notes' => ['nullable', 'string', 'max:5000'],
             'priority' => ['nullable', 'in:low,medium,high'],
             'contact_name' => ['nullable', 'string', 'max:255'],
@@ -86,8 +87,8 @@ class JobApplicationController extends Controller
             'next_action' => ['nullable', 'string', 'max:255'],
             'next_action_date' => ['nullable', 'date'],
             'salary_offered' => ['nullable', 'integer'],
-            'resume_version_id' => ['nullable', 'uuid', 'exists:resume_versions,id'],
-            'cover_letter_id' => ['nullable', 'uuid', 'exists:cover_letters,id'],
+            'resume_version_id' => ['nullable', 'uuid', Rule::exists('resume_versions', 'id')->where('user_id', $request->user()->id)],
+            'cover_letter_id' => ['nullable', 'uuid', Rule::exists('cover_letters', 'id')->where('user_id', $request->user()->id)],
         ]);
 
         // Handle status transition separately
@@ -99,10 +100,16 @@ class JobApplicationController extends Controller
             unset($validated['status']);
         }
 
-        // Update other fields
-        $updatableFields = array_filter($validated, fn ($v) => $v !== null);
-        if (! empty($updatableFields)) {
-            $jobApplication->update($updatableFields);
+        // Update other fields — use request keys to allow clearing nullable fields
+        $updatableKeys = ['notes', 'priority', 'contact_name', 'contact_email', 'next_action', 'next_action_date', 'salary_offered', 'resume_version_id', 'cover_letter_id'];
+        $fieldsToUpdate = [];
+        foreach ($updatableKeys as $key) {
+            if ($request->has($key)) {
+                $fieldsToUpdate[$key] = $validated[$key] ?? null;
+            }
+        }
+        if (! empty($fieldsToUpdate)) {
+            $jobApplication->update($fieldsToUpdate);
         }
 
         return response()->json(['data' => $jobApplication->load('events')]);

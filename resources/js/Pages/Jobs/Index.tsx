@@ -121,12 +121,10 @@ export default function JobsIndex({ jobs, filters, pathways }: Props) {
         router.get('/jobs', newFilters, { preserveState: true });
     };
 
-    const handleSave = (jobId: string, isSaved: boolean) => {
-        if (isSaved) {
-            router.delete(`/jobs/${jobId}/save`, { preserveScroll: true });
-        } else {
-            router.post(`/jobs/${jobId}/save`, {}, { preserveScroll: true });
-        }
+    const handleSave = async (jobId: string, isSaved: boolean) => {
+        const method = isSaved ? 'DELETE' : 'POST';
+        await fetch(`/jobs/${jobId}/save`, { method, headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '' } });
+        router.reload({ preserveScroll: true });
     };
 
     return (

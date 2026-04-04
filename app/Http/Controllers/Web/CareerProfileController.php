@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ParseResumeUploadJob;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -44,14 +45,16 @@ class CareerProfileController extends Controller
                 'imported_at' => now(),
             ]);
         } else {
-            $request->user()->careerProfile()->create([
+            $profile = $request->user()->careerProfile()->create([
                 'raw_import_data' => ['file_path' => $path],
                 'import_source' => 'pdf_upload',
                 'imported_at' => now(),
             ]);
         }
 
-        return redirect('/career-profile')->with('success', 'Resume uploaded successfully.');
+        ParseResumeUploadJob::dispatch($profile);
+
+        return redirect('/career-profile')->with('success', 'Resume uploaded. Parsing in progress.');
     }
 
     public function update(Request $request): RedirectResponse

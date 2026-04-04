@@ -50,7 +50,8 @@ class JobMatchingService
         }
 
         // Get the user's top pathways and find jobs in those categories
-        $topCategorySlugs = collect($profile->category_scores)
+        $normalizedScores = $this->normalizeCategoryScores($profile->category_scores);
+        $topCategorySlugs = collect($normalizedScores)
             ->sortDesc()
             ->take(5)
             ->keys();
@@ -65,7 +66,7 @@ class JobMatchingService
             ->limit($limit * 3) // Over-fetch for scoring/reranking
             ->get();
 
-        return $jobs->map(function (JobListing $job) use ($user, $profile) {
+        return $jobs->map(function (JobListing $job) use ($user) {
             $score = $this->scoreJob($job, $user);
 
             return [
@@ -84,7 +85,14 @@ class JobMatchingService
      */
     private function vocationalAlignment(JobListing $job, VocationalProfile $profile): float
     {
-        $userScores = $profile->category_scores ?? [];
+        $rawScores = $profile->category_scores ?? [];
+
+        if (empty($rawScores)) {
+            return 0.0;
+        }
+
+        // Normalize category_scores: could be slug=>score map OR array of {category, score} objects
+        $userScores = $this->normalizeCategoryScores($rawScores);
 
         if (empty($userScores)) {
             return 0.0;
@@ -110,6 +118,35 @@ class JobMatchingService
         }
 
         return $this->cosineSimilarity($userVector, $jobVector);
+    }
+
+    /**
+     * Normalize category_scores to a slug => numeric score map.
+     * Handles both formats: slug=>score map or array of {category, score, rationale} objects.
+     */
+    private function normalizeCategoryScores(array $scores): array
+    {
+        if (empty($scores)) {
+            return [];
+        }
+
+        // Already a slug=>score map (string keys with numeric values)
+        $firstKey = array_key_first($scores);
+        if (is_string($firstKey) && ! is_array($scores[$firstKey])) {
+            return $scores;
+        }
+
+        // Array of objects: [{category: "slug", score: 8.5, rationale: "..."}, ...]
+        $normalized = [];
+        foreach ($scores as $entry) {
+            if (is_array($entry) && isset($entry['category'])) {
+                $slug = $entry['category'];
+                $score = (float) ($entry['score'] ?? 0);
+                $normalized[$slug] = $score;
+            }
+        }
+
+        return $normalized;
     }
 
     /**
