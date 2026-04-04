@@ -100,18 +100,43 @@ class GenerateResumeJob implements ShouldQueue
 
         $score = $qualityResult['total_score'] ?? 0;
 
-        // Quality gate: if below 70 on first attempt, regenerate once
+        // Quality gate: if below 70 on first attempt, regenerate with feedback
         if ($score < 70 && $this->attempts() === 1) {
-            Log::info('Resume quality below threshold, regenerating', [
+            $issues = $qualityResult['issues'] ?? [];
+            $suggestions = $qualityResult['suggestions'] ?? [];
+
+            Log::info('Resume quality below threshold, regenerating with feedback', [
                 'resume_id' => $this->resumeVersion->id,
                 'score' => $score,
-                'issues' => $qualityResult['issues'] ?? [],
+                'issues' => $issues,
             ]);
 
-            // Retry with quality feedback injected
+            // Store quality feedback for the retry attempt
+            $this->resumeVersion->update([
+                'generation_context' => [
+                    'first_pass_score' => $score,
+                    'first_pass_issues' => $issues,
+                    'first_pass_suggestions' => $suggestions,
+                ],
+            ]);
+
             $this->release(5);
 
             return;
+        }
+
+        // On retry, check if we had feedback from first pass and it improved
+        if ($this->attempts() > 1) {
+            $previousContext = $this->resumeVersion->generation_context ?? [];
+            $firstScore = $previousContext['first_pass_score'] ?? null;
+            if ($firstScore !== null) {
+                Log::info('Resume retry completed', [
+                    'resume_id' => $this->resumeVersion->id,
+                    'first_score' => $firstScore,
+                    'retry_score' => $score,
+                    'improved' => $score > $firstScore,
+                ]);
+            }
         }
 
         // Store the resume data

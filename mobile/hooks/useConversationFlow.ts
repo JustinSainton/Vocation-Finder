@@ -19,17 +19,17 @@ import {
 } from '../constants/assessmentLocale';
 import { assessmentApi } from '../services/api';
 import {
-  isLocalSttEnabled,
-  releaseLocalStt,
-  transcribeLocalAudio,
-  warmupLocalStt,
-} from '../services/localStt';
+  isSttEnabled as isLocalSttEnabled,
+  transcribeAudio as transcribeLocalAudio,
+  warmupStt as warmupLocalStt,
+  releaseStt as releaseLocalStt,
+} from '../services/sttService';
 import {
-  isLocalTtsEnabled,
-  releaseLocalTts,
-  synthesizeLocalSpeech,
-  warmupLocalTts,
-} from '../services/localTts';
+  isTtsEnabled as isLocalTtsEnabled,
+  synthesizeSpeech as synthesizeLocalSpeech,
+  warmupTts as warmupLocalTts,
+  releaseTts as releaseLocalTts,
+} from '../services/ttsService';
 import { useAssessmentStore } from '../stores/assessmentStore';
 
 const METERING_INTERVAL_MS = 100;
@@ -192,13 +192,13 @@ export function useConversationFlow() {
     }
 
     if (isLocalTtsEnabled()) {
-      void warmupLocalTts(normalizedSpeechLocale).catch(() => {
+      void warmupLocalTts().catch(() => {
         // optional optimization only
       });
     }
 
     if (isLocalSttEnabled()) {
-      void warmupLocalStt(normalizedSpeechLocale).catch(() => {
+      void warmupLocalStt().catch(() => {
         // optional optimization only
       });
     }
@@ -270,7 +270,7 @@ export function useConversationFlow() {
       try {
         try {
           if (isLocalTtsEnabled()) {
-            const localSpeech = await synthesizeLocalSpeech(text, normalizedSpeechLocale);
+            const localSpeech = await synthesizeLocalSpeech(text);
 
             await setAudioModeAsync({
               allowsRecording: false,
@@ -449,11 +449,10 @@ export function useConversationFlow() {
           response = await handleConversationTurn({
             transcript: localTranscript.text,
             transcriptLocale: localTranscript.locale,
-            transcriptConfidence: localTranscript.confidence,
             durationSeconds,
             clientProcessing: {
-              stt_engine: `${localTranscript.engine}:${localTranscript.modelId}`,
-              tts_engine: isLocalTtsEnabled() ? 'sherpa-onnx' : 'remote-or-native',
+              stt_engine: 'sherpa-onnx:whisper-tiny',
+              tts_engine: isLocalTtsEnabled() ? 'sherpa-onnx:kokoro' : 'remote-or-native',
               app_version:
                 Constants.expoConfig?.version ??
                 Constants.nativeAppVersion ??
