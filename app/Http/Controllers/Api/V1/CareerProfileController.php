@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ParseResumeUploadJob;
 use App\Models\CareerProfile;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -71,12 +72,11 @@ class CareerProfileController extends Controller
             ]);
         }
 
-        // TODO: Dispatch ParseResumeUploadJob once resume parser is integrated
-        // ParseResumeUploadJob::dispatch($profile);
+        ParseResumeUploadJob::dispatch($profile);
 
         return response()->json([
             'data' => $profile,
-            'message' => 'Resume uploaded. Parsing will be available soon.',
+            'message' => 'Resume uploaded and parsing started.',
         ], 202);
     }
 

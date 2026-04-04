@@ -222,6 +222,113 @@ class PlatformAnalyticsService
     }
 
     /**
+     * Get cost tracking data: expected vs estimated actual costs.
+     */
+    public function getCostTracking(): array
+    {
+        $snapshot = DashboardSnapshot::latest('cost_tracking');
+
+        if ($snapshot && $snapshot->computed_at->isAfter(now()->subMinutes(30))) {
+            return $snapshot->value;
+        }
+
+        return $this->computeCostTracking();
+    }
+
+    public function computeCostTracking(): array
+    {
+        // --- Cost-per-unit assumptions (from plan) ---
+        $costPerClassification = 0.015;  // ~$0.01-0.02 avg per Haiku classification
+        $costPerResume         = 0.30;   // per resume generation
+        $costPerCoverLetter    = 0.25;   // per cover letter generation
+
+        // --- Expected monthly baseline (from plan, MVP tier) ---
+        $expectedCosts = [
+            'adzuna'            => 0.00,
+            'jsearch'           => 25.00,
+            'muse'              => 0.00,
+            'onet'              => 0.00,
+            'ai_classification' => 15.00,  // ~$15 for 1k listings/day at MVP
+        ];
+        $expectedTotal = array_sum($expectedCosts);
+
+        // --- Actual usage counts (current calendar month) ---
+        $startOfMonth = now()->startOfMonth();
+
+        $jobsIngestedThisMonth = JobListing::where('created_at', '>=', $startOfMonth)->count();
+
+        $classificationsThisMonth = JobListing::where('classification_status', 'classified')
+            ->where('updated_at', '>=', $startOfMonth)
+            ->count();
+
+        // Include failed classification attempts — they still cost an API call
+        $classificationFailedThisMonth = JobListing::where('classification_status', 'failed')
+            ->where('updated_at', '>=', $startOfMonth)
+            ->count();
+
+        $totalClassificationCalls = $classificationsThisMonth + $classificationFailedThisMonth;
+
+        $resumesThisMonth = ResumeVersion::where('created_at', '>=', $startOfMonth)->count();
+
+        $coverLettersThisMonth = CoverLetter::where('created_at', '>=', $startOfMonth)->count();
+
+        // --- Estimated actual costs ---
+        $actualAiClassificationCost = round($totalClassificationCalls * $costPerClassification, 2);
+        $actualResumeCost           = round($resumesThisMonth * $costPerResume, 2);
+        $actualCoverLetterCost      = round($coverLettersThisMonth * $costPerCoverLetter, 2);
+
+        $actualCosts = [
+            'ai_classification' => $actualAiClassificationCost,
+            'resume_generation' => $actualResumeCost,
+            'cover_letter_generation' => $actualCoverLetterCost,
+        ];
+        $actualTotal = round(array_sum($actualCosts), 2);
+
+        // API subscription costs are fixed — include them as actual too
+        $actualTotalWithSubscriptions = round(
+            $actualTotal + $expectedCosts['jsearch'],
+            2
+        );
+
+        $variance = round($actualTotalWithSubscriptions - $expectedTotal, 2);
+
+        $costTracking = [
+            'period' => now()->format('Y-m'),
+            'expected' => [
+                'line_items' => $expectedCosts,
+                'total' => $expectedTotal,
+            ],
+            'actual' => [
+                'usage' => [
+                    'jobs_ingested' => $jobsIngestedThisMonth,
+                    'ai_classifications' => $totalClassificationCalls,
+                    'ai_classifications_succeeded' => $classificationsThisMonth,
+                    'ai_classifications_failed' => $classificationFailedThisMonth,
+                    'resumes_generated' => $resumesThisMonth,
+                    'cover_letters_generated' => $coverLettersThisMonth,
+                ],
+                'unit_costs' => [
+                    'classification' => $costPerClassification,
+                    'resume' => $costPerResume,
+                    'cover_letter' => $costPerCoverLetter,
+                ],
+                'line_items' => $actualCosts,
+                'ai_subtotal' => $actualTotal,
+                'subscription_costs' => $expectedCosts['jsearch'],
+                'total' => $actualTotalWithSubscriptions,
+            ],
+            'variance' => $variance,
+            'variance_pct' => $expectedTotal > 0
+                ? round(($variance / $expectedTotal) * 100, 1)
+                : 0,
+        ];
+
+        DashboardSnapshot::record('cost_tracking', $costTracking);
+
+        return $costTracking;
+    }
+
+    /**
      * Get job platform metrics for admin dashboard.
      */
     public function getJobPlatformMetrics(): array

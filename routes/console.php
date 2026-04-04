@@ -11,6 +11,7 @@ Artisan::command('inspire', function () {
 
 // Job ingestion pipeline
 Schedule::command('jobs:ingest --source=adzuna --classify')->hourly();
+Schedule::command('jobs:ingest --source=jsearch --classify')->everyTwoHours();
 Schedule::command('jobs:ingest --source=muse --classify')->everyFourHours();
 Schedule::command('jobs:expire-stale')->daily();
 
