@@ -18,6 +18,7 @@ import {
   normalizeAssessmentLocale,
 } from '../constants/assessmentLocale';
 import { assessmentApi } from '../services/api';
+import { getQuestionAudio } from '../constants/questionAudio';
 import {
   isLocalSttEnabled,
   releaseLocalStt,
@@ -200,6 +201,20 @@ export function useConversationFlow() {
     }
   }, [normalizedSpeechLocale]);
 
+  // Start ambient music as soon as the conversation screen mounts
+  useEffect(() => {
+    const startMusic = async () => {
+      try {
+        await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+        ambientPlayer.loop = true;
+        ambientPlayer.volume = 0.11;
+        ambientPlayer.play();
+      } catch {}
+    };
+    startMusic();
+    return () => { try { ambientPlayer.pause(); } catch {} };
+  }, [ambientPlayer]);
+
   const requestMicPermission = useCallback(async (): Promise<boolean> => {
     const status = await AudioModule.requestRecordingPermissionsAsync();
     return status.granted;
@@ -264,6 +279,21 @@ export function useConversationFlow() {
       await startAmbientBed();
 
       try {
+        // Check for pre-recorded question audio first (instant playback)
+        const currentQ = questions[currentQuestion];
+        if (currentQ && text === (currentQ.conversation_prompt ?? currentQ.question_text)) {
+          const prerecorded = getQuestionAudio(currentQ.sort_order, normalizedSpeechLocale);
+          if (prerecorded) {
+            await setAudioModeAsync({
+              allowsRecording: false,
+              playsInSilentMode: true,
+            });
+            ttsPlayer.replace(prerecorded);
+            ttsPlayer.play();
+            return;
+          }
+        }
+
         try {
           if (isLocalTtsEnabled()) {
             const localSpeech = await synthesizeLocalSpeech(text, normalizedSpeechLocale);
