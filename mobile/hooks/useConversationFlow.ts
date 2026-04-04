@@ -458,13 +458,35 @@ export function useConversationFlow() {
             },
           });
         } catch (localSttError) {
-          console.warn('[STT] Local transcription failed, falling back to server:', localSttError);
-          // Fall through to server-side audio upload as fallback
+          console.warn('[STT] Local transcription failed, retrying after warmup:', localSttError);
+          // Retry once after re-warming the engine
+          try {
+            await warmupLocalStt(normalizedSpeechLocale);
+            const retryTranscript = await transcribeLocalAudio(uri, normalizedSpeechLocale);
+            response = await handleConversationTurn({
+              transcript: retryTranscript.text,
+              transcriptLocale: retryTranscript.locale,
+              transcriptConfidence: retryTranscript.confidence,
+              durationSeconds,
+              clientProcessing: {
+                stt_engine: `${retryTranscript.engine}:${retryTranscript.modelId}`,
+                tts_engine: isLocalTtsEnabled() ? 'sherpa-onnx' : 'remote-or-native',
+                app_version: Constants.expoConfig?.version ?? Constants.nativeAppVersion ?? undefined,
+              },
+            });
+          } catch (retryError) {
+            console.error('[STT] Retry also failed:', retryError);
+            useAssessmentStore.setState({
+              conversationState: 'error',
+              conversationError: 'Could not process your speech. Please try again.',
+            });
+            return;
+          }
         }
       }
 
-      if (!response) {
-        // Server-side audio upload: used when local STT is disabled OR when it fails.
+      if (!response && !isLocalSttEnabled()) {
+        // Server-side audio upload: only when local STT is explicitly disabled.
         response = await handleConversationTurn({
           audioUri: uri,
           durationSeconds,

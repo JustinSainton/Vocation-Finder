@@ -78,10 +78,9 @@ export function isTtsEnabled(): boolean {
 async function generateAndSave(text: string): Promise<string> {
   const tts = await getEngine();
 
-  // sid 4 = af_heart (warmer, more expressive voice)
-  // speed 1.0 = natural pace
+  // sid 0 = default voice, speed 1.0 = natural pace
   const audio = await tts.generateSpeech(text, {
-    sid: 4,
+    sid: 0,
     speed: 1.0,
   });
 

@@ -403,10 +403,9 @@ export async function synthesizeLocalSpeech(
   }
 
   const initialized = await ensureInitialized(locale);
-  // sid 0 = af (default), sid 4 = af_heart (warmer, more expressive)
-  // speed 1.0 = natural pace, was 0.93 which felt sluggish
+  // sid 0 = default voice, speed 1.0 = natural pace (was 0.93)
   const generatedAudio = await initialized.engine.generateSpeech(content, {
-    sid: 4,
+    sid: 0,
     speed: 1.0,
   });
 
