@@ -13,9 +13,6 @@ import { spacing, layout } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { useAssessmentStore } from '../../stores/assessmentStore';
 import { useAuthStore } from '../../stores/authStore';
-import { warmupStt } from '../../services/sttService';
-import { warmupTts } from '../../services/ttsService';
-
 export default function OrientationScreen() {
   const router = useRouter();
   const { colors } = useTheme();
@@ -34,8 +31,15 @@ export default function OrientationScreen() {
       if (state.questions.length === 0 || state.questionsLocale !== state.locale) {
         await state.fetchQuestions();
       }
-      try { warmupStt(); } catch (e) { console.warn('[STT] Warmup failed:', e); }
-      try { warmupTts(); } catch (e) { console.warn('[TTS] Warmup failed:', e); }
+      // Warmup STT/TTS via dynamic require to avoid native module crash at startup
+      try {
+        const { warmupStt } = require('../../services/sttService');
+        warmupStt();
+      } catch {}
+      try {
+        const { warmupTts } = require('../../services/ttsService');
+        warmupTts();
+      } catch {}
     };
     prefetch();
   }, [locale]);

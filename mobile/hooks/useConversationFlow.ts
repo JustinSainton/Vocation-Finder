@@ -18,18 +18,21 @@ import {
   normalizeAssessmentLocale,
 } from '../constants/assessmentLocale';
 import { assessmentApi } from '../services/api';
-import {
-  isSttEnabled as isLocalSttEnabled,
-  transcribeAudio as transcribeLocalAudio,
-  warmupStt as warmupLocalStt,
-  releaseStt as releaseLocalStt,
-} from '../services/sttService';
-import {
-  isTtsEnabled as isLocalTtsEnabled,
-  synthesizeSpeech as synthesizeLocalSpeech,
-  warmupTts as warmupLocalTts,
-  releaseTts as releaseLocalTts,
-} from '../services/ttsService';
+// Dynamic imports to prevent native module crash at startup
+function getSttService() {
+  try { return require('../services/sttService'); } catch { return null; }
+}
+function getTtsService() {
+  try { return require('../services/ttsService'); } catch { return null; }
+}
+const isLocalSttEnabled = () => getSttService()?.isSttEnabled() ?? false;
+const isLocalTtsEnabled = () => getTtsService()?.isTtsEnabled() ?? false;
+const warmupLocalStt = () => { try { getSttService()?.warmupStt(); } catch {} };
+const warmupLocalTts = () => { try { getTtsService()?.warmupTts(); } catch {} };
+const releaseLocalStt = async () => { try { await getSttService()?.releaseStt(); } catch {} };
+const releaseLocalTts = async () => { try { await getTtsService()?.releaseTts(); } catch {} };
+const transcribeLocalAudio = async (uri: string, locale: any) => getSttService()?.transcribeAudio(uri, locale);
+const synthesizeLocalSpeech = async (text: string) => getTtsService()?.synthesizeSpeech(text);
 import { useAssessmentStore } from '../stores/assessmentStore';
 
 const METERING_INTERVAL_MS = 100;
