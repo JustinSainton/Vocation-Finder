@@ -192,15 +192,11 @@ export function useConversationFlow() {
     }
 
     if (isLocalTtsEnabled()) {
-      void warmupLocalTts().catch(() => {
-        // optional optimization only
-      });
+      warmupLocalTts();
     }
 
     if (isLocalSttEnabled()) {
-      void warmupLocalStt().catch(() => {
-        // optional optimization only
-      });
+      warmupLocalStt();
     }
   }, [normalizedSpeechLocale]);
 

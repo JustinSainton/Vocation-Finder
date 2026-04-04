@@ -11,6 +11,7 @@ interface TypographyProps {
   family?: Family;
   color?: string;
   style?: TextStyle | TextStyle[];
+  numberOfLines?: number;
   children: React.ReactNode;
 }
 
@@ -46,6 +47,7 @@ export function Typography({
   family = 'serif',
   color,
   style,
+  numberOfLines,
   children,
 }: TypographyProps) {
   const { colors } = useTheme();
@@ -56,6 +58,7 @@ export function Typography({
 
   return (
     <Text
+      numberOfLines={numberOfLines}
       style={[
         variantStyles[variant],
         { fontFamily, color: color ?? colors.text },
