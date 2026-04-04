@@ -96,8 +96,22 @@ class GenerateCoverLetterJob implements ShouldQueue
         $response = $agent->prompt($agent->buildPrompt());
         $content = $response->text();
 
+        // Quality scoring — same pipeline as resumes
+        $qualityScore = null;
+        try {
+            $qualityAgent = new \App\Ai\Agents\ResumeQualityAgent(
+                resumeText: $content,
+                jobTitle: $jobData['title'] ?? 'General',
+            );
+            $qualityResult = $qualityAgent->prompt($qualityAgent->buildPrompt())->json();
+            $qualityScore = $qualityResult['total_score'] ?? null;
+        } catch (\Throwable $e) {
+            Log::info('Cover letter quality scoring skipped', ['error' => $e->getMessage()]);
+        }
+
         $this->coverLetter->update([
             'content' => $content,
+            'quality_score' => $qualityScore,
             'status' => 'ready',
             'generation_context' => [
                 'had_voice_profile' => $voiceData !== null,

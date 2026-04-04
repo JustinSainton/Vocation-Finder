@@ -106,10 +106,25 @@ export default function CareerProfileIndex({ profile }: Props) {
         setEditing(true);
     };
 
+    const addVolunteer = () => {
+        setData('volunteer', [
+            ...data.volunteer,
+            { company: '', position: '', startDate: '', endDate: '', summary: '' },
+        ]);
+        setEditing(true);
+    };
+
+    const addCertification = () => {
+        setData('certifications', [...data.certifications, '']);
+        setEditing(true);
+    };
+
     const hasContent = profile && (
         (profile.work_history?.length ?? 0) > 0 ||
         (profile.education?.length ?? 0) > 0 ||
-        (profile.skills?.length ?? 0) > 0
+        (profile.skills?.length ?? 0) > 0 ||
+        (profile.certifications?.length ?? 0) > 0 ||
+        (profile.volunteer?.length ?? 0) > 0
     );
 
     return (
@@ -371,6 +386,105 @@ export default function CareerProfileIndex({ profile }: Props) {
                                             className="border border-[var(--color-border)] px-3 py-1 text-xs text-[var(--color-text)]"
                                         >
                                             {skill.name}
+                                        </span>
+                                    )
+                                ))}
+                            </div>
+                        )}
+                    </Section>
+
+                    <Section title="Volunteer Experience" onAdd={editing ? addVolunteer : undefined}>
+                        {data.volunteer.length === 0 ? (
+                            <p className="text-sm text-[var(--color-text-secondary)]">No volunteer experience added yet.</p>
+                        ) : (
+                            <div className="space-y-4">
+                                {data.volunteer.map((entry, i) => (
+                                    <div key={i} className="border border-[var(--color-border)] p-4">
+                                        {editing ? (
+                                            <div className="space-y-3">
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <input
+                                                        value={entry.position}
+                                                        onChange={(e) => {
+                                                            const updated = [...data.volunteer];
+                                                            updated[i] = { ...entry, position: e.target.value };
+                                                            setData('volunteer', updated);
+                                                        }}
+                                                        placeholder="Role"
+                                                        className="border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm text-[var(--color-text)]"
+                                                    />
+                                                    <input
+                                                        value={entry.company}
+                                                        onChange={(e) => {
+                                                            const updated = [...data.volunteer];
+                                                            updated[i] = { ...entry, company: e.target.value };
+                                                            setData('volunteer', updated);
+                                                        }}
+                                                        placeholder="Organization"
+                                                        className="border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm text-[var(--color-text)]"
+                                                    />
+                                                </div>
+                                                <textarea
+                                                    value={entry.summary}
+                                                    onChange={(e) => {
+                                                        const updated = [...data.volunteer];
+                                                        updated[i] = { ...entry, summary: e.target.value };
+                                                        setData('volunteer', updated);
+                                                    }}
+                                                    placeholder="Description"
+                                                    rows={2}
+                                                    className="w-full border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm text-[var(--color-text)]"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setData('volunteer', data.volunteer.filter((_, idx) => idx !== i))}
+                                                    className="text-xs text-red-600 underline"
+                                                >
+                                                    Remove
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <p className="text-sm font-medium text-[var(--color-text)]">{entry.position || 'Untitled Role'}</p>
+                                                <p className="text-sm text-[var(--color-text-secondary)]">{entry.company}</p>
+                                                {entry.summary && <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{entry.summary}</p>}
+                                            </>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </Section>
+
+                    <Section title="Certifications" onAdd={editing ? addCertification : undefined}>
+                        {data.certifications.length === 0 ? (
+                            <p className="text-sm text-[var(--color-text-secondary)]">No certifications added yet.</p>
+                        ) : (
+                            <div className="flex flex-wrap gap-2">
+                                {data.certifications.map((cert, i) => (
+                                    editing ? (
+                                        <div key={i} className="flex items-center gap-1">
+                                            <input
+                                                value={cert}
+                                                onChange={(e) => {
+                                                    const updated = [...data.certifications];
+                                                    updated[i] = e.target.value;
+                                                    setData('certifications', updated);
+                                                }}
+                                                placeholder="Certification name"
+                                                className="w-48 border border-[var(--color-border)] bg-transparent px-2 py-1 text-xs text-[var(--color-text)]"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setData('certifications', data.certifications.filter((_, idx) => idx !== i))}
+                                                className="text-xs text-red-600"
+                                            >
+                                                &times;
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <span key={i} className="border border-[var(--color-border)] px-3 py-1 text-xs text-[var(--color-text)]">
+                                            {cert}
                                         </span>
                                     )
                                 ))}
