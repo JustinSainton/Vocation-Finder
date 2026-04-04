@@ -9,6 +9,10 @@ export interface LocaleOption {
 
 export const DEFAULT_ASSESSMENT_LOCALE: AssessmentLocale = 'en-US';
 
+export function detectDeviceLocale(): AssessmentLocale {
+  return DEFAULT_ASSESSMENT_LOCALE;
+}
+
 export const ASSESSMENT_LOCALE_OPTIONS: LocaleOption[] = [
   {
     locale: 'en-US',
