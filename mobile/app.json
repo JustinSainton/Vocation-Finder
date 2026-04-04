@@ -48,7 +48,14 @@
           "microphonePermission": "Allow Vocation Finder to access your microphone for voice conversations."
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#1C1917"
+        }
+      ]
     ],
     "extra": {
       "router": {},

@@ -1059,7 +1059,7 @@ Push notifications (Expo) and email reminders when:
 - [x] Implement quick-add from job listings (API accepts job_listing_id, auto-fills fields)
 - [x] Create `DetectGhostedApplicationsJob` scheduled daily
 - [x] Create follow-up reminder notifications (email via FollowUpReminderNotification)
-- [ ] Install `expo-notifications` for mobile push support — requires dev build, deferred
+- [x] Install `expo-notifications` for mobile push support (installed, configured, push token API endpoint, notification service)
 
 #### 4B. Application Analytics
 
