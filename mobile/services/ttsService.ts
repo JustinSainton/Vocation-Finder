@@ -42,14 +42,14 @@ async function getEngine(): Promise<any> {
   initPromise = mod.createTTS({
     modelPath: { type: 'asset', path: 'models/kokoro-en' },
     modelType: 'kokoro',
-    numThreads: 2,
+    numThreads: 4,
     provider: 'coreml',
   }).catch((coremlErr: any) => {
     console.warn('[TTS] CoreML init failed, falling back to CPU:', coremlErr);
     return mod.createTTS({
       modelPath: { type: 'asset', path: 'models/kokoro-en' },
       modelType: 'kokoro',
-      numThreads: 2,
+      numThreads: 4,
       provider: 'cpu',
     });
   });
@@ -78,9 +78,11 @@ export function isTtsEnabled(): boolean {
 async function generateAndSave(text: string): Promise<string> {
   const tts = await getEngine();
 
+  // sid 4 = af_heart (warmer, more expressive voice)
+  // speed 1.0 = natural pace
   const audio = await tts.generateSpeech(text, {
-    sid: 1, // af_bella
-    speed: 0.9,
+    sid: 4,
+    speed: 1.0,
   });
 
   const outputDir = `${CachesDirectoryPath}/sherpa-tts`;

@@ -27,7 +27,7 @@ async function getEngine(): Promise<any> {
     modelPath: { type: 'asset', path: 'models/whisper-tiny' },
     modelType: 'whisper',
     preferInt8: true,
-    numThreads: 2,
+    numThreads: 4,
     provider: 'coreml',
   }).catch((coremlErr) => {
     console.warn('[STT] CoreML init failed, falling back to CPU:', coremlErr);
@@ -35,7 +35,7 @@ async function getEngine(): Promise<any> {
       modelPath: { type: 'asset', path: 'models/whisper-tiny' },
       modelType: 'whisper',
       preferInt8: true,
-      numThreads: 2,
+      numThreads: 4,
       provider: 'cpu',
     });
   });
