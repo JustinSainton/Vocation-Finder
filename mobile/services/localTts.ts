@@ -294,6 +294,11 @@ async function ensureModelPath(modelId: string): Promise<string> {
   return downloadedPath;
 }
 
+// Check if a Kokoro bundled asset model is available
+function hasBundledKokoroModel(): boolean {
+  return LOCAL_TTS_MODEL_TYPE === 'kokoro' || (LOCAL_TTS_MODEL_ID ?? '').startsWith('kokoro');
+}
+
 async function createEngine(modelPath: string): Promise<TtsEngine> {
   const { core, tts } = requireNativeModules();
   const providers = Platform.OS === 'ios' ? ['coreml', 'cpu'] : ['xnnpack', 'cpu'];
@@ -314,6 +319,27 @@ async function createEngine(modelPath: string): Promise<TtsEngine> {
   }
 
   throw lastError instanceof Error ? lastError : new Error('Local TTS initialization failed.');
+}
+
+async function createBundledKokoroEngine(): Promise<TtsEngine> {
+  const { tts } = requireNativeModules();
+  const providers = Platform.OS === 'ios' ? ['coreml', 'cpu'] : ['xnnpack', 'cpu'];
+  let lastError: unknown;
+
+  for (const provider of providers) {
+    try {
+      return await tts.createTTS({
+        modelPath: { type: 'asset', path: 'models/kokoro-en' } as any,
+        modelType: 'kokoro' as any,
+        provider,
+        numThreads: 4,
+      });
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('Bundled Kokoro TTS initialization failed.');
 }
 
 async function ensureInitialized(locale: AssessmentLocale): Promise<InitializedTts> {
@@ -337,9 +363,26 @@ async function ensureInitialized(locale: AssessmentLocale): Promise<InitializedT
       initializedTts = null;
     }
 
-    const modelId = await pickModelId(normalizedLocale);
-    const modelPath = await ensureModelPath(modelId);
-    const engine = await createEngine(modelPath);
+    // Try bundled Kokoro model first (instant, no download needed)
+    let engine: TtsEngine;
+    let modelId: string;
+
+    if (hasBundledKokoroModel() && normalizedLocale === 'en-US') {
+      try {
+        engine = await createBundledKokoroEngine();
+        modelId = 'kokoro-en-bundled';
+        console.log('[TTS] Using bundled Kokoro model');
+      } catch (bundledError) {
+        console.warn('[TTS] Bundled Kokoro failed, falling back to download system:', bundledError);
+        modelId = await pickModelId(normalizedLocale);
+        const modelPath = await ensureModelPath(modelId);
+        engine = await createEngine(modelPath);
+      }
+    } else {
+      modelId = await pickModelId(normalizedLocale);
+      const modelPath = await ensureModelPath(modelId);
+      engine = await createEngine(modelPath);
+    }
 
     const initialized = {
       engine,
