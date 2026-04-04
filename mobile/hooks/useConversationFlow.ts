@@ -458,21 +458,13 @@ export function useConversationFlow() {
             },
           });
         } catch (localSttError) {
-          console.warn('[STT] Local transcription failed:', localSttError);
-          // On-device STT failed — models may still be downloading.
-          // Set a descriptive error instead of silently falling back to
-          // server upload (which will also fail without OpenAI/ElevenLabs).
-          useAssessmentStore.setState({
-            conversationState: 'error',
-            conversationError:
-              'Voice models are still preparing. Please wait a moment and try again.',
-          });
-          return;
+          console.warn('[STT] Local transcription failed, falling back to server:', localSttError);
+          // Fall through to server-side audio upload as fallback
         }
       }
 
-      if (!response && !isLocalSttEnabled()) {
-        // Only attempt server-side audio upload when local STT is explicitly disabled.
+      if (!response) {
+        // Server-side audio upload: used when local STT is disabled OR when it fails.
         response = await handleConversationTurn({
           audioUri: uri,
           durationSeconds,
