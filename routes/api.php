@@ -1,24 +1,28 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AdminStatsController;
 use App\Http\Controllers\Api\V1\AssessmentController;
-use App\Http\Controllers\Api\V1\CareerProfileController;
-use App\Http\Controllers\Api\V1\FeatureFlagController;
-use App\Http\Controllers\Api\V1\JobListingController;
 use App\Http\Controllers\Api\V1\AssessmentSurveyController;
 use App\Http\Controllers\Api\V1\AudioConversationController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BillingController;
-use App\Http\Controllers\Api\V1\CourseController;
-use App\Http\Controllers\Api\V1\OrganizationInvitationController;
 use App\Http\Controllers\Api\V1\CareerCoachController;
+use App\Http\Controllers\Api\V1\CareerProfileController;
+use App\Http\Controllers\Api\V1\CourseController;
 use App\Http\Controllers\Api\V1\CoverLetterController;
+use App\Http\Controllers\Api\V1\FeatureFlagController;
 use App\Http\Controllers\Api\V1\JobApplicationController;
+use App\Http\Controllers\Api\V1\JobListingController;
+use App\Http\Controllers\Api\V1\OrganizationInvitationController;
 use App\Http\Controllers\Api\V1\PathwayController;
 use App\Http\Controllers\Api\V1\QuestionController;
+use App\Http\Controllers\Api\V1\ResultsController;
 use App\Http\Controllers\Api\V1\ResumeController;
 use App\Http\Controllers\Api\V1\ResumeConversationController;
-use App\Http\Controllers\Api\V1\ResultsController;
+use App\Http\Controllers\Api\V1\UserDashboardController;
 use App\Http\Controllers\Api\V1\VoiceProfileController;
+use App\Models\Organization;
+use App\Services\Analytics\OrgJobAnalyticsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -107,13 +111,14 @@ Route::prefix('v1')->group(function () {
         Route::get('pathway/{pathway}', [PathwayController::class, 'show']);
 
         // User dashboard (aggregated)
-        Route::get('me/dashboard', [\App\Http\Controllers\Api\V1\UserDashboardController::class, 'index']);
-        Route::get('me/mentor-notes', [\App\Http\Controllers\Api\V1\UserDashboardController::class, 'mentorNotes']);
+        Route::get('me/dashboard', [UserDashboardController::class, 'index']);
+        Route::get('me/mentor-notes', [UserDashboardController::class, 'mentorNotes']);
 
         // Push notification token
         Route::post('push-token', function (Request $request) {
             $request->validate(['token' => 'required|string', 'platform' => 'nullable|string']);
             $request->user()->update(['expo_push_token' => $request->token]);
+
             return response()->json(['saved' => true]);
         });
 
@@ -184,16 +189,22 @@ Route::prefix('v1')->group(function () {
             Route::get('career-coach/history', [CareerCoachController::class, 'history']);
         });
 
-        // Organization job analytics
-        Route::get('organizations/{organization}/job-analytics', function (\App\Models\Organization $organization) {
+        // Organization job analytics (org admins only)
+        Route::get('organizations/{organization}/job-analytics', function (Organization $organization, Request $request) {
+            $isMember = $request->user()->organizations()->where('organizations.id', $organization->id)->wherePivot('role', 'admin')->exists();
+            $isPlatformAdmin = $request->user()->role === 'admin';
+            if (! $isMember && ! $isPlatformAdmin) {
+                abort(403, 'Unauthorized.');
+            }
+
             return response()->json(
-                app(\App\Services\Analytics\OrgJobAnalyticsService::class)->getJobAnalytics($organization)
+                app(OrgJobAnalyticsService::class)->getJobAnalytics($organization)
             );
         });
 
         // Admin API (platform admins only)
         Route::middleware('admin')->prefix('admin')->group(function () {
-            Route::get('stats', [\App\Http\Controllers\Api\V1\AdminStatsController::class, 'index']);
+            Route::get('stats', [AdminStatsController::class, 'index']);
         });
     });
 });

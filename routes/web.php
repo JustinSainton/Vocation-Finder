@@ -1,14 +1,15 @@
 <?php
 
 use App\Http\Controllers\Web\Admin\AdminAssessmentController;
-use App\Http\Controllers\Web\Admin\AdminFeatureFlagController;
 use App\Http\Controllers\Web\Admin\AdminCourseController;
 use App\Http\Controllers\Web\Admin\AdminDashboardController;
+use App\Http\Controllers\Web\Admin\AdminFeatureFlagController;
 use App\Http\Controllers\Web\Admin\AdminOrganizationController;
 use App\Http\Controllers\Web\Admin\AdminQuestionCategoryController;
 use App\Http\Controllers\Web\Admin\AdminQuestionController;
 use App\Http\Controllers\Web\Admin\AdminUserController;
 use App\Http\Controllers\Web\Admin\AdminVocationalCategoryController;
+use App\Http\Controllers\Web\ApplicationController;
 use App\Http\Controllers\Web\AssessmentController;
 use App\Http\Controllers\Web\Auth\ForgotPasswordController;
 use App\Http\Controllers\Web\Auth\LoginController;
@@ -18,13 +19,14 @@ use App\Http\Controllers\Web\Auth\SocialiteController;
 use App\Http\Controllers\Web\BillingController;
 use App\Http\Controllers\Web\CareerProfileController;
 use App\Http\Controllers\Web\CourseController;
-use App\Http\Controllers\Web\ApplicationController;
-use App\Http\Controllers\Web\JobController;
-use App\Http\Controllers\Web\ResumeController;
 use App\Http\Controllers\Web\CurriculumPathwayController;
+use App\Http\Controllers\Web\JobController;
 use App\Http\Controllers\Web\Org\OrgDashboardController;
 use App\Http\Controllers\Web\Org\OrgInsightsController;
 use App\Http\Controllers\Web\Org\OrgMemberController;
+use App\Http\Controllers\Web\Org\OrgMentorController;
+use App\Http\Controllers\Web\Org\OrgMentorNoteController;
+use App\Http\Controllers\Web\ResumeController;
 use App\Http\Controllers\Webhooks\StripeWebhookController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -112,7 +114,7 @@ Route::middleware('auth')->group(function () {
 
     // Career Coach (gated behind feature flag)
     Route::middleware('feature:career_coach')->group(function () {
-        Route::get('/career-coach', fn () => \Inertia\Inertia::render('CareerCoach/Index'));
+        Route::get('/career-coach', fn () => Inertia::render('CareerCoach/Index'));
     });
 
     // Job Discovery (gated behind feature flag)
@@ -133,6 +135,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('feature:resume_builder')->group(function () {
         Route::get('/resumes', [ResumeController::class, 'index']);
         Route::get('/resumes/conversation', [ResumeController::class, 'conversation']);
+        Route::get('/resumes/{resumeVersion}', [ResumeController::class, 'show']);
     });
 
     // Career Profile (gated behind feature flag)
@@ -142,6 +145,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/career-profile/import', [CareerProfileController::class, 'storeImport']);
         Route::put('/career-profile', [CareerProfileController::class, 'update']);
         Route::delete('/career-profile', [CareerProfileController::class, 'destroy']);
+    });
+
+    // Voice Profile (requires both career_profile and voice_profile flags)
+    Route::middleware(['feature:career_profile', 'feature:voice_profile'])->group(function () {
         Route::get('/career-profile/voice', [CareerProfileController::class, 'voiceProfile']);
     });
 
@@ -218,18 +225,18 @@ Route::prefix('org/{organization}')->middleware(['auth', 'org.role:admin'])->gro
     Route::get('/members', [OrgMemberController::class, 'index']);
     Route::post('/members/invite', [OrgMemberController::class, 'invite']);
     Route::delete('/members/{user}', [OrgMemberController::class, 'remove']);
-    Route::get('/mentors', [\App\Http\Controllers\Web\Org\OrgMentorController::class, 'index']);
-    Route::post('/mentors/assign', [\App\Http\Controllers\Web\Org\OrgMentorController::class, 'assign']);
-    Route::delete('/mentors/{assignment}', [\App\Http\Controllers\Web\Org\OrgMentorController::class, 'unassign']);
+    Route::get('/mentors', [OrgMentorController::class, 'index']);
+    Route::post('/mentors/assign', [OrgMentorController::class, 'assign']);
+    Route::delete('/mentors/{assignment}', [OrgMentorController::class, 'unassign']);
 });
 
 // Organization — admin and mentor routes
 Route::prefix('org/{organization}')->middleware(['auth', 'org.role:admin,mentor'])->group(function () {
     Route::get('/members/{user}', [OrgMemberController::class, 'show']);
     Route::get('/insights', [OrgInsightsController::class, 'index']);
-    Route::post('/members/{member}/notes', [\App\Http\Controllers\Web\Org\OrgMentorNoteController::class, 'store']);
-    Route::patch('/notes/{note}', [\App\Http\Controllers\Web\Org\OrgMentorNoteController::class, 'update']);
-    Route::delete('/notes/{note}', [\App\Http\Controllers\Web\Org\OrgMentorNoteController::class, 'destroy']);
+    Route::post('/members/{member}/notes', [OrgMentorNoteController::class, 'store']);
+    Route::patch('/notes/{note}', [OrgMentorNoteController::class, 'update']);
+    Route::delete('/notes/{note}', [OrgMentorNoteController::class, 'destroy']);
 });
 
 // Courses (public)

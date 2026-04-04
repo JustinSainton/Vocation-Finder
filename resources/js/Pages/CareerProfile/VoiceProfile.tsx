@@ -24,6 +24,7 @@ export default function VoiceProfile({ voiceProfile }: Props) {
     const [samples, setSamples] = useState<string[]>(['', '']);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [recalibrating, setRecalibrating] = useState(false);
 
     const addSample = () => {
         if (samples.length < 10) {
@@ -92,7 +93,7 @@ export default function VoiceProfile({ voiceProfile }: Props) {
 
             <div className="my-8 h-px bg-[var(--color-divider)]" />
 
-            {voiceProfile ? (
+            {voiceProfile && !recalibrating ? (
                 <div className="space-y-8">
                     {/* Profile Display */}
                     <div>
@@ -180,7 +181,7 @@ export default function VoiceProfile({ voiceProfile }: Props) {
                     )}
 
                     <button
-                        onClick={() => setSamples(['', ''])}
+                        onClick={() => { setSamples(['', '']); setRecalibrating(true); }}
                         className="border border-[var(--color-border)] px-4 py-2 text-xs tracking-wide text-[var(--color-text)]"
                     >
                         Recalibrate with New Samples

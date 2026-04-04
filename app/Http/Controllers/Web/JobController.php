@@ -36,7 +36,7 @@ class JobController extends Controller
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('company_name', 'like', "%{$search}%");
+                    ->orWhere('company_name', 'like', "%{$search}%");
             });
         }
 
@@ -106,7 +106,7 @@ class JobController extends Controller
                 'salary_min' => $jobListing->salary_min,
                 'salary_max' => $jobListing->salary_max,
                 'salary_currency' => $jobListing->salary_currency,
-                'description' => $jobListing->description,
+                'description' => $jobListing->description_plain ?? strip_tags($jobListing->description ?? ''),
                 'required_skills' => $jobListing->required_skills,
                 'source_url' => $jobListing->source_url,
                 'source' => $jobListing->source,

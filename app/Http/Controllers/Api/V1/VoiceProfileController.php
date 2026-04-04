@@ -6,6 +6,7 @@ use App\Ai\Agents\VoiceAnalyzerAgent;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class VoiceProfileController extends Controller
 {
@@ -23,9 +24,15 @@ class VoiceProfileController extends Controller
             'samples.*' => ['required', 'string', 'min:50', 'max:5000'],
         ]);
 
-        $agent = new VoiceAnalyzerAgent($validated['samples']);
-        $response = $agent->prompt($agent->buildPrompt());
-        $analysis = $response->json();
+        try {
+            $agent = new VoiceAnalyzerAgent($validated['samples']);
+            $response = $agent->prompt($agent->buildPrompt());
+            $analysis = $response->json();
+        } catch (\Throwable $e) {
+            Log::error('Voice analysis failed', ['error' => $e->getMessage()]);
+
+            return response()->json(['message' => 'Voice analysis is temporarily unavailable. Please try again.'], 503);
+        }
 
         $profile = $request->user()->voiceProfile;
 

@@ -15,7 +15,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, HasUuids, Notifiable, SoftDeletes, Billable;
+    use Billable, HasApiTokens, HasFactory, HasUuids, Notifiable, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -24,6 +24,7 @@ class User extends Authenticatable
         'provider',
         'provider_id',
         'assessment_credits',
+        'expo_push_token',
     ];
 
     protected $hidden = [
