@@ -109,6 +109,13 @@ Route::prefix('v1')->group(function () {
         Route::get('me/dashboard', [\App\Http\Controllers\Api\V1\UserDashboardController::class, 'index']);
         Route::get('me/mentor-notes', [\App\Http\Controllers\Api\V1\UserDashboardController::class, 'mentorNotes']);
 
+        // Push notification token
+        Route::post('push-token', function (Request $request) {
+            $request->validate(['token' => 'required|string', 'platform' => 'nullable|string']);
+            $request->user()->update(['expo_push_token' => $request->token]);
+            return response()->json(['saved' => true]);
+        });
+
         // Job Discovery (gated behind feature flag)
         Route::middleware('feature:job_discovery')->group(function () {
             Route::get('jobs', [JobListingController::class, 'index']);
