@@ -107,6 +107,11 @@ class User extends Authenticatable
         return $this->hasMany(CoverLetter::class);
     }
 
+    public function jobApplications(): HasMany
+    {
+        return $this->hasMany(JobApplication::class);
+    }
+
     public function hasActiveSubscription(): bool
     {
         if ($this->subscribed()) {

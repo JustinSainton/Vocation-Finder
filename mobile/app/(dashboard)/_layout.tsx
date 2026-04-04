@@ -55,6 +55,13 @@ export default function DashboardLayout() {
         }}
       />
       <Tabs.Screen
+        name="applications"
+        options={{
+          title: 'Applications',
+          href: isEnabled('application_tracking') ? '/(dashboard)/applications' : null,
+        }}
+      />
+      <Tabs.Screen
         name="job-detail"
         options={{ href: null }}
       />

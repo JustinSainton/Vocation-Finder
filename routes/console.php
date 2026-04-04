@@ -13,3 +13,6 @@ Artisan::command('inspire', function () {
 Schedule::command('jobs:ingest --source=adzuna --classify')->hourly();
 Schedule::command('jobs:ingest --source=muse --classify')->everyFourHours();
 Schedule::command('jobs:expire-stale')->daily();
+
+// Application tracking
+Schedule::job(new \App\Jobs\DetectGhostedApplicationsJob)->daily();
