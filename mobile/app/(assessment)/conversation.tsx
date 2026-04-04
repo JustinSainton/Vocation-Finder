@@ -33,16 +33,15 @@ export default function ConversationScreen() {
     isComplete,
   } = useConversationFlow();
 
-  // Auto-start: play intro and first question as soon as screen loads
+  // Auto-start: play intro and first question as soon as questions are ready
   useEffect(() => {
-    if (!introPlayed && conversationState === 'idle') {
-      // Small delay to ensure audio system is ready
+    if (!introPlayed && currentQuestionText && conversationState === 'idle') {
       const timer = setTimeout(() => {
         playIntroAndFirstQuestion();
-      }, 500);
+      }, 300);
       return () => clearTimeout(timer);
     }
-  }, [introPlayed, conversationState, playIntroAndFirstQuestion]);
+  }, [introPlayed, currentQuestionText, conversationState, playIntroAndFirstQuestion]);
 
   // Navigate to after survey when conversation is complete
   useEffect(() => {
