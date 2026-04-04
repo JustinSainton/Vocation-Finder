@@ -22,6 +22,9 @@ class ComputeDashboardSnapshots extends Command
         $this->info('Computing survey analysis...');
         $analytics->computeSurveyAnalysis();
 
+        $this->info('Computing job platform metrics...');
+        $analytics->computeJobPlatformMetrics();
+
         $this->info('Dashboard snapshots computed successfully.');
 
         return self::SUCCESS;

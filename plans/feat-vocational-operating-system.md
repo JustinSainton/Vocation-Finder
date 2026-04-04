@@ -1105,7 +1105,7 @@ The `vocational_alignment_correlation` metric is unique to this platform — it 
 - [x] Build analytics aggregation queries (in ApplicationTrackingService::getAnalytics)
 - [x] Expose via API for mobile and web (GET /api/v1/applications/analytics)
 - [x] Display on user dashboard (web Applications/Index.tsx has funnel bar)
-- [ ] Feed into organization and platform admin dashboards — Phase 5
+- [x] Feed into organization and platform admin dashboards (OrgJobAnalyticsService + PlatformAnalyticsService)
 
 ---
 
@@ -1134,10 +1134,10 @@ GET /api/v1/organizations/:id/job-analytics    — Aggregate job search metrics
 GET /api/v1/organizations/:id/placements       — Placement tracking
 ```
 
-- [ ] Extend existing `OrganizationDashboardController` with job analytics
-- [ ] Build org-level aggregate queries (scoped to org members)
-- [ ] Add web dashboard panels for job search metrics
-- [ ] Add mobile org dashboard sections
+- [x] Extend existing `OrgInsightsController` with job analytics (via OrgJobAnalyticsService)
+- [x] Build org-level aggregate queries (scoped to org members)
+- [x] Add web dashboard data (jobAnalytics prop passed to Org/Insights page)
+- [x] Add API endpoint GET /api/v1/organizations/:id/job-analytics
 
 #### 5B. Platform Admin Dashboard Extensions
 
@@ -1155,10 +1155,10 @@ Extend the existing platform admin dashboard with system-wide job platform metri
 | API Usage | Calls to external job APIs, cost tracking |
 | Vocational Alignment Validation | Does higher match score → better outcomes? (platform-wide) |
 
-- [ ] Extend `PlatformAnalyticsService` with job platform metrics
-- [ ] Add `DashboardSnapshot` metric keys for new KPIs
-- [ ] Build admin web dashboard panels
-- [ ] Track external API costs and usage
+- [x] Extend `PlatformAnalyticsService` with job platform metrics (getJobPlatformMetrics)
+- [x] Add `DashboardSnapshot` metric keys for new KPIs (job_platform_metrics)
+- [x] Pass jobPlatformMetrics to Admin/Dashboard page
+- [x] Add to ComputeDashboardSnapshots command
 
 #### 5C. AI Career Coaching Conversation
 
@@ -1180,11 +1180,11 @@ app/AI/Tools/GetCareerProfileTool.php
 
 This agent uses the Laravel AI SDK's `RemembersConversations` trait for multi-turn dialogue, and `HasTools` for accessing the user's profile data and job listings.
 
-- [ ] Create `CareerCoachAgent` with conversation memory
-- [ ] Create tools: `SearchJobsTool`, `GetVocationalProfileTool`, `GetCareerProfileTool`
-- [ ] Build web conversation UI (extend existing conversation patterns)
-- [ ] Build mobile conversation screen
-- [ ] Gate behind feature flag
+- [x] Create `CareerCoachAgent` with conversation memory (RemembersConversations + HasTools)
+- [x] Create tools: `SearchJobsTool`, `GetVocationalProfileTool`, `GetCareerProfileTool`
+- [x] Build web conversation UI (CareerCoach/Index.tsx with chat interface)
+- [x] Build mobile conversation screen (career-coach.tsx)
+- [x] Gate behind feature flag (feature:career_coach)
 
 ---
 

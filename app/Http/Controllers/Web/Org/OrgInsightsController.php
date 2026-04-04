@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web\Org;
 use App\Http\Controllers\Controller;
 use App\Models\Organization;
 use App\Models\VocationalProfile;
+use App\Services\Analytics\OrgJobAnalyticsService;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -102,6 +103,8 @@ class OrgInsightsController extends Controller
             ->sortByDesc('average')
             ->values();
 
+        $jobAnalytics = app(OrgJobAnalyticsService::class)->getJobAnalytics($organization);
+
         return Inertia::render('Org/Insights', [
             'organization' => [
                 'id' => $organization->id,
@@ -113,6 +116,7 @@ class OrgInsightsController extends Controller
             'completionByMonth' => $completionByMonth,
             'categoryScores' => $avgScores,
             'totalProfiles' => $totalProfiles,
+            'jobAnalytics' => $jobAnalytics,
         ]);
     }
 }
