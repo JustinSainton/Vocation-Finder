@@ -3,7 +3,7 @@ import { View, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { useAudioPlayer } from 'expo-audio';
+import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import {
   getAssessmentCopy,
 } from '../../constants/assessmentLocale';
@@ -26,11 +26,20 @@ export default function OrientationScreen() {
   const ambientPlayer = useAudioPlayer(require('../../assets/audio/calm-space.mp3'));
 
   useEffect(() => {
-    try {
-      ambientPlayer.loop = true;
-      ambientPlayer.volume = 0.08;
-      ambientPlayer.play();
-    } catch {}
+    const startMusic = async () => {
+      try {
+        await setAudioModeAsync({ playsInSilentMode: true });
+        ambientPlayer.loop = true;
+        ambientPlayer.volume = 0.08;
+        // Wait a tick for player to be ready after source loads
+        setTimeout(() => {
+          try { ambientPlayer.play(); } catch {}
+        }, 200);
+      } catch (e) {
+        console.warn('[Music] Failed to start ambient:', e);
+      }
+    };
+    startMusic();
     return () => { try { ambientPlayer.pause(); } catch {} };
   }, [ambientPlayer]);
 
