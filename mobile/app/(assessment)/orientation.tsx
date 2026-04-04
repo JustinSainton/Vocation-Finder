@@ -34,8 +34,8 @@ export default function OrientationScreen() {
       if (state.questions.length === 0 || state.questionsLocale !== state.locale) {
         await state.fetchQuestions();
       }
-      warmupStt();
-      warmupTts();
+      try { warmupStt(); } catch (e) { console.warn('[STT] Warmup failed:', e); }
+      try { warmupTts(); } catch (e) { console.warn('[TTS] Warmup failed:', e); }
     };
     prefetch();
   }, [locale]);
