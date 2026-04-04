@@ -70,6 +70,10 @@ export default function DashboardLayout() {
         options={{ href: null }}
       />
       <Tabs.Screen
+        name="career-coach"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{ title: 'Profile' }}
       />

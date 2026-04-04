@@ -110,6 +110,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/billing/portal', [BillingController::class, 'billingPortal'])->name('billing.portal');
     Route::get('/billing/success', [BillingController::class, 'checkoutSuccess'])->name('billing.success');
 
+    // Career Coach (gated behind feature flag)
+    Route::middleware('feature:career_coach')->group(function () {
+        Route::get('/career-coach', fn () => \Inertia\Inertia::render('CareerCoach/Index'));
+    });
+
     // Job Discovery (gated behind feature flag)
     Route::middleware('feature:job_discovery')->group(function () {
         Route::get('/jobs', [JobController::class, 'index']);

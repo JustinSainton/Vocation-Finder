@@ -22,6 +22,7 @@ class AdminDashboardController extends Controller
             'domainDistribution' => $this->analytics->getDomainDistribution(),
             'recentAssessments' => $this->analytics->getRecentAssessments(),
             'orgUsage' => $this->analytics->getOrgUsage(),
+            'jobPlatformMetrics' => $this->analytics->getJobPlatformMetrics(),
         ]);
     }
 }

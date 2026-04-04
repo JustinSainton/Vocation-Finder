@@ -4,8 +4,13 @@ namespace App\Services\Analytics;
 
 use App\Models\Assessment;
 use App\Models\AssessmentSurvey;
+use App\Models\CoverLetter;
 use App\Models\DashboardSnapshot;
+use App\Models\FeatureFlag;
+use App\Models\JobApplication;
+use App\Models\JobListing;
 use App\Models\Organization;
+use App\Models\ResumeVersion;
 use App\Models\User;
 use App\Models\VocationalProfile;
 use Illuminate\Support\Facades\DB;
@@ -214,5 +219,89 @@ class PlatformAnalyticsService
                 'member_limit' => $org->memberLimit(),
             ])
             ->toArray();
+    }
+
+    /**
+     * Get job platform metrics for admin dashboard.
+     */
+    public function getJobPlatformMetrics(): array
+    {
+        $snapshot = DashboardSnapshot::latest('job_platform_metrics');
+
+        if ($snapshot && $snapshot->computed_at->isAfter(now()->subMinutes(30))) {
+            return $snapshot->value;
+        }
+
+        return $this->computeJobPlatformMetrics();
+    }
+
+    public function computeJobPlatformMetrics(): array
+    {
+        // Job ingestion stats
+        $totalJobs = JobListing::count();
+        $activeJobs = JobListing::active()->count();
+        $classifiedJobs = JobListing::classified()->count();
+
+        $jobsBySource = JobListing::select('source', DB::raw('count(*) as count'))
+            ->groupBy('source')
+            ->pluck('count', 'source')
+            ->toArray();
+
+        $jobsLast7d = JobListing::where('created_at', '>=', now()->subDays(7))->count();
+
+        // Resume generation stats
+        $resumeTotal = ResumeVersion::count();
+        $resumeReady = ResumeVersion::where('status', 'ready')->count();
+        $avgQuality = ResumeVersion::where('status', 'ready')->avg('quality_score');
+        $coverLetterTotal = CoverLetter::count();
+
+        // Application funnel (platform-wide)
+        $allApps = JobApplication::select('status', DB::raw('count(*) as count'))
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->toArray();
+
+        $totalApplied = ($allApps['applied'] ?? 0) + ($allApps['interviewing'] ?? 0) + ($allApps['offered'] ?? 0) + ($allApps['accepted'] ?? 0);
+        $totalInterviewing = ($allApps['interviewing'] ?? 0) + ($allApps['offered'] ?? 0) + ($allApps['accepted'] ?? 0);
+
+        // Feature flag status
+        $flags = FeatureFlag::orderBy('key')->get(['key', 'name', 'is_enabled'])->toArray();
+
+        // Active users on job features (last 30 days)
+        $activeJobUsers = JobApplication::where('updated_at', '>=', now()->subDays(30))
+            ->distinct('user_id')
+            ->count('user_id');
+
+        $metrics = [
+            'jobs' => [
+                'total' => $totalJobs,
+                'active' => $activeJobs,
+                'classified' => $classifiedJobs,
+                'by_source' => $jobsBySource,
+                'ingested_7d' => $jobsLast7d,
+            ],
+            'resumes' => [
+                'total_generated' => $resumeTotal,
+                'ready' => $resumeReady,
+                'avg_quality' => $avgQuality ? round($avgQuality, 1) : null,
+            ],
+            'cover_letters' => [
+                'total_generated' => $coverLetterTotal,
+            ],
+            'application_funnel' => [
+                'total' => array_sum($allApps),
+                'applied' => $totalApplied,
+                'interviewing' => $totalInterviewing,
+                'offered' => ($allApps['offered'] ?? 0) + ($allApps['accepted'] ?? 0),
+                'accepted' => $allApps['accepted'] ?? 0,
+                'ghosted' => $allApps['ghosted'] ?? 0,
+            ],
+            'active_job_users_30d' => $activeJobUsers,
+            'feature_flags' => $flags,
+        ];
+
+        DashboardSnapshot::record('job_platform_metrics', $metrics);
+
+        return $metrics;
     }
 }

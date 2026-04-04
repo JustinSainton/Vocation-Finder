@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BillingController;
 use App\Http\Controllers\Api\V1\CourseController;
 use App\Http\Controllers\Api\V1\OrganizationInvitationController;
+use App\Http\Controllers\Api\V1\CareerCoachController;
 use App\Http\Controllers\Api\V1\CoverLetterController;
 use App\Http\Controllers\Api\V1\JobApplicationController;
 use App\Http\Controllers\Api\V1\PathwayController;
@@ -174,6 +175,20 @@ Route::prefix('v1')->group(function () {
             Route::put('career-profile', [CareerProfileController::class, 'update']);
             Route::post('career-profile/import', [CareerProfileController::class, 'import']);
             Route::delete('career-profile', [CareerProfileController::class, 'destroy']);
+        });
+
+        // Career Coach Conversation (gated behind feature flag)
+        Route::middleware('feature:career_coach')->group(function () {
+            Route::post('career-coach/start', [CareerCoachController::class, 'start']);
+            Route::post('career-coach/message', [CareerCoachController::class, 'message']);
+            Route::get('career-coach/history', [CareerCoachController::class, 'history']);
+        });
+
+        // Organization job analytics
+        Route::get('organizations/{organization}/job-analytics', function (\App\Models\Organization $organization) {
+            return response()->json(
+                app(\App\Services\Analytics\OrgJobAnalyticsService::class)->getJobAnalytics($organization)
+            );
         });
 
         // Admin API (platform admins only)
