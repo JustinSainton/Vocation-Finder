@@ -33,6 +33,17 @@ export default function ConversationScreen() {
     isComplete,
   } = useConversationFlow();
 
+  // Auto-start: play intro and first question as soon as screen loads
+  useEffect(() => {
+    if (!introPlayed && conversationState === 'idle') {
+      // Small delay to ensure audio system is ready
+      const timer = setTimeout(() => {
+        playIntroAndFirstQuestion();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [introPlayed, conversationState, playIntroAndFirstQuestion]);
+
   // Navigate to after survey when conversation is complete
   useEffect(() => {
     if (isComplete) {
@@ -49,11 +60,6 @@ export default function ConversationScreen() {
     }
 
     if (conversationState === 'idle' || conversationState === 'error') {
-      if (!introPlayed) {
-        playIntroAndFirstQuestion();
-        return;
-      }
-
       startRecording();
     } else if (conversationState === 'listening') {
       stopRecording();
