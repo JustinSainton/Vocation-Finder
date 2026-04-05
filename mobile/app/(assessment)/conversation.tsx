@@ -33,6 +33,14 @@ export default function ConversationScreen() {
     isComplete,
   } = useConversationFlow();
 
+  // Auto-start: speak intro and first question when ready
+  useEffect(() => {
+    if (!introPlayed && currentQuestionText && conversationState === 'idle') {
+      const timer = setTimeout(() => playIntroAndFirstQuestion(), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [introPlayed, currentQuestionText, conversationState, playIntroAndFirstQuestion]);
+
   // Navigate to after survey when conversation is complete
   useEffect(() => {
     if (isComplete) {
