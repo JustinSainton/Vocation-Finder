@@ -16,6 +16,7 @@ const navItems = [
     { label: 'Vocational Categories', href: '/admin/vocational-categories' },
     { label: 'Courses', href: '/admin/courses' },
     { label: 'Feature Flags', href: '/admin/feature-flags' },
+    { label: 'Job Listings', href: '/admin/jobs' },
 ];
 
 export default function AdminLayout({ title, children }: Props) {

@@ -4,6 +4,7 @@ use App\Http\Controllers\Web\Admin\AdminAssessmentController;
 use App\Http\Controllers\Web\Admin\AdminCourseController;
 use App\Http\Controllers\Web\Admin\AdminDashboardController;
 use App\Http\Controllers\Web\Admin\AdminFeatureFlagController;
+use App\Http\Controllers\Web\Admin\AdminJobListingController;
 use App\Http\Controllers\Web\Admin\AdminOrganizationController;
 use App\Http\Controllers\Web\Admin\AdminQuestionCategoryController;
 use App\Http\Controllers\Web\Admin\AdminQuestionController;
@@ -216,6 +217,9 @@ Route::middleware('auth')->group(function () {
         // Feature Flags
         Route::get('/feature-flags', [AdminFeatureFlagController::class, 'index']);
         Route::put('/feature-flags/{featureFlag}', [AdminFeatureFlagController::class, 'update']);
+
+        // Job Listings
+        Route::get('/jobs', [AdminJobListingController::class, 'index']);
     });
 });
 
