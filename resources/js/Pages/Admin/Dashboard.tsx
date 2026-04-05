@@ -170,14 +170,14 @@ export default function Dashboard({
                     </h2>
                     <div className="mt-4 h-64">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={domainDistribution} layout="vertical">
+                            <BarChart data={domainDistribution.map(d => ({ ...d, label: d.primary_domain?.split(/[—–\-:,.]/)?.[ 0]?.trim()?.slice(0, 30) ?? d.primary_domain }))} layout="vertical">
                                 <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
                                 <XAxis type="number" tick={{ fontSize: 11 }} stroke={CHART_COLORS.secondary} />
                                 <YAxis
                                     type="category"
-                                    dataKey="primary_domain"
-                                    tick={{ fontSize: 10 }}
-                                    width={120}
+                                    dataKey="label"
+                                    tick={{ fontSize: 11 }}
+                                    width={160}
                                     stroke={CHART_COLORS.secondary}
                                 />
                                 <Tooltip />
