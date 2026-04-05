@@ -240,9 +240,31 @@ async function ensureInitialized(locale: AssessmentLocale): Promise<InitializedS
       initializedStt = null;
     }
 
-    const modelId = await chooseModelId();
-    const modelPath = await ensureModelPath(modelId);
-    const engine = await createEngine(modelPath, normalizedLocale);
+    // Try bundled asset model first, then fall back to download system
+    let engine: SttEngine;
+    let modelId: string;
+    try {
+      const { stt } = requireNativeModules();
+      engine = await stt.createSTT({
+        modelPath: { type: 'asset', path: 'models/whisper-tiny' } as any,
+        modelType: 'whisper' as any,
+        provider: 'cpu',
+        numThreads: 4,
+        modelOptions: {
+          whisper: {
+            language: getSpeechRecognitionLanguage(normalizedLocale),
+            task: 'transcribe',
+          },
+        },
+      });
+      modelId = 'whisper-tiny-bundled';
+      console.log('[STT] Using bundled Whisper model');
+    } catch (bundledErr) {
+      console.warn('[STT] Bundled model failed, trying download system:', bundledErr);
+      modelId = await chooseModelId();
+      const modelPath = await ensureModelPath(modelId);
+      engine = await createEngine(modelPath, normalizedLocale);
+    }
 
     const initialized = {
       engine,
