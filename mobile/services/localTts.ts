@@ -337,9 +337,41 @@ async function ensureInitialized(locale: AssessmentLocale): Promise<InitializedT
       initializedTts = null;
     }
 
-    const modelId = await pickModelId(normalizedLocale);
-    const modelPath = await ensureModelPath(modelId);
-    const engine = await createEngine(modelPath);
+    // Try bundled Kokoro asset first (English), then fall back to download system
+    let engine: TtsEngine;
+    let modelId: string;
+
+    if (normalizedLocale === 'en-US') {
+      try {
+        const { tts } = requireNativeModules();
+        const providers = Platform.OS === 'ios' ? ['coreml', 'cpu'] : ['xnnpack', 'cpu'];
+        let lastErr: unknown;
+        let created = false;
+        for (const provider of providers) {
+          try {
+            engine = await tts.createTTS({
+              modelPath: { type: 'asset' as const, path: 'models/kokoro-en' },
+              modelType: 'kokoro' as TTSModelType,
+              provider,
+              numThreads: 4,
+            });
+            modelId = 'kokoro-en-bundled';
+            created = true;
+            break;
+          } catch (e) { lastErr = e; }
+        }
+        if (!created) throw lastErr;
+      } catch (bundledErr) {
+        console.warn('[TTS] Bundled Kokoro failed:', bundledErr);
+        modelId = await pickModelId(normalizedLocale);
+        const modelPath = await ensureModelPath(modelId);
+        engine = await createEngine(modelPath);
+      }
+    } else {
+      modelId = await pickModelId(normalizedLocale);
+      const modelPath = await ensureModelPath(modelId);
+      engine = await createEngine(modelPath);
+    }
 
     const initialized = {
       engine,
