@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Constants from 'expo-constants';
 import {
   AudioModule,
   RecordingPresets,
@@ -12,19 +11,7 @@ import {
 } from 'expo-audio';
 import * as Speech from 'expo-speech';
 import { cancelAnimation, useSharedValue } from 'react-native-reanimated';
-import {
-  getAssessmentCopy,
-  getExpoSpeechLanguage,
-  normalizeAssessmentLocale,
-} from '../constants/assessmentLocale';
 import { assessmentApi } from '../services/api';
-import { getQuestionAudio } from '../constants/questionAudio';
-import {
-  isLocalSttEnabled,
-  releaseLocalStt,
-  transcribeLocalAudio,
-  warmupLocalStt,
-} from '../services/localStt';
 import {
   isLocalTtsEnabled,
   releaseLocalTts,
@@ -58,9 +45,8 @@ export function useConversationFlow() {
     currentQuestion,
     totalQuestions,
     questions,
-    locale,
-    speechLocale,
     sessionId,
+    assessmentId,
     setConversationState,
     startConversationSession,
     handleConversationTurn,
@@ -68,8 +54,6 @@ export function useConversationFlow() {
     createAssessment,
     fetchQuestions,
   } = useAssessmentStore();
-  const copy = getAssessmentCopy(locale);
-  const normalizedSpeechLocale = normalizeAssessmentLocale(speechLocale);
 
   // Update audioLevel from recorderState metering
   useEffect(() => {
@@ -106,18 +90,17 @@ export function useConversationFlow() {
   useEffect(() => {
     const init = async () => {
       let state = useAssessmentStore.getState();
-      if (state.questions.length === 0 || state.questionsLocale !== state.locale) {
+      if (state.questions.length === 0) {
         await fetchQuestions();
         state = useAssessmentStore.getState();
       }
 
       if (state.questions.length === 0) {
-        const fallbackCopy = getAssessmentCopy(state.locale);
         useAssessmentStore.setState({
           conversationState: 'error',
           conversationError:
             state.questionsError ??
-            fallbackCopy.written.noneAvailable,
+            'No assessment questions are available yet. Please try again shortly.',
         });
         return;
       }
@@ -150,31 +133,23 @@ export function useConversationFlow() {
           return;
         }
 
-        const voiceLanguage = getExpoSpeechLanguage(normalizedSpeechLocale);
-        const localePrefix = voiceLanguage.slice(0, 2).toLowerCase();
-        const matchingVoices = voices.filter((voice) =>
-          voice.language?.toLowerCase().startsWith(localePrefix)
-        );
-        const enhancedVoices = matchingVoices.filter(
+        const englishVoices = voices.filter((voice) => voice.language?.startsWith('en'));
+        const enhancedEnglishVoices = englishVoices.filter(
           (voice) => String(voice.quality ?? '').toLowerCase() === 'enhanced'
         );
 
         const preferred =
-          enhancedVoices.find(
+          enhancedEnglishVoices.find(
             (voice) =>
-              /serena|allison|karen|samantha|ava|zoe|paulina|monica|luciana|fernanda/i.test(
-                voice.name ?? ''
-              )
+              /serena|allison|karen|samantha|ava|zoe/i.test(voice.name ?? '')
           ) ??
-          enhancedVoices[0] ??
-          matchingVoices.find(
+          enhancedEnglishVoices[0] ??
+          englishVoices.find(
             (voice) =>
-              /premium|enhanced|serena|allison|karen|samantha|ava|paulina|luciana/i.test(
-                voice.name ?? ''
-              )
+              /premium|enhanced|serena|allison|karen|samantha|ava/i.test(voice.name ?? '')
           ) ??
-          voices.find((voice) => voice.language === voiceLanguage) ??
-          matchingVoices[0];
+          voices.find((voice) => voice.language === 'en-US') ??
+          englishVoices[0];
 
         preferredVoiceRef.current = preferred?.identifier;
       })
@@ -185,35 +160,17 @@ export function useConversationFlow() {
     return () => {
       mounted = false;
     };
-  }, [normalizedSpeechLocale]);
+  }, []);
 
   useEffect(() => {
-    if (!isLocalTtsEnabled() && !isLocalSttEnabled()) {
+    if (!isLocalTtsEnabled()) {
       return;
     }
 
-    if (isLocalTtsEnabled()) {
-      void warmupLocalTts(normalizedSpeechLocale).catch(() => {});
-    }
-
-    if (isLocalSttEnabled()) {
-      void warmupLocalStt(normalizedSpeechLocale).catch(() => {});
-    }
-  }, [normalizedSpeechLocale]);
-
-  // Start ambient music as soon as the conversation screen mounts
-  useEffect(() => {
-    const startMusic = async () => {
-      try {
-        await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
-        ambientPlayer.loop = true;
-        ambientPlayer.volume = 0.11;
-        ambientPlayer.play();
-      } catch {}
-    };
-    startMusic();
-    return () => { try { ambientPlayer.pause(); } catch {} };
-  }, [ambientPlayer]);
+    void warmupLocalTts().catch(() => {
+      // optional optimization only
+    });
+  }, []);
 
   const requestMicPermission = useCallback(async (): Promise<boolean> => {
     const status = await AudioModule.requestRecordingPermissionsAsync();
@@ -279,25 +236,9 @@ export function useConversationFlow() {
       await startAmbientBed();
 
       try {
-        // Check for pre-recorded question audio first (instant playback)
-        const currentQ = questions[currentQuestion];
-        const questionText = currentQ?.conversation_prompt ?? currentQ?.question_text ?? '';
-        if (currentQ && questionText && text.includes(questionText)) {
-          const prerecorded = getQuestionAudio(currentQ.sort_order, normalizedSpeechLocale);
-          if (prerecorded) {
-            await setAudioModeAsync({
-              allowsRecording: false,
-              playsInSilentMode: true,
-            });
-            ttsPlayer.replace(prerecorded);
-            ttsPlayer.play();
-            return;
-          }
-        }
-
         try {
           if (isLocalTtsEnabled()) {
-            const localSpeech = await synthesizeLocalSpeech(text, normalizedSpeechLocale);
+            const localSpeech = await synthesizeLocalSpeech(text);
 
             await setAudioModeAsync({
               allowsRecording: false,
@@ -313,8 +254,7 @@ export function useConversationFlow() {
         }
 
         try {
-          const speech = await assessmentApi.synthesizeConversationSpeech(text, normalizedSpeechLocale);
-          console.log('[TTS] Remote speech response:', JSON.stringify(speech));
+          const speech = await assessmentApi.synthesizeConversationSpeech(text);
           const probeController = new AbortController();
           const probeTimeout = setTimeout(() => {
             probeController.abort();
@@ -330,7 +270,6 @@ export function useConversationFlow() {
               signal: probeController.signal,
             });
             probeStatus = probeResponse.status;
-            console.log('[TTS] Probe status:', probeStatus, 'for URL:', speech.audio_url);
           } finally {
             clearTimeout(probeTimeout);
           }
@@ -347,10 +286,9 @@ export function useConversationFlow() {
           ttsPlayer.replace(speech.audio_url);
           ttsPlayer.play();
           return;
-        } catch (remoteTtsError) {
-          console.warn('[TTS] Remote TTS failed, falling back to native speech:', remoteTtsError);
+        } catch {
           Speech.speak(text, {
-            language: getExpoSpeechLanguage(normalizedSpeechLocale),
+            language: 'en-US',
             voice: preferredVoiceRef.current,
             rate: 0.86,
             pitch: 0.88,
@@ -362,15 +300,7 @@ export function useConversationFlow() {
         finalizeSpeech('error');
       }
     },
-    [
-      finalizeSpeech,
-      normalizedSpeechLocale,
-      preferredVoiceRef,
-      setConversationState,
-      speakingLevel,
-      startAmbientBed,
-      ttsPlayer,
-    ]
+    [finalizeSpeech, preferredVoiceRef, setConversationState, speakingLevel, startAmbientBed, ttsPlayer]
   );
 
   const stopSpeaking = useCallback(() => {
@@ -394,7 +324,7 @@ export function useConversationFlow() {
     if (!currentQuestionText) {
       useAssessmentStore.setState({
         conversationState: 'error',
-        conversationError: copy.conversation.missingQuestion,
+        conversationError: 'No question is ready yet. Please try again in a moment.',
       });
       return;
     }
@@ -430,7 +360,6 @@ export function useConversationFlow() {
       setConversationState('error');
     }
   }, [
-    copy.conversation.missingQuestion,
     requestMicPermission,
     setConversationState,
     audioRecorder,
@@ -460,74 +389,7 @@ export function useConversationFlow() {
         return;
       }
 
-      setConversationState('processing');
-
-      const durationSeconds =
-        recorderState.durationMillis > 0
-          ? Math.max(1, Math.round(recorderState.durationMillis / 1000))
-          : undefined;
-
-      let response = null;
-
-      if (isLocalSttEnabled()) {
-        try {
-          const localTranscript = await transcribeLocalAudio(uri, normalizedSpeechLocale);
-
-          response = await handleConversationTurn({
-            transcript: localTranscript.text,
-            transcriptLocale: localTranscript.locale,
-            transcriptConfidence: localTranscript.confidence,
-            durationSeconds,
-            clientProcessing: {
-              stt_engine: `${localTranscript.engine}:${localTranscript.modelId}`,
-              tts_engine: isLocalTtsEnabled() ? 'sherpa-onnx' : 'remote-or-native',
-              app_version:
-                Constants.expoConfig?.version ??
-                Constants.nativeAppVersion ??
-                Constants.manifest2?.runtimeVersion ??
-                undefined,
-            },
-          });
-        } catch (localSttError) {
-          console.warn('[STT] Local transcription failed, retrying after warmup:', localSttError);
-          // Retry once after re-warming the engine
-          try {
-            await warmupLocalStt(normalizedSpeechLocale);
-            const retryTranscript = await transcribeLocalAudio(uri, normalizedSpeechLocale);
-            response = await handleConversationTurn({
-              transcript: retryTranscript.text,
-              transcriptLocale: retryTranscript.locale,
-              transcriptConfidence: retryTranscript.confidence,
-              durationSeconds,
-              clientProcessing: {
-                stt_engine: `${retryTranscript.engine}:${retryTranscript.modelId}`,
-                tts_engine: isLocalTtsEnabled() ? 'sherpa-onnx' : 'remote-or-native',
-                app_version: Constants.expoConfig?.version ?? Constants.nativeAppVersion ?? undefined,
-              },
-            });
-          } catch (retryError) {
-            console.warn('[STT] Retry also failed, falling back to server:', retryError);
-            // Fall through to server-side processing
-          }
-        }
-      }
-
-      if (!response) {
-        // Server-side audio upload: when local STT is disabled or failed.
-        response = await handleConversationTurn({
-          audioUri: uri,
-          durationSeconds,
-          clientProcessing: {
-            stt_engine: 'server-upload',
-            tts_engine: isLocalTtsEnabled() ? 'sherpa-onnx' : 'remote-or-native',
-            app_version:
-              Constants.expoConfig?.version ??
-              Constants.nativeAppVersion ??
-              Constants.manifest2?.runtimeVersion ??
-              undefined,
-          },
-        });
-      }
+      const response = await handleConversationTurn(uri);
 
       if (response) {
         if (response.is_complete) {
@@ -558,8 +420,6 @@ export function useConversationFlow() {
   }, [
     audioLevel,
     audioRecorder,
-    normalizedSpeechLocale,
-    recorderState.durationMillis,
     recorderState.isRecording,
     setConversationState,
     handleConversationTurn,
@@ -572,7 +432,7 @@ export function useConversationFlow() {
       if (!currentQuestionText) {
         useAssessmentStore.setState({
           conversationState: 'error',
-          conversationError: copy.conversation.loadingQuestions,
+          conversationError: 'Questions are still loading. Please try again in a moment.',
         });
       }
       return;
@@ -581,7 +441,9 @@ export function useConversationFlow() {
     setIntroPlayed(true);
     setConversationState('speaking');
 
-    const intro = copy.conversation.intro(totalQuestions, currentQuestionText);
+    const intro = totalQuestions > 0
+      ? `Welcome to Vocation Finder. We'll walk through ${totalQuestions} questions together. Take your time and answer honestly. First question: ${currentQuestionText}`
+      : `Welcome to Vocation Finder. First question: ${currentQuestionText}`;
 
     void speakText(intro, {
       onDone: () => {
@@ -591,14 +453,7 @@ export function useConversationFlow() {
         setConversationState('idle');
       },
     });
-  }, [
-    copy.conversation,
-    currentQuestionText,
-    introPlayed,
-    setConversationState,
-    speakText,
-    totalQuestions,
-  ]);
+  }, [currentQuestionText, introPlayed, setConversationState, speakText, totalQuestions]);
 
   // Clean up on unmount
   useEffect(() => {
@@ -615,7 +470,6 @@ export function useConversationFlow() {
         // player may already be disposed
       }
       void releaseLocalTts();
-      void releaseLocalStt();
       cancelAnimation(audioLevel);
       cancelAnimation(speakingLevel);
       clearSpeechCallbacks();

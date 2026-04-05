@@ -6,17 +6,22 @@ import * as Haptics from 'expo-haptics';
 import { Typography } from '../../components/ui/Typography';
 import { AudioOrb } from '../../components/AudioOrb';
 import { useConversationFlow } from '../../hooks/useConversationFlow';
-import { getAssessmentCopy } from '../../constants/assessmentLocale';
 import { spacing } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
-import { useAssessmentStore } from '../../stores/assessmentStore';
+import type { ConversationState } from '../../stores/assessmentStore';
+
+const STATE_LABELS: Record<ConversationState, string> = {
+  idle: 'Tap the orb to answer',
+  listening: 'Listening... tap again to send',
+  processing: 'Discerning your response...',
+  speaking: 'Speaking... tap orb to skip',
+  error: 'Connection issue. Tap to retry.',
+};
 
 export default function ConversationScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const styles = getStyles(colors, isDark);
-  const locale = useAssessmentStore((state) => state.locale);
-  const copy = getAssessmentCopy(locale);
   const {
     startRecording,
     stopRecording,
@@ -33,20 +38,10 @@ export default function ConversationScreen() {
     isComplete,
   } = useConversationFlow();
 
-  // Auto-start: play intro and first question as soon as questions are ready
-  useEffect(() => {
-    if (!introPlayed && currentQuestionText && conversationState === 'idle') {
-      const timer = setTimeout(() => {
-        playIntroAndFirstQuestion();
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [introPlayed, currentQuestionText, conversationState, playIntroAndFirstQuestion]);
-
-  // Navigate to after survey when conversation is complete
+  // Navigate to results when conversation is complete
   useEffect(() => {
     if (isComplete) {
-      router.replace('/(assessment)/after');
+      router.replace('/(assessment)/results');
     }
   }, [isComplete]);
 
@@ -59,6 +54,11 @@ export default function ConversationScreen() {
     }
 
     if (conversationState === 'idle' || conversationState === 'error') {
+      if (!introPlayed) {
+        playIntroAndFirstQuestion();
+        return;
+      }
+
       startRecording();
     } else if (conversationState === 'listening') {
       stopRecording();
@@ -88,7 +88,7 @@ export default function ConversationScreen() {
             color={colors.accent}
             style={styles.topLabel}
           >
-            {copy.conversation.title}
+            Voice Discernment
           </Typography>
 
           {currentQuestionText ? (
@@ -115,20 +115,14 @@ export default function ConversationScreen() {
             style={styles.stateLabel}
           >
             {conversationState === 'idle' && !introPlayed
-              ? copy.conversation.tapToBegin
-              : {
-                  idle: copy.conversation.idle,
-                  listening: copy.conversation.listening,
-                  processing: copy.conversation.processing,
-                  speaking: copy.conversation.speaking,
-                  error: copy.conversation.error,
-                }[conversationState]}
+              ? 'Tap to begin'
+              : STATE_LABELS[conversationState]}
           </Typography>
 
           {conversationState === 'idle' && introPlayed ? (
             <Pressable onPress={handleOrbPress} style={styles.secondaryAction}>
               <Typography variant="small" family="sans" color={colors.textSecondary}>
-                {copy.conversation.tapToRecord}
+                Tap to start recording
               </Typography>
             </Pressable>
           ) : null}
@@ -154,8 +148,8 @@ export default function ConversationScreen() {
               style={styles.indicator}
             >
               {totalQuestions > 0
-                ? copy.conversation.progress(currentQuestion, totalQuestions)
-                : copy.conversation.starting}
+                ? `Question ${currentQuestion + 1} of ${totalQuestions}`
+                : 'Starting conversation...'}
             </Typography>
           </View>
         </View>
