@@ -506,18 +506,14 @@ export function useConversationFlow() {
               },
             });
           } catch (retryError) {
-            console.error('[STT] Retry also failed:', retryError);
-            useAssessmentStore.setState({
-              conversationState: 'error',
-              conversationError: 'Could not process your speech. Please try again.',
-            });
-            return;
+            console.warn('[STT] Retry also failed, falling back to server:', retryError);
+            // Fall through to server-side processing
           }
         }
       }
 
-      if (!response && !isLocalSttEnabled()) {
-        // Server-side audio upload: only when local STT is explicitly disabled.
+      if (!response) {
+        // Server-side audio upload: when local STT is disabled or failed.
         response = await handleConversationTurn({
           audioUri: uri,
           durationSeconds,
