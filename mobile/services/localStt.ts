@@ -240,15 +240,15 @@ async function ensureInitialized(locale: AssessmentLocale): Promise<InitializedS
       initializedStt = null;
     }
 
-    // Try bundled asset model first, then fall back to download system
+    // Try bundled asset model first (CoreML then CPU), then download system
     let engine: SttEngine;
     let modelId: string;
     try {
       const { stt } = requireNativeModules();
-      engine = await stt.createSTT({
-        modelPath: { type: 'asset', path: 'models/whisper-tiny' } as any,
+      const bundledOpts = {
+        modelPath: { type: 'asset' as const, path: 'models/whisper-tiny' },
         modelType: 'whisper' as any,
-        provider: 'cpu',
+        preferInt8: true,
         numThreads: 4,
         modelOptions: {
           whisper: {
@@ -256,7 +256,12 @@ async function ensureInitialized(locale: AssessmentLocale): Promise<InitializedS
             task: 'transcribe',
           },
         },
-      });
+      };
+      try {
+        engine = await stt.createSTT({ ...bundledOpts, provider: 'coreml' });
+      } catch {
+        engine = await stt.createSTT({ ...bundledOpts, provider: 'cpu' });
+      }
       modelId = 'whisper-tiny-bundled';
       console.log('[STT] Using bundled Whisper model');
     } catch (bundledErr) {
