@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import type { ModelMetaBase } from 'react-native-sherpa-onnx/download';
 import type { SttEngine, STTModelType, SttRecognitionResult } from 'react-native-sherpa-onnx/stt';
 import {
@@ -209,7 +210,7 @@ async function createEngine(modelPath: string, locale: AssessmentLocale): Promis
     modelPath: core.fileModelPath(modelPath),
     modelType: LOCAL_STT_MODEL_TYPE ?? 'whisper',
     provider: 'cpu',
-    numThreads: 2,
+    numThreads: 4,
     modelOptions: {
       whisper: {
         language: getSpeechRecognitionLanguage(locale),
@@ -217,6 +218,34 @@ async function createEngine(modelPath: string, locale: AssessmentLocale): Promis
       },
     },
   });
+}
+
+async function createBundledWhisperEngine(locale: AssessmentLocale): Promise<SttEngine> {
+  const { stt } = requireNativeModules();
+  const providers = Platform.OS === 'ios' ? ['coreml', 'cpu'] : ['cpu'];
+  let lastError: unknown;
+
+  for (const provider of providers) {
+    try {
+      return await stt.createSTT({
+        modelPath: { type: 'asset', path: 'models/whisper-tiny' } as any,
+        modelType: 'whisper' as any,
+        preferInt8: true,
+        provider,
+        numThreads: 4,
+        modelOptions: {
+          whisper: {
+            language: getSpeechRecognitionLanguage(locale),
+            task: 'transcribe',
+          },
+        },
+      });
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('Bundled Whisper STT initialization failed.');
 }
 
 async function ensureInitialized(locale: AssessmentLocale): Promise<InitializedStt> {
@@ -240,9 +269,20 @@ async function ensureInitialized(locale: AssessmentLocale): Promise<InitializedS
       initializedStt = null;
     }
 
-    const modelId = await chooseModelId();
-    const modelPath = await ensureModelPath(modelId);
-    const engine = await createEngine(modelPath, normalizedLocale);
+    // Try bundled Whisper model first (instant, no download)
+    let engine: SttEngine;
+    let modelId: string;
+
+    try {
+      engine = await createBundledWhisperEngine(normalizedLocale);
+      modelId = 'whisper-tiny-bundled';
+      console.log('[STT] Using bundled Whisper model');
+    } catch (bundledError) {
+      console.warn('[STT] Bundled Whisper failed, falling back to download system:', bundledError);
+      modelId = await chooseModelId();
+      const modelPath = await ensureModelPath(modelId);
+      engine = await createEngine(modelPath, normalizedLocale);
+    }
 
     const initialized = {
       engine,
