@@ -281,7 +281,8 @@ export function useConversationFlow() {
       try {
         // Check for pre-recorded question audio first (instant playback)
         const currentQ = questions[currentQuestion];
-        if (currentQ && text === (currentQ.conversation_prompt ?? currentQ.question_text)) {
+        const questionText = currentQ?.conversation_prompt ?? currentQ?.question_text ?? '';
+        if (currentQ && questionText && text.includes(questionText)) {
           const prerecorded = getQuestionAudio(currentQ.sort_order, normalizedSpeechLocale);
           if (prerecorded) {
             await setAudioModeAsync({
