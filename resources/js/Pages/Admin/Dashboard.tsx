@@ -422,7 +422,6 @@ export default function Dashboard({
                     <KpiCard label="Active Job Users (30d)" value={jobPlatformMetrics.active_job_users_30d} />
                 </div>
             )}
-            </div>
         </AdminLayout>
     );
 }

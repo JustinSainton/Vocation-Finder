@@ -6,22 +6,17 @@ import * as Haptics from 'expo-haptics';
 import { Typography } from '../../components/ui/Typography';
 import { AudioOrb } from '../../components/AudioOrb';
 import { useConversationFlow } from '../../hooks/useConversationFlow';
+import { getAssessmentCopy } from '../../constants/assessmentLocale';
 import { spacing } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
-import type { ConversationState } from '../../stores/assessmentStore';
-
-const STATE_LABELS: Record<ConversationState, string> = {
-  idle: 'Tap the orb to answer',
-  listening: 'Listening... tap again to send',
-  processing: 'Discerning your response...',
-  speaking: 'Speaking... tap orb to skip',
-  error: 'Connection issue. Tap to retry.',
-};
+import { useAssessmentStore } from '../../stores/assessmentStore';
 
 export default function ConversationScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const styles = getStyles(colors, isDark);
+  const locale = useAssessmentStore((state) => state.locale);
+  const copy = getAssessmentCopy(locale);
   const {
     startRecording,
     stopRecording,
@@ -38,10 +33,10 @@ export default function ConversationScreen() {
     isComplete,
   } = useConversationFlow();
 
-  // Navigate to results when conversation is complete
+  // Navigate to after survey when conversation is complete
   useEffect(() => {
     if (isComplete) {
-      router.replace('/(assessment)/results');
+      router.replace('/(assessment)/after');
     }
   }, [isComplete]);
 
@@ -88,7 +83,7 @@ export default function ConversationScreen() {
             color={colors.accent}
             style={styles.topLabel}
           >
-            Voice Discernment
+            {copy.conversation.title}
           </Typography>
 
           {currentQuestionText ? (
@@ -115,14 +110,20 @@ export default function ConversationScreen() {
             style={styles.stateLabel}
           >
             {conversationState === 'idle' && !introPlayed
-              ? 'Tap to begin'
-              : STATE_LABELS[conversationState]}
+              ? copy.conversation.tapToBegin
+              : {
+                  idle: copy.conversation.idle,
+                  listening: copy.conversation.listening,
+                  processing: copy.conversation.processing,
+                  speaking: copy.conversation.speaking,
+                  error: copy.conversation.error,
+                }[conversationState]}
           </Typography>
 
           {conversationState === 'idle' && introPlayed ? (
             <Pressable onPress={handleOrbPress} style={styles.secondaryAction}>
               <Typography variant="small" family="sans" color={colors.textSecondary}>
-                Tap to start recording
+                {copy.conversation.tapToRecord}
               </Typography>
             </Pressable>
           ) : null}
@@ -148,8 +149,8 @@ export default function ConversationScreen() {
               style={styles.indicator}
             >
               {totalQuestions > 0
-                ? `Question ${currentQuestion + 1} of ${totalQuestions}`
-                : 'Starting conversation...'}
+                ? copy.conversation.progress(currentQuestion, totalQuestions)
+                : copy.conversation.starting}
             </Typography>
           </View>
         </View>
