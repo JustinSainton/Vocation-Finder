@@ -23,13 +23,13 @@ import {
   releaseLocalStt,
   transcribeLocalAudio,
   warmupLocalStt,
-} from '../services/localStt';
+} from '../services/localSttBundled';
 import {
   isLocalTtsEnabled,
   releaseLocalTts,
   synthesizeLocalSpeech,
   warmupLocalTts,
-} from '../services/localTts';
+} from '../services/localTtsBundled';
 import { useAssessmentStore } from '../stores/assessmentStore';
 
 const METERING_INTERVAL_MS = 100;
