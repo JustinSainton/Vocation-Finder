@@ -70,6 +70,11 @@ class Course extends Model
         return $this->hasMany(CourseEnrollment::class);
     }
 
+    public function media(): HasMany
+    {
+        return $this->hasMany(CourseMedia::class);
+    }
+
     public function scopePublished(Builder $query): Builder
     {
         return $query->where('is_published', true);
