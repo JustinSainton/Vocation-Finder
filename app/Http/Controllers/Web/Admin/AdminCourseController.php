@@ -67,10 +67,12 @@ class AdminCourseController extends Controller
             'category_tags' => 'nullable|array',
             'category_tags.*.id' => 'required|uuid|exists:vocational_categories,id',
             'category_tags.*.weight' => 'required|numeric|min:0|max:1',
+            'requires_personalization' => 'boolean',
             'modules' => 'nullable|array',
             'modules.*.title' => 'required|string|max:255',
             'modules.*.description' => 'nullable|string',
             'modules.*.content_blocks' => 'nullable|json',
+            'modules.*.personalization_prompts' => 'nullable|json',
             'modules.*.sort_order' => 'integer',
         ]);
 
@@ -88,10 +90,11 @@ class AdminCourseController extends Controller
             'difficulty_level' => $validated['difficulty_level'] ?? 'foundational',
             'phase_tag' => $validated['phase_tag'] ?? 'discovery',
             'prerequisite_course_ids' => $validated['prerequisite_course_ids'] ?? null,
+            'requires_personalization' => $validated['requires_personalization'] ?? false,
         ]);
 
         // Sync multi-category tags
-        if (!empty($validated['category_tags'])) {
+        if (! empty($validated['category_tags'])) {
             $syncData = [];
             foreach ($validated['category_tags'] as $tag) {
                 $syncData[$tag['id']] = ['relevance_weight' => $tag['weight']];
@@ -99,7 +102,7 @@ class AdminCourseController extends Controller
             $course->vocationalCategories()->sync($syncData);
         }
 
-        if (!empty($validated['modules'])) {
+        if (! empty($validated['modules'])) {
             foreach ($validated['modules'] as $moduleData) {
                 CourseModule::create([
                     'course_id' => $course->id,
@@ -108,6 +111,9 @@ class AdminCourseController extends Controller
                     'description' => $moduleData['description'] ?? null,
                     'content_blocks' => isset($moduleData['content_blocks'])
                         ? json_decode($moduleData['content_blocks'], true)
+                        : null,
+                    'personalization_prompts' => isset($moduleData['personalization_prompts'])
+                        ? json_decode($moduleData['personalization_prompts'], true)
                         : null,
                     'sort_order' => $moduleData['sort_order'] ?? 0,
                 ]);
@@ -144,12 +150,14 @@ class AdminCourseController extends Controller
                     'name' => $cat->name,
                     'weight' => (float) $cat->pivot->relevance_weight,
                 ]),
+                'requires_personalization' => $course->requires_personalization,
                 'modules' => $course->modules->map(fn (CourseModule $m) => [
                     'id' => $m->id,
                     'title' => $m->title,
                     'slug' => $m->slug,
                     'description' => $m->description,
                     'content_blocks' => $m->content_blocks,
+                    'personalization_prompts' => $m->personalization_prompts,
                     'sort_order' => $m->sort_order,
                 ]),
             ],
@@ -174,11 +182,13 @@ class AdminCourseController extends Controller
             'category_tags' => 'nullable|array',
             'category_tags.*.id' => 'required|uuid|exists:vocational_categories,id',
             'category_tags.*.weight' => 'required|numeric|min:0|max:1',
+            'requires_personalization' => 'boolean',
             'modules' => 'nullable|array',
             'modules.*.id' => 'nullable|uuid',
             'modules.*.title' => 'required|string|max:255',
             'modules.*.description' => 'nullable|string',
             'modules.*.content_blocks' => 'nullable|json',
+            'modules.*.personalization_prompts' => 'nullable|json',
             'modules.*.sort_order' => 'integer',
         ]);
 
@@ -195,10 +205,11 @@ class AdminCourseController extends Controller
             'estimated_duration' => $validated['estimated_duration'] ?? null,
             'sort_order' => $validated['sort_order'] ?? 0,
             'is_published' => $isNowPublished,
-            'published_at' => (!$wasPublished && $isNowPublished) ? now() : $course->published_at,
+            'published_at' => (! $wasPublished && $isNowPublished) ? now() : $course->published_at,
             'difficulty_level' => $validated['difficulty_level'] ?? $course->difficulty_level,
             'phase_tag' => $validated['phase_tag'] ?? $course->phase_tag,
             'prerequisite_course_ids' => $validated['prerequisite_course_ids'] ?? null,
+            'requires_personalization' => $validated['requires_personalization'] ?? $course->requires_personalization,
         ]);
 
         // Sync multi-category tags
@@ -213,27 +224,23 @@ class AdminCourseController extends Controller
             $course->modules()->whereNotIn('id', $existingIds)->delete();
 
             foreach ($validated['modules'] as $moduleData) {
-                if (!empty($moduleData['id'])) {
-                    CourseModule::where('id', $moduleData['id'])->update([
-                        'title' => $moduleData['title'],
-                        'slug' => Str::slug($moduleData['title']),
-                        'description' => $moduleData['description'] ?? null,
-                        'content_blocks' => isset($moduleData['content_blocks'])
-                            ? json_decode($moduleData['content_blocks'], true)
-                            : null,
-                        'sort_order' => $moduleData['sort_order'] ?? 0,
-                    ]);
+                $moduleFields = [
+                    'title' => $moduleData['title'],
+                    'slug' => Str::slug($moduleData['title']),
+                    'description' => $moduleData['description'] ?? null,
+                    'content_blocks' => isset($moduleData['content_blocks'])
+                        ? json_decode($moduleData['content_blocks'], true)
+                        : null,
+                    'personalization_prompts' => isset($moduleData['personalization_prompts'])
+                        ? json_decode($moduleData['personalization_prompts'], true)
+                        : null,
+                    'sort_order' => $moduleData['sort_order'] ?? 0,
+                ];
+
+                if (! empty($moduleData['id'])) {
+                    CourseModule::where('id', $moduleData['id'])->update($moduleFields);
                 } else {
-                    CourseModule::create([
-                        'course_id' => $course->id,
-                        'title' => $moduleData['title'],
-                        'slug' => Str::slug($moduleData['title']),
-                        'description' => $moduleData['description'] ?? null,
-                        'content_blocks' => isset($moduleData['content_blocks'])
-                            ? json_decode($moduleData['content_blocks'], true)
-                            : null,
-                        'sort_order' => $moduleData['sort_order'] ?? 0,
-                    ]);
+                    CourseModule::create(array_merge($moduleFields, ['course_id' => $course->id]));
                 }
             }
         }

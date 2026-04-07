@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Web\Admin\AdminAssessmentController;
 use App\Http\Controllers\Web\Admin\AdminCourseController;
+use App\Http\Controllers\Web\Admin\AdminCourseMediaController;
+use App\Http\Controllers\Web\Admin\AdminCurriculumImportController;
 use App\Http\Controllers\Web\Admin\AdminDashboardController;
 use App\Http\Controllers\Web\Admin\AdminFeatureFlagController;
 use App\Http\Controllers\Web\Admin\AdminJobListingController;
@@ -213,6 +215,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/courses/{course}/edit', [AdminCourseController::class, 'edit']);
         Route::put('/courses/{course}', [AdminCourseController::class, 'update']);
         Route::delete('/courses/{course}', [AdminCourseController::class, 'destroy']);
+
+        // Course Media
+        Route::post('/course-media', [AdminCourseMediaController::class, 'store']);
+        Route::get('/course-media/{courseMedia}', [AdminCourseMediaController::class, 'show']);
+        Route::delete('/course-media/{courseMedia}', [AdminCourseMediaController::class, 'destroy']);
+
+        // Curriculum Import
+        Route::post('/curriculum-import', [AdminCurriculumImportController::class, 'store']);
+        Route::get('/curriculum-import/{curriculumImport}', [AdminCurriculumImportController::class, 'show']);
+        Route::post('/curriculum-import/{curriculumImport}/confirm', [AdminCurriculumImportController::class, 'confirm']);
 
         // Feature Flags
         Route::get('/feature-flags', [AdminFeatureFlagController::class, 'index']);
