@@ -129,8 +129,8 @@ class PlatformAnalyticsService
                     ->where('before_s.type', '=', 'before')
                     ->where('after_s.type', '=', 'after');
             })
-            ->selectRaw('avg(after_s.clarity_score - before_s.clarity_score) as avg_clarity_delta')
-            ->selectRaw('avg(after_s.action_score - before_s.action_score) as avg_action_delta')
+            ->selectRaw('avg(CAST(after_s.clarity_score AS SIGNED) - CAST(before_s.clarity_score AS SIGNED)) as avg_clarity_delta')
+            ->selectRaw('avg(CAST(after_s.action_score AS SIGNED) - CAST(before_s.action_score AS SIGNED)) as avg_action_delta')
             ->selectRaw('count(*) as paired_count')
             ->first();
 
