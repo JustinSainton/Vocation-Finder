@@ -12,6 +12,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Laravel\Ai\Exceptions\ProviderOverloadedException;
 
 class AnalyzeAssessmentJob implements ShouldQueue
 {
@@ -19,7 +20,9 @@ class AnalyzeAssessmentJob implements ShouldQueue
 
     public int $timeout = 120;
 
-    public int $tries = 2;
+    public int $tries = 3;
+
+    public array $backoff = [10, 30];
 
     public function __construct(
         public Assessment $assessment,
@@ -42,10 +45,10 @@ class AnalyzeAssessmentJob implements ShouldQueue
 
         // Phase A: Structured pattern analysis
         $agent = new VocationalAnalysis($this->assessment, $locale);
-        $analysisResponse = $agent->prompt(
+        $analysisResponse = $this->retryOnOverload(fn () => $agent->prompt(
             $agent->buildPrompt(),
             model: $model,
-        );
+        ));
 
         $analysisData = $analysisResponse->structured;
 
@@ -90,6 +93,38 @@ class AnalyzeAssessmentJob implements ShouldQueue
     protected function resolveModel(): string
     {
         return config('vocation.ai.model');
+    }
+
+    /**
+     * Retry a closure up to 3 times when the AI provider is overloaded (HTTP 529),
+     * using exponential backoff. Works regardless of queue driver.
+     *
+     * @template T
+     *
+     * @param  callable(): T  $callback
+     * @return T
+     */
+    protected function retryOnOverload(callable $callback): mixed
+    {
+        $delays = [10, 20];
+
+        for ($attempt = 0; ; $attempt++) {
+            try {
+                return $callback();
+            } catch (ProviderOverloadedException $e) {
+                if ($attempt >= count($delays)) {
+                    throw $e;
+                }
+
+                Log::warning('ai_provider_overloaded_retrying', [
+                    'assessment_id' => $this->assessment->id,
+                    'attempt' => $attempt + 1,
+                    'delay_seconds' => $delays[$attempt],
+                ]);
+
+                sleep($delays[$attempt]);
+            }
+        }
     }
 
     protected function validateAnalysis(array $data): void
@@ -183,10 +218,10 @@ class AnalyzeAssessmentJob implements ShouldQueue
         for ($attempt = 1; $attempt <= 2; $attempt++) {
             try {
                 $narrativeAgent = new NarrativeSynthesis($analysisData, $feedback, $locale);
-                $narrativeResponse = $narrativeAgent->prompt(
+                $narrativeResponse = $this->retryOnOverload(fn () => $narrativeAgent->prompt(
                     $narrativeAgent->buildPrompt(),
                     model: $model,
-                );
+                ));
 
                 $narrative = $narrativeResponse->text;
 
