@@ -191,12 +191,12 @@ export default function AdminJobsIndex({ jobs, stats, filters }: Props) {
                                     <span className={`text-xs ${
                                         job.classification_status === 'classified' ? 'text-green-600' :
                                         job.classification_status === 'failed' ? 'text-red-600' :
-                                        'text-[var(--color-accent)]'
+                                        'text-[var(--color-muted)]'
                                     }`}>
                                         {job.classification_status}
                                     </span>
                                 </td>
-                                <td className="py-3 text-xs text-[var(--color-accent)]">
+                                <td className="py-3 text-xs text-[var(--color-muted)]">
                                     {formatDate(job.posted_at)}
                                 </td>
                             </tr>
@@ -215,7 +215,7 @@ export default function AdminJobsIndex({ jobs, stats, filters }: Props) {
                                 {label}
                             </Link>
                         ) : (
-                            <span key={i} className="px-3 py-1 text-xs text-[var(--color-accent)]">{label}</span>
+                            <span key={i} className="px-3 py-1 text-xs text-[var(--color-muted)]">{label}</span>
                         );
                     })}
                 </div>

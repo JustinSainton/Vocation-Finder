@@ -12,7 +12,7 @@ use Laravel\Ai\Promptable;
 use Stringable;
 
 #[Provider('anthropic')]
-#[Model('claude-sonnet-4-20250514')]
+#[Model('claude-sonnet-4-6')]
 #[Timeout(120)]
 class CurriculumCuration implements Agent, HasStructuredOutput
 {
@@ -70,26 +70,44 @@ Select advanced courses focused on mode-of-work skills — how they will actuall
 INSTRUCTIONS;
     }
 
+    /**
+     * The four phases share a shape but are built per phase rather than
+     * reusing one instance, so each serializes its own required list.
+     */
     public function schema(JsonSchema $schema): array
     {
-        $courseSelection = $schema->object([
-            'course_id' => $schema->string('The UUID of the selected course from the catalog'),
-            'rationale' => $schema->string('Why this course was selected for this specific person'),
-        ]);
-
-        $phaseSchema = $schema->object([
-            'description' => $schema->string('A personal description of what this phase means for the learner'),
-            'courses' => $schema->array($courseSelection, 'Courses selected for this phase'),
-        ]);
+        $phase = fn (string $description) => $schema->object([
+            'description' => $schema
+                ->string()
+                ->description('A personal description of what this phase means for the learner')
+                ->required(),
+            'courses' => $schema
+                ->array()
+                ->items($schema->object([
+                    'course_id' => $schema
+                        ->string()
+                        ->description('The UUID of the selected course from the catalog')
+                        ->required(),
+                    'rationale' => $schema
+                        ->string()
+                        ->description('Why this course was selected for this specific person')
+                        ->required(),
+                ]))
+                ->description('Courses selected for this phase')
+                ->required(),
+        ])->description($description)->required();
 
         return [
-            'pathway_summary' => $schema->string('A 2-3 sentence personal summary of the learning journey, addressing the person by name'),
+            'pathway_summary' => $schema
+                ->string()
+                ->description('A 2-3 sentence personal summary of the learning journey, addressing the person by name')
+                ->required(),
             'phases' => $schema->object([
-                'discovery' => $phaseSchema,
-                'deepening' => $phaseSchema,
-                'integration' => $phaseSchema,
-                'application' => $phaseSchema,
-            ]),
+                'discovery' => $phase('Where the learner begins orienting to the pathway'),
+                'deepening' => $phase('Where the learner builds substantive knowledge'),
+                'integration' => $phase('Where the learner connects the pieces into a whole'),
+                'application' => $phase('Where the learner puts the pathway into practice'),
+            ])->description('The four phases of the learning journey, in order')->required(),
         ];
     }
 

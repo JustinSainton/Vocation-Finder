@@ -1,0 +1,49 @@
+{
+  "name": "spanish-narrative-that-ships",
+  "description": "A Spanish narrative that is allowed to ship. Its counterpart, spanish-narrative-must-be-refused, would be satisfied by a lint that simply refused every language it could not read; this one is the half that makes the pair mean something.",
+  "locale": "es-419",
+  "answers": [
+    "arreglé la podadora de mi vecino el verano pasado porque nadie más iba a hacerlo y me tomó todo el sábado. no me molestó, me gustó más averiguar qué tenía que arreglarla",
+    "lo que me da rabia es cuando tratan a alguien como tonto porque no sabe explicar bien algo. a mi mamá le pasa en el doctor y le hablan encima",
+    "no sé. algo con las manos tal vez. todos dicen que debería ir a la universidad pero nadie en mi familia fue",
+    "hice una semana en un hospital por la escuela. la parte que sigo pensando es cuando todavía nadie sabía qué tenía la señora. fue la única semana que no me quise ir temprano",
+    "el dinero la verdad. en mi casa nadie habla de eso y no sé cuánto cuesta nada de esto",
+    "soy bueno para notar cuando algo anda mal antes que los demás. mi entrenador también dijo eso de mí",
+    "solo me senté con ella hasta que dejó de llorar, eso fue todo. dijo que le ayudó pero yo no hice nada realmente"
+  ],
+  "signals": [
+    {
+      "answer_index": 0,
+      "type": "energy_source",
+      "track": "demonstrated",
+      "content": "Energised by working out what is wrong rather than by the repair itself",
+      "verbatim": "me gustó más averiguar qué tenía que arreglarla"
+    },
+    {
+      "answer_index": 1,
+      "type": "burden",
+      "track": "demonstrated",
+      "content": "Carries the indignity of people being talked over when they cannot explain themselves",
+      "verbatim": "tratan a alguien como tonto porque no sabe explicar bien algo"
+    },
+    {
+      "answer_index": 3,
+      "type": "energy_source",
+      "track": "demonstrated",
+      "content": "Stayed with the part of the week where the answer was not yet known",
+      "verbatim": "cuando todavía nadie sabía qué tenía la señora"
+    }
+  ],
+  "category_scores": [
+    {
+      "category": "Health & Medicine",
+      "score": 71,
+      "rationale": "n/a",
+      "evidence": []
+    }
+  ],
+  "narrative": "Lo que escribiste sobre la semana en el hospital aparece otra vez cuando hablas de la podadora: las dos veces, lo que te retuvo fue todavía no saber qué estaba mal. Describes lo que hiciste, no lo que te hubiera gustado hacer. Eso es una pista, no una respuesta, y vale la pena probarlo antes de decidir nada. Habla con alguien que haga este trabajo y pregúntale cómo es su semana más difícil.",
+  "expect": {
+    "red_team_clean": true
+  }
+}

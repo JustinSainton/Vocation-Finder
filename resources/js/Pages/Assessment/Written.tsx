@@ -1,6 +1,8 @@
+import SupportBlock, { type Support } from '@/Components/SupportBlock';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { router } from '@inertiajs/react';
 import AppLayout from '../../Layouts/AppLayout';
+import ClarityCheck from '../../Components/ClarityCheck';
 
 interface Question {
     id: string;
@@ -16,7 +18,24 @@ interface Props {
 }
 
 export default function Written({ questions, assessment_id, guest_token }: Props) {
+    /*
+     | The clarity reading comes first, before the first question is on screen.
+     | It is the baseline the whole before-and-after measure rests on, and a
+     | baseline taken after somebody has started answering is a recollection.
+     | Skippable, because a student who does not want to answer it should still
+     | get the assessment.
+     */
+    const [baselineTaken, setBaselineTaken] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
+
+    /*
+     | Returned by the save, not computed here. The check is deterministic and
+     | lives on the server, so the browser cannot be the thing that decides
+     | whether somebody gets a phone number. Once shown it stays shown for the
+     | rest of the assessment: it is not a validation message that clears when
+     | the student edits the sentence away.
+     */
+    const [support, setSupport] = useState<Support | null>(null);
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -51,9 +70,16 @@ export default function Written({ questions, assessment_id, guest_token }: Props
                         question_id: question.id,
                         response_text: value,
                     }),
-                }).catch(() => {
-                    // Silently fail — answer is saved locally
-                });
+                })
+                    .then((response) => (response.ok ? response.json() : null))
+                    .then((data) => {
+                        if (data?.support) {
+                            setSupport(data.support);
+                        }
+                    })
+                    .catch(() => {
+                        // Silently fail — answer is saved locally
+                    });
             }, 500);
         },
         [currentIndex, assessment_id, guest_token, question?.id]
@@ -73,7 +99,14 @@ export default function Written({ questions, assessment_id, guest_token }: Props
                 method: 'POST',
                 headers,
             }).then(() => {
-                router.visit(`/assessment/${assessment_id}/results`);
+                // Carry the token in the URL rather than relying on the
+                // session. This is the link a student bookmarks, and it has to
+                // still open in March when the session is long gone.
+                router.visit(
+                    guest_token
+                        ? `/assessment/${assessment_id}/results?t=${encodeURIComponent(guest_token)}`
+                        : `/assessment/${assessment_id}/results`,
+                );
             });
         } else {
             setCurrentIndex((i) => i + 1);
@@ -85,6 +118,26 @@ export default function Written({ questions, assessment_id, guest_token }: Props
             setCurrentIndex((i) => i - 1);
         }
     };
+
+    if (!baselineTaken) {
+        return (
+            <AppLayout title="Assessment">
+                <ClarityCheck
+                    assessmentId={assessment_id}
+                    guestToken={guest_token}
+                    moment="before"
+                    onAnswered={() => setBaselineTaken(true)}
+                />
+                <button
+                    type="button"
+                    onClick={() => setBaselineTaken(true)}
+                    className="mt-8 font-sans text-sm text-[var(--color-text-secondary)] underline"
+                >
+                    Skip this
+                </button>
+            </AppLayout>
+        );
+    }
 
     if (!question) {
         return (
@@ -100,9 +153,11 @@ export default function Written({ questions, assessment_id, guest_token }: Props
 
     return (
         <AppLayout title="Assessment">
+            {support && <SupportBlock support={support} />}
+
             {/* Category */}
             {question.category_name && (
-                <p className="mb-6 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                <p className="mb-6 type-eyebrow">
                     {question.category_name}
                 </p>
             )}
@@ -123,7 +178,7 @@ export default function Written({ questions, assessment_id, guest_token }: Props
 
             {/* Bottom area */}
             <div className="mt-12">
-                <p className="mb-6 font-sans text-xs text-[var(--color-accent)]">
+                <p className="mb-6 font-sans text-xs text-[var(--color-muted)]">
                     Question {currentIndex + 1} of {questions.length}
                 </p>
 

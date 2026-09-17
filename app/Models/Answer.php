@@ -19,12 +19,16 @@ class Answer extends Model
         'audio_storage_path',
         'ai_preliminary_analysis',
         'duration_seconds',
+        'response_quality_score',
+        'response_quality_bands',
     ];
 
     protected function casts(): array
     {
         return [
             'ai_preliminary_analysis' => 'array',
+            'response_quality_bands' => 'array',
+            'response_quality_score' => 'integer',
         ];
     }
 

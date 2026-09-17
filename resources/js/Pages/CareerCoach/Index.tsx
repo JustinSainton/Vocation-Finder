@@ -125,7 +125,7 @@ export default function CareerCoachIndex() {
                         ))}
                         {loading && (
                             <div className="flex justify-start">
-                                <div className="border border-[var(--color-border)] px-4 py-3 text-sm text-[var(--color-accent)]">
+                                <div className="border border-[var(--color-border)] px-4 py-3 text-sm text-[var(--color-muted)]">
                                     Thinking...
                                 </div>
                             </div>
@@ -139,7 +139,7 @@ export default function CareerCoachIndex() {
                             onChange={(e) => setInput(e.target.value)}
                             placeholder="Ask about careers, job types, or specific opportunities..."
                             disabled={loading}
-                            className="flex-1 border border-[var(--color-border)] bg-transparent px-3 py-3 text-sm text-[var(--color-text)] placeholder:text-[var(--color-accent)] disabled:opacity-50"
+                            className="flex-1 border border-[var(--color-border)] bg-transparent px-3 py-3 text-sm text-[var(--color-text)] placeholder:text-[var(--color-muted)] disabled:opacity-50"
                             autoFocus
                         />
                         <button

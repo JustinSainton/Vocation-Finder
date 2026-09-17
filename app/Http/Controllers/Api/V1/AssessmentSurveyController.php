@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Assessment;
 use App\Models\AssessmentSurvey;
+use App\Support\AssessmentAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -32,16 +33,6 @@ class AssessmentSurveyController extends Controller
 
     private function authorizeAccess(Request $request, Assessment $assessment): void
     {
-        $user = $request->user();
-
-        if ($user && $assessment->user_id === $user->id) {
-            return;
-        }
-
-        if (! $user && $assessment->guest_token && hash_equals($assessment->guest_token, (string) $request->header('X-Guest-Token'))) {
-            return;
-        }
-
-        abort(403, 'Unauthorized access to assessment.');
+        AssessmentAccess::authorize($request, $assessment);
     }
 }

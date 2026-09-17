@@ -30,6 +30,7 @@ import {
   synthesizeLocalSpeech,
   warmupLocalTts,
 } from '../services/localTtsBundled';
+import { getQuestionAudio } from '../constants/questionAudio';
 import { useAssessmentStore } from '../stores/assessmentStore';
 
 const METERING_INTERVAL_MS = 100;
@@ -259,7 +260,7 @@ export function useConversationFlow() {
     '';
 
   const speakText = useCallback(
-    async (text: string, options?: { onDone?: () => void; onError?: () => void }) => {
+    async (text: string, options?: { onDone?: () => void; onError?: () => void; isQuestionPrompt?: boolean }) => {
       onSpeechDoneRef.current = options?.onDone ?? (() => setConversationState('idle'));
       onSpeechErrorRef.current = options?.onError ?? (() => setConversationState('idle'));
 
@@ -268,6 +269,26 @@ export function useConversationFlow() {
       await startAmbientBed();
 
       try {
+        // Check for pre-recorded question audio first (instant playback, no synthesis)
+        if (options?.isQuestionPrompt) {
+          const storeState = useAssessmentStore.getState();
+          const currentQ = storeState.questions[storeState.currentQuestion];
+          if (currentQ) {
+            const prerecorded = getQuestionAudio(currentQ.sort_order, normalizedSpeechLocale);
+            if (prerecorded) {
+              // Resolve the Metro asset to a local URI before replacing
+              const { Asset } = require('expo-asset') as typeof import('expo-asset');
+              const asset = Asset.fromModule(prerecorded);
+              await asset.downloadAsync();
+              const localUri = asset.localUri ?? asset.uri;
+              await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+              ttsPlayer.replace(localUri);
+              ttsPlayer.play();
+              return;
+            }
+          }
+        }
+
         try {
           if (isLocalTtsEnabled()) {
             const localSpeech = await synthesizeLocalSpeech(text, normalizedSpeechLocale);
@@ -287,7 +308,6 @@ export function useConversationFlow() {
 
         try {
           const speech = await assessmentApi.synthesizeConversationSpeech(text, normalizedSpeechLocale);
-          console.log('[TTS] Remote speech response:', JSON.stringify(speech));
           const probeController = new AbortController();
           const probeTimeout = setTimeout(() => {
             probeController.abort();
@@ -303,7 +323,6 @@ export function useConversationFlow() {
               signal: probeController.signal,
             });
             probeStatus = probeResponse.status;
-            console.log('[TTS] Probe status:', probeStatus, 'for URL:', speech.audio_url);
           } finally {
             clearTimeout(probeTimeout);
           }
@@ -547,6 +566,7 @@ export function useConversationFlow() {
     const intro = copy.conversation.intro(totalQuestions, currentQuestionText);
 
     void speakText(intro, {
+      isQuestionPrompt: true,
       onDone: () => {
         setConversationState('idle');
       },

@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Question;
-use App\Models\QuestionCategory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -34,6 +33,35 @@ class QuestionApiTest extends TestCase
         ]);
 
         $this->assertGreaterThan(0, count($response->json('data')));
+    }
+
+    public function test_full_assessment_is_served_by_default(): void
+    {
+        config(['vocation.beta.questions_enabled' => false]);
+
+        $response = $this->getJson('/api/v1/questions');
+
+        $response->assertOk();
+
+        $fullCount = Question::where('is_beta', false)->count();
+        $betaCount = Question::where('is_beta', true)->count();
+
+        $this->assertGreaterThan($betaCount, $fullCount, 'Seed data should contain a larger full question set than the beta set.');
+        $this->assertCount($fullCount, $response->json('data'));
+    }
+
+    public function test_beta_flag_serves_the_short_question_set(): void
+    {
+        config(['vocation.beta.questions_enabled' => true]);
+
+        $response = $this->getJson('/api/v1/questions');
+
+        $response->assertOk();
+
+        $betaCount = Question::where('is_beta', true)->count();
+
+        $this->assertCount($betaCount, $response->json('data'));
+        $this->assertLessThan(Question::where('is_beta', false)->count(), $betaCount);
     }
 
     public function test_questions_are_sorted_by_sort_order(): void

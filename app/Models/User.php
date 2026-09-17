@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\IncomeBand;
+use App\Support\AccessPolicy;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -25,6 +27,12 @@ class User extends Authenticatable
         'provider_id',
         'assessment_credits',
         'expo_push_token',
+        'birthdate',
+        'grade_level',
+        'gpa',
+        'household_income_band',
+        'home_state',
+        'calendar_token',
     ];
 
     protected $hidden = [
@@ -36,6 +44,14 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'birthdate' => 'date',
+            'grade_level' => 'integer',
+            'gpa' => 'float',
+            'household_income_band' => IncomeBand::class,
+            // Cashier requires this cast for onTrial()/onGenericTrial() to
+            // work at all; without it a generic trial throws rather than
+            // returning false.
+            'trial_ends_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
@@ -50,6 +66,93 @@ class User extends Authenticatable
     public function assessments(): HasMany
     {
         return $this->hasMany(Assessment::class);
+    }
+
+    /**
+     * The colleges on this student's list.
+     *
+     * @return BelongsToMany<College, $this>
+     */
+    public function collegeInterests(): BelongsToMany
+    {
+        return $this->belongsToMany(College::class, 'college_interests')
+            ->using(CollegeInterest::class)
+            ->withPivot('note')
+            ->withTimestamps();
+    }
+
+    /**
+     * @return HasMany<Enrollment, $this>
+     */
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(Enrollment::class);
+    }
+
+    /**
+     * @return HasMany<Syllabus, $this>
+     */
+    public function syllabi(): HasMany
+    {
+        return $this->hasMany(Syllabus::class);
+    }
+
+    /**
+     * @return HasMany<Gap, $this>
+     */
+    public function gaps(): HasMany
+    {
+        return $this->hasMany(Gap::class);
+    }
+
+    /**
+     * Who Stripe bills and who gets the receipt.
+     *
+     * For a minor, that is the parent who consented — they are the one with
+     * the card, and a fifteen-year-old should not be the name on a payment
+     * dispute. The subscription itself still belongs to the student's record,
+     * because the coach and the brain are theirs and must survive the parent
+     * relationship changing.
+     */
+    public function stripeEmail(): ?string
+    {
+        if (! AccessPolicy::requiresParentCheckout($this)) {
+            return $this->email;
+        }
+
+        return $this->parentConsents()->granted()->value('parent_email') ?? $this->email;
+    }
+
+    /**
+     * @return HasMany<ReadinessSnapshot, $this>
+     */
+    public function readinessSnapshots(): HasMany
+    {
+        return $this->hasMany(ReadinessSnapshot::class);
+    }
+
+    /**
+     * @return HasMany<BrainEntry, $this>
+     */
+    public function brainEntries(): HasMany
+    {
+        return $this->hasMany(BrainEntry::class);
+    }
+
+    /**
+     * @return HasMany<Action, $this>
+     */
+    public function actions(): HasMany
+    {
+        return $this->hasMany(Action::class);
+    }
+
+    /**
+     * @return HasMany<ParentConsent, $this>
+     */
+    public function parentConsents(): HasMany
+    {
+        return $this->hasMany(ParentConsent::class);
     }
 
     public function mentorAssignments(): HasMany
@@ -96,6 +199,16 @@ class User extends Authenticatable
     public function voiceProfile(): HasOne
     {
         return $this->hasOne(VoiceProfile::class);
+    }
+
+    public function artifacts(): HasMany
+    {
+        return $this->hasMany(Artifact::class);
+    }
+
+    public function milestones(): HasMany
+    {
+        return $this->hasMany(Milestone::class);
     }
 
     public function resumeVersions(): HasMany

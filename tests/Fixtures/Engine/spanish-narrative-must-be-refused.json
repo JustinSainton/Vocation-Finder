@@ -1,0 +1,34 @@
+{
+  "name": "spanish-narrative-must-be-refused",
+  "description": "The same failure mode as narrative-must-be-refused, written in Spanish by a student who answered in Spanish. It exists because the lint read only English for most of the product's life, which meant this exact narrative shipped clean. Every banned claim here is spelled with its accents, so the fixture also proves the fold end to end rather than in a unit test.",
+  "locale": "es-419",
+  "answers": [
+    "arreglé la podadora de mi vecino el verano pasado porque nadie más iba a hacerlo y me tomó todo el sábado. no me molestó, me gustó más averiguar qué tenía que arreglarla",
+    "lo que me da rabia es cuando tratan a alguien como tonto porque no sabe explicar bien algo. a mi mamá le pasa en el doctor y le hablan encima",
+    "no sé. algo con las manos tal vez. todos dicen que debería ir a la universidad pero nadie en mi familia fue",
+    "hice una semana en un hospital por la escuela. la parte que sigo pensando es cuando todavía nadie sabía qué tenía la señora. fue la única semana que no me quise ir temprano",
+    "el dinero la verdad. en mi casa nadie habla de eso y no sé cuánto cuesta nada de esto",
+    "soy bueno para notar cuando algo anda mal antes que los demás. mi entrenador también dijo eso de mí",
+    "solo me senté con ella hasta que dejó de llorar, eso fue todo. dijo que le ayudó pero yo no hice nada realmente"
+  ],
+  "signals": [],
+  "category_scores": [
+    {
+      "category": "Health & Medicine",
+      "score": 88,
+      "rationale": "n/a",
+      "evidence": []
+    }
+  ],
+  "narrative": "Tus respuestas revelan un diagnóstico claro: tienes un trastorno de ansiedad que marca cómo tomas cada decisión. Dios te ha llamado a la medicina, y no hay ninguna duda. Eres un 94% de compatibilidad con la salud, y sin duda vas a prosperar ahí. Esto es lo que eres y nada lo va a cambiar.",
+  "expect": {
+    "red_team_clean": false,
+    "red_team_rules": [
+      "clinical",
+      "divine_presumption",
+      "false_certainty",
+      "mechanical_score",
+      "determinism"
+    ]
+  }
+}

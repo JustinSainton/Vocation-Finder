@@ -77,7 +77,7 @@ export default function Login() {
                         <div className="flex items-center justify-end">
                             <Link
                                 href="/forgot-password"
-                                className="font-sans text-sm text-[var(--color-text-secondary)] underline underline-offset-4 transition-colors hover:text-[var(--color-text)]"
+                                className="link font-sans text-sm"
                             >
                                 Forgot your password?
                             </Link>
@@ -105,7 +105,7 @@ export default function Login() {
                         Don&apos;t have an account?{' '}
                         <Link
                             href="/register"
-                            className="text-[var(--color-text)] underline underline-offset-4"
+                            className="link"
                         >
                             Create one
                         </Link>

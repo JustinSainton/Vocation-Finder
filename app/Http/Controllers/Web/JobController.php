@@ -6,11 +6,27 @@ use App\Http\Controllers\Controller;
 use App\Models\JobListing;
 use App\Models\VocationalCategory;
 use App\Services\Jobs\JobMatchingService;
+use App\Support\AccessPolicy;
+use App\Support\StudentJobs;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * The legacy adult job board.
+ *
+ * Built before there were minors in this product: it shows every classified
+ * listing, vetted or not, with no age requirement anywhere in the query. That
+ * was correct for an audience of adults who chose to open a job board, and it
+ * is not correct now.
+ *
+ * Rather than retrofit the safeguarding rules here — which would put a second
+ * implementation of them in the codebase, and the second one is the one that
+ * drifts — this board now refuses minors outright and points them at
+ * {@see WorkController}, where {@see StudentJobs} is the single
+ * thing that decides what a student may see.
+ */
 class JobController extends Controller
 {
     public function __construct(
@@ -19,6 +35,8 @@ class JobController extends Controller
 
     public function index(Request $request): Response
     {
+        $this->refuseMinors($request);
+
         $query = JobListing::active()->classified()->with('vocationalCategories');
 
         if ($pathway = $request->query('pathway')) {
@@ -134,5 +152,22 @@ class JobController extends Controller
         $request->user()->savedJobs()->detach($jobListing->id);
 
         return response()->json(['saved' => false]);
+    }
+
+    /**
+     * A minor never sees the unvetted board.
+     *
+     * Redirected rather than 403'd: the student is not doing anything wrong,
+     * and there is a page that answers the thing they came here for. An
+     * unknown birthdate counts as a minor, matching AccessPolicy — the costs
+     * of guessing are not symmetric.
+     */
+    protected function refuseMinors(Request $request): void
+    {
+        $user = $request->user();
+
+        if ($user && ! AccessPolicy::isAdult($user)) {
+            abort(redirect()->route('work'));
+        }
     }
 }

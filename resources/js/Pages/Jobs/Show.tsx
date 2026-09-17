@@ -118,7 +118,7 @@ export default function JobShow({ job }: Props) {
             {/* Vocational Categories */}
             {job.categories.length > 0 && (
                 <div className="mb-6">
-                    <h2 className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                    <h2 className="type-eyebrow">
                         Vocational Pathways
                     </h2>
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -128,7 +128,7 @@ export default function JobShow({ job }: Props) {
                                 className="border border-[var(--color-border)] px-3 py-1 text-xs text-[var(--color-text)]"
                             >
                                 {cat.name}
-                                <span className="ml-1 text-[var(--color-accent)]">
+                                <span className="ml-1 text-[var(--color-muted)]">
                                     {Math.round(cat.relevance * 100)}%
                                 </span>
                             </span>
@@ -140,7 +140,7 @@ export default function JobShow({ job }: Props) {
             {/* Skills */}
             {job.required_skills && job.required_skills.length > 0 && (
                 <div className="mb-6">
-                    <h2 className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                    <h2 className="type-eyebrow">
                         Required Skills
                     </h2>
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -159,7 +159,7 @@ export default function JobShow({ job }: Props) {
             {/* Description */}
             {job.description && (
                 <div className="mb-8">
-                    <h2 className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                    <h2 className="type-eyebrow">
                         Description
                     </h2>
                     <div

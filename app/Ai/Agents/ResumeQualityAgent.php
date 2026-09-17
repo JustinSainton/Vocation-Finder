@@ -50,18 +50,80 @@ Return total score (0-100), per-dimension scores, list of specific issues found,
 INSTRUCTIONS;
     }
 
+    /**
+     * The four band scores are the only numbers the model is asked for.
+     *
+     * Totals and pass/fail are arithmetic, and a model asked for arithmetic
+     * will get it wrong: llama3.2:3b returned a total of 40 against bands
+     * summing to 45, and set the gate to true at the same time. Derived values
+     * belong in {@see static::normalize()}, not in the schema.
+     */
     public function schema(JsonSchema $schema): array
     {
+        $band = fn (string $description) => $schema
+            ->number()
+            ->min(0)
+            ->max(25)
+            ->description($description)
+            ->required();
+
+        $list = fn (string $description) => $schema
+            ->array()
+            ->items($schema->string())
+            ->description($description)
+            ->required();
+
         return [
-            'total_score' => $schema->number('Overall quality score 0-100'),
-            'specificity_score' => $schema->number('Specificity score 0-25'),
-            'authenticity_score' => $schema->number('Authenticity score 0-25'),
-            'ats_score' => $schema->number('ATS-friendliness score 0-25'),
-            'alignment_score' => $schema->number('Vocational alignment score 0-25'),
-            'issues' => $schema->array('Specific issues found', items: $schema->string()),
-            'suggestions' => $schema->array('Improvement suggestions', items: $schema->string()),
-            'passes_quality_gate' => $schema->boolean('True if total_score >= 70'),
+            'specificity_score' => $band('Specificity score 0-25'),
+            'authenticity_score' => $band('Authenticity score 0-25'),
+            'ats_score' => $band('ATS-friendliness score 0-25'),
+            'alignment_score' => $band('Vocational alignment score 0-25'),
+            'issues' => $list('Specific issues found. Empty array if none.'),
+            'suggestions' => $list('Improvement suggestions. Empty array if none.'),
         ];
+    }
+
+    /**
+     * The score at or above which a resume passes the quality gate.
+     */
+    public const QUALITY_GATE = 70;
+
+    /**
+     * The four scored bands, in report order.
+     */
+    public const BANDS = [
+        'specificity_score',
+        'authenticity_score',
+        'ats_score',
+        'alignment_score',
+    ];
+
+    /**
+     * Add the derived fields to a raw agent result.
+     *
+     * Each band is clamped to its documented 0-25 range before summing, so a
+     * provider that does not honour the schema bounds cannot push the total
+     * out of range. Callers should read `total_score` and
+     * `passes_quality_gate` from here rather than from the model.
+     *
+     * @param  array<string, mixed>  $result
+     * @return array<string, mixed>
+     */
+    public static function normalize(array $result): array
+    {
+        $total = 0.0;
+
+        foreach (static::BANDS as $band) {
+            $score = max(0.0, min(25.0, (float) ($result[$band] ?? 0)));
+
+            $result[$band] = $score;
+            $total += $score;
+        }
+
+        $result['total_score'] = $total;
+        $result['passes_quality_gate'] = $total >= static::QUALITY_GATE;
+
+        return $result;
     }
 
     public function buildPrompt(): string

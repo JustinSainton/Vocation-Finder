@@ -29,8 +29,8 @@ const STATUS_LABELS: Record<Assessment['status'], string> = {
 };
 
 const STATUS_COLORS: Record<Assessment['status'], string> = {
-    in_progress: 'border-[var(--color-accent)] text-[var(--color-text-secondary)]',
-    analyzing: 'border-[var(--color-accent)] text-[var(--color-text-secondary)]',
+    in_progress: 'border-[var(--color-muted)] text-[var(--color-text-secondary)]',
+    analyzing: 'border-[var(--color-muted)] text-[var(--color-text-secondary)]',
     completed: 'border-[var(--color-text)] text-[var(--color-text)]',
     failed: 'border-red-300 text-red-700',
 };
@@ -80,7 +80,7 @@ export default function Dashboard({ assessments, pathway }: Props) {
                                     <span className="font-sans text-sm text-[var(--color-text-secondary)]">
                                         {pathway.completed_courses} of {pathway.total_courses} courses completed
                                     </span>
-                                    <span className="font-sans text-xs text-[var(--color-accent)]">
+                                    <span className="font-sans text-xs text-[var(--color-muted)]">
                                         View path &rarr;
                                     </span>
                                 </div>
@@ -138,7 +138,7 @@ export default function Dashboard({ assessments, pathway }: Props) {
                                                 : 'Written'}{' '}
                                             assessment
                                         </p>
-                                        <p className="mt-1 font-sans text-xs text-[var(--color-accent)]">
+                                        <p className="mt-1 font-sans text-xs text-[var(--color-muted)]">
                                             {formatDate(assessment.created_at)}
                                         </p>
                                     </div>

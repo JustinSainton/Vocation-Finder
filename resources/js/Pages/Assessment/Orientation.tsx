@@ -26,7 +26,7 @@ export default function Orientation() {
                         process.
                     </p>
 
-                    <p className="mt-4 font-sans text-sm text-[var(--color-accent)]">
+                    <p className="mt-4 font-sans text-sm text-[var(--color-muted)]">
                         ~30–45 minutes
                     </p>
 

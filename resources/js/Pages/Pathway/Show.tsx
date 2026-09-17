@@ -117,7 +117,7 @@ export default function PathwayShow({ pathway, progress }: Props) {
     return (
         <AppLayout title="Your Learning Path">
             <div>
-                <p className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                <p className="type-eyebrow">
                     Your learning path
                 </p>
 
@@ -137,7 +137,7 @@ export default function PathwayShow({ pathway, progress }: Props) {
                         <span className="text-[var(--color-text-secondary)]">
                             {progress.completed} of {progress.total} courses completed
                         </span>
-                        <span className="text-[var(--color-accent)]">
+                        <span className="text-[var(--color-muted)]">
                             {progressPercent}%
                         </span>
                     </div>
@@ -162,7 +162,7 @@ export default function PathwayShow({ pathway, progress }: Props) {
                                 <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-[var(--color-text)] font-sans text-xs text-[var(--color-background)]">
                                     {phaseIndex + 1}
                                 </span>
-                                <p className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                                <p className="type-eyebrow">
                                     {PHASE_LABELS[phaseKey]}
                                 </p>
                             </div>
@@ -187,16 +187,16 @@ export default function PathwayShow({ pathway, progress }: Props) {
                                                 </p>
                                                 <div className="mt-1 flex items-center gap-3">
                                                     {course.category_name && (
-                                                        <span className="font-sans text-xs text-[var(--color-accent)]">
+                                                        <span className="font-sans text-xs text-[var(--color-muted)]">
                                                             {course.category_name}
                                                         </span>
                                                     )}
                                                     {course.estimated_duration && (
-                                                        <span className="font-sans text-xs text-[var(--color-accent)]">
+                                                        <span className="font-sans text-xs text-[var(--color-muted)]">
                                                             {course.estimated_duration}
                                                         </span>
                                                     )}
-                                                    <span className="font-sans text-xs text-[var(--color-accent)]">
+                                                    <span className="font-sans text-xs text-[var(--color-muted)]">
                                                         {DIFFICULTY_LABELS[course.difficulty_level] ?? course.difficulty_level}
                                                     </span>
                                                 </div>
@@ -223,7 +223,7 @@ export default function PathwayShow({ pathway, progress }: Props) {
 
                 <Link
                     href="/dashboard"
-                    className="font-sans text-sm text-[var(--color-accent)] hover:text-[var(--color-text)]"
+                    className="font-sans text-sm text-[var(--color-muted)] hover:text-[var(--color-text)]"
                 >
                     &larr; Dashboard
                 </Link>

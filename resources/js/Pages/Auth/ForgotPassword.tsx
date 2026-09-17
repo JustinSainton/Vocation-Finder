@@ -67,7 +67,7 @@ export default function ForgotPassword() {
                 <div className="mt-16">
                     <Link
                         href="/login"
-                        className="font-sans text-sm text-[var(--color-text-secondary)] underline underline-offset-4 transition-colors hover:text-[var(--color-text)]"
+                        className="link font-sans text-sm"
                     >
                         &larr; Back to sign in
                     </Link>

@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\Nudges\SilentChannel;
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -8,7 +10,7 @@ return [
     */
     'ai' => [
         'provider' => env('AI_PROVIDER', 'anthropic'),
-        'model' => env('AI_MODEL', 'claude-sonnet-4-20250514'),
+        'model' => env('AI_MODEL', 'claude-sonnet-4-6'),
         'model_lite' => env('AI_MODEL_LITE', 'claude-haiku-4-5-20251001'),
         'analysis_timeout' => env('AI_ANALYSIS_TIMEOUT', 120),
         'conversation_experiment' => [
@@ -24,6 +26,26 @@ return [
                 'model' => env('CONVERSATION_MODEL_TREATMENT', 'qwen/qwen3-4b-instruct-2507'),
             ],
         ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Engine Model Override
+    |--------------------------------------------------------------------------
+    |
+    | Unset, every agent runs on the provider and model it declares in its own
+    | attributes. Set, all of them run on this one instead — which is how the
+    | golden corpus is driven through a local model without editing the engine
+    | it is supposed to be testing. Both values must be given together.
+    |
+    */
+
+    'engine' => [
+        'provider' => env('VOCATION_ENGINE_PROVIDER'),
+        'model' => env('VOCATION_ENGINE_MODEL'),
+        'timeout' => env('VOCATION_ENGINE_TIMEOUT', 900),
+        'max_output_tokens' => env('VOCATION_ENGINE_MAX_OUTPUT_TOKENS', 8192),
+        'context_tokens' => env('VOCATION_ENGINE_CONTEXT_TOKENS', 32768),
     ],
 
     /*
@@ -83,9 +105,16 @@ return [
     |--------------------------------------------------------------------------
     | Beta Configuration
     |--------------------------------------------------------------------------
+    |
+    | When "questions_enabled" is true, the API serves the abbreviated 5-question
+    | beta set (Question::where('is_beta', true)). When false, it serves the full
+    | 20-question assessment (the is_beta=false set seeded by QuestionSeeder).
+    | Defaults to false so the complete assessment is the standard experience;
+    | set BETA_QUESTIONS_ENABLED=true to fall back to the short beta set.
+    |
     */
     'beta' => [
-        'questions_enabled' => env('BETA_QUESTIONS_ENABLED', true),
+        'questions_enabled' => env('BETA_QUESTIONS_ENABLED', false),
     ],
 
     /*
@@ -93,6 +122,31 @@ return [
     | Free Tier Limits
     |--------------------------------------------------------------------------
     */
+    /*
+    |--------------------------------------------------------------------------
+    | Nudges — bringing a student back
+    |--------------------------------------------------------------------------
+    |
+    | A stub on purpose. Roadmap 3.6 (SMS) was deferred; the likely first real
+    | driver is a push notification or an iOS Live Activity through the Expo
+    | app rather than a text message. The *rules* around contacting a student
+    | are already settled and live in App\Support\Nudges\NudgeDispatcher, so
+    | adding a carrier means implementing NudgeChannel and naming it here.
+    |
+    | The default is silence, not "whichever driver is registered". A stub that
+    | goes live because somebody set an environment variable is the dangerous
+    | kind, and an unknown channel name falls back to silence rather than
+    | failing open.
+    |
+    */
+    'nudges' => [
+        'channel' => env('NUDGE_CHANNEL', 'silent'),
+
+        'channels' => [
+            'silent' => SilentChannel::class,
+        ],
+    ],
+
     'free_tier' => [
         'analysis_model' => env('FREE_TIER_MODEL', 'claude-haiku-4-5-20251001'),
         'output_sections' => ['opening_synthesis', 'vocational_orientation'],

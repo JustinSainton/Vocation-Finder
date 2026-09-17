@@ -1,0 +1,34 @@
+{
+  "name": "portuguese-narrative-must-be-refused",
+  "description": "The refusal case in Portuguese. Written with its accents, so a lint that stopped folding before matching would let it ship rather than merely report a different span.",
+  "locale": "pt-BR",
+  "answers": [
+    "consertei a roçadeira do meu vizinho no verão passado porque ninguém mais ia fazer isso e levou o sábado inteiro. não me incomodei, gostei mais de descobrir o que estava errado do que de consertar",
+    "o que me dá raiva é quando tratam alguém como burro porque não sabe explicar direito. acontece com a minha mãe no médico e falam por cima dela",
+    "não sei. alguma coisa com as mãos talvez. todo mundo diz que eu deveria fazer faculdade mas ninguém da minha família fez",
+    "fiz uma semana num hospital pela escola. a parte em que eu fico pensando é quando ainda ninguém sabia o que a senhora tinha. foi a única semana que eu não quis ir embora mais cedo",
+    "dinheiro, sinceramente. lá em casa ninguém fala disso e eu não sei quanto custa nada disso",
+    "eu sou bom de notar quando alguma coisa está errada antes dos outros. meu treinador falou isso de mim também",
+    "eu só sentei com ela até ela parar de chorar, foi só isso. ela disse que ajudou mas eu não fiz nada de verdade"
+  ],
+  "signals": [],
+  "category_scores": [
+    {
+      "category": "Health & Medicine",
+      "score": 88,
+      "rationale": "n/a",
+      "evidence": []
+    }
+  ],
+  "narrative": "Suas respostas revelam um diagnóstico claro: você tem um transtorno de ansiedade que molda cada decisão sua. Deus te chamou para a medicina, e não há dúvida. Você tem 94% de compatibilidade com a área da saúde e com certeza vai prosperar ali. Isso é o que você é, e nada vai mudar isso.",
+  "expect": {
+    "red_team_clean": false,
+    "red_team_rules": [
+      "clinical",
+      "divine_presumption",
+      "false_certainty",
+      "mechanical_score",
+      "determinism"
+    ]
+  }
+}

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\VocationalCategory;
 use Illuminate\Database\Seeder;
+use RuntimeException;
 
 class VocationalCategorySeeder extends Seeder
 {
@@ -148,8 +149,39 @@ class VocationalCategorySeeder extends Seeder
             ],
         ];
 
+        $taxonomy = collect($this->taxonomy())->keyBy('slug');
+
         foreach ($categories as $category) {
-            VocationalCategory::create($category);
+            $governing = $taxonomy->get($category['slug']);
+
+            if ($governing === null) {
+                throw new RuntimeException(
+                    "No blueprint taxonomy found for category '{$category['slug']}'. ".
+                    'Every category must carry the governing content from Appendix 10.6.'
+                );
+            }
+
+            VocationalCategory::updateOrCreate(
+                ['slug' => $category['slug']],
+                array_merge($category, [
+                    'core_function' => $governing['core_function'],
+                    'summary_sentence' => $governing['summary_sentence'],
+                    'signal_fingerprint' => $governing['signal_fingerprint'],
+                    'distortions' => $governing['distortions'],
+                    'adjacent_categories' => $governing['adjacent_categories'],
+                    'taxonomy_profile' => $governing['taxonomy_profile'],
+                ]),
+            );
         }
+    }
+
+    /**
+     * The governing taxonomy transcribed from blueprint Appendix 10.6.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    protected function taxonomy(): array
+    {
+        return require database_path('seeders/data/vocational_taxonomy.php');
     }
 }

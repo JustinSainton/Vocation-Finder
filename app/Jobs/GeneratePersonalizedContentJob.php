@@ -4,7 +4,6 @@ namespace App\Jobs;
 
 use App\Ai\Agents\CoursePersonalization;
 use App\Models\Assessment;
-use App\Models\CourseModule;
 use App\Models\PersonalizedContent;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
@@ -57,7 +56,7 @@ class GeneratePersonalizedContentJob implements ShouldQueue
 
         $response = $agent->prompt(
             $agent->buildPrompt(),
-            model: config('vocation.ai.model', 'claude-sonnet-4-20250514'),
+            model: config('vocation.ai.model', 'claude-sonnet-4-6'),
         );
 
         $personalizedBlocks = $this->parseResponse($response->text);
@@ -70,7 +69,7 @@ class GeneratePersonalizedContentJob implements ShouldQueue
                 'primary_domain' => $profile->primary_domain,
                 'mode_of_work' => $profile->mode_of_work,
                 'assessment_id' => $assessment->id,
-                'generated_model' => config('vocation.ai.model', 'claude-sonnet-4-20250514'),
+                'generated_model' => config('vocation.ai.model', 'claude-sonnet-4-6'),
             ],
             'generated_at' => now(),
         ]);

@@ -26,7 +26,7 @@ interface Props {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-    generating: 'text-[var(--color-accent)]',
+    generating: 'text-[var(--color-muted)]',
     ready: 'text-[var(--color-text)]',
     failed: 'text-red-600',
 };
@@ -53,7 +53,7 @@ export default function ResumesIndex({ resumes, coverLetters }: Props) {
 
             {/* Resumes */}
             <div className="mb-10">
-                <h2 className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                <h2 className="type-eyebrow">
                     Resumes
                 </h2>
 
@@ -83,7 +83,7 @@ export default function ResumesIndex({ resumes, coverLetters }: Props) {
                                                 Quality: {Math.round(resume.quality_score)}/100
                                             </span>
                                         )}
-                                        <span className="text-[var(--color-accent)]">
+                                        <span className="text-[var(--color-muted)]">
                                             {formatDate(resume.created_at)}
                                         </span>
                                     </div>
@@ -104,7 +104,7 @@ export default function ResumesIndex({ resumes, coverLetters }: Props) {
 
             {/* Cover Letters */}
             <div>
-                <h2 className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                <h2 className="type-eyebrow">
                     Cover Letters
                 </h2>
 

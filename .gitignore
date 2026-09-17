@@ -30,3 +30,7 @@ mobile/.expo/
 mobile/dist/
 mobile/web-build/
 mobile/expo-env.d.ts
+
+# Agent scratch space
+/.claude/worktrees
+/tmp

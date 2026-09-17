@@ -140,7 +140,7 @@ export default function Register() {
                         Already have an account?{' '}
                         <Link
                             href="/login"
-                            className="text-[var(--color-text)] underline underline-offset-4"
+                            className="link"
                         >
                             Sign in
                         </Link>

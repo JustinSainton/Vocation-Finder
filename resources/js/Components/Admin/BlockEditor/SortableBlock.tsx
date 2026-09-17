@@ -48,7 +48,7 @@ export function SortableBlock({ id, block, index, onChange, onRemove, onDuplicat
                     {/* Drag handle */}
                     <button
                         type="button"
-                        className="cursor-grab touch-none text-[var(--color-accent)] hover:text-[var(--color-text)]"
+                        className="cursor-grab touch-none text-[var(--color-muted)] hover:text-[var(--color-text)]"
                         {...attributes}
                         {...listeners}
                     >
@@ -62,7 +62,7 @@ export function SortableBlock({ id, block, index, onChange, onRemove, onDuplicat
                         </svg>
                     </button>
 
-                    <span className="font-sans text-xs uppercase tracking-wider text-[var(--color-accent)]">
+                    <span className="font-sans text-xs uppercase tracking-wider text-[var(--color-muted)]">
                         {BLOCK_TYPE_LABELS[block.type]}
                     </span>
 
@@ -74,7 +74,7 @@ export function SortableBlock({ id, block, index, onChange, onRemove, onDuplicat
                                 className={`px-2 py-1 font-sans text-xs transition-opacity ${
                                     personalizationPrompt
                                         ? 'text-[var(--color-text)]'
-                                        : 'text-[var(--color-accent)] opacity-0 group-hover:opacity-100'
+                                        : 'text-[var(--color-muted)] opacity-0 group-hover:opacity-100'
                                 }`}
                                 title="Personalization prompt"
                             >
@@ -84,7 +84,7 @@ export function SortableBlock({ id, block, index, onChange, onRemove, onDuplicat
                         <button
                             type="button"
                             onClick={onDuplicate}
-                            className="px-2 py-1 font-sans text-xs text-[var(--color-accent)] opacity-0 transition-opacity hover:text-[var(--color-text)] group-hover:opacity-100"
+                            className="px-2 py-1 font-sans text-xs text-[var(--color-muted)] opacity-0 transition-opacity hover:text-[var(--color-text)] group-hover:opacity-100"
                             title="Duplicate block"
                         >
                             Duplicate
@@ -92,7 +92,7 @@ export function SortableBlock({ id, block, index, onChange, onRemove, onDuplicat
                         <button
                             type="button"
                             onClick={onRemove}
-                            className="px-2 py-1 font-sans text-xs text-[var(--color-accent)] opacity-0 transition-opacity hover:text-red-600 group-hover:opacity-100"
+                            className="px-2 py-1 font-sans text-xs text-[var(--color-muted)] opacity-0 transition-opacity hover:text-red-600 group-hover:opacity-100"
                             title="Remove block"
                         >
                             Remove
@@ -108,7 +108,7 @@ export function SortableBlock({ id, block, index, onChange, onRemove, onDuplicat
                 {/* Personalization prompt */}
                 {showPersonalization && promptExpanded && (
                     <div className="border-t border-dashed border-[var(--color-divider)] bg-[var(--color-stone-100)] px-4 py-3">
-                        <label className="mb-1 block font-sans text-xs text-[var(--color-accent)]">
+                        <label className="mb-1 block font-sans text-xs text-[var(--color-muted)]">
                             Personalization instruction
                         </label>
                         <textarea

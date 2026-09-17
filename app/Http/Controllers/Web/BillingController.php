@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Support\AccessPolicy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -43,7 +45,7 @@ class BillingController extends Controller
             'credits' => $user->assessment_credits ?? 0,
             'usage' => [
                 'assessments_this_period' => $user->assessments()->where('created_at', '>=', now()->startOfMonth())->count(),
-                'assessments_limit' => $subscription ? (config("billing.plans")[$this->findPlanKey($subscription->stripe_price)]['credits_per_period'] ?? null) : null,
+                'assessments_limit' => $subscription ? (config('billing.plans')[$this->findPlanKey($subscription->stripe_price)]['credits_per_period'] ?? null) : null,
             ],
             'plan_name' => $planName,
         ]);
@@ -64,6 +66,51 @@ class BillingController extends Controller
                 ->checkout([
                     'success_url' => route('billing.success'),
                     'cancel_url' => route('pricing'),
+                ])
+                ->url
+        );
+    }
+
+    /**
+     * The student's subscription, paid for by their parent.
+     *
+     * The subscription belongs to the *student's* record because the
+     * entitlement is theirs — the coach, the brain and everything in it stay
+     * with them. Only the billing identity is the parent's, via
+     * {@see User::stripeEmail()}, so receipts and card management
+     * reach the person who actually paid.
+     *
+     * Consent is required before this runs. Taking a parent's money before
+     * they have said yes would make the payment the permission, and they are
+     * not the same thing.
+     */
+    public function checkoutStudent(Request $request): RedirectResponse
+    {
+        $plan = $request->validate(['plan' => 'required|string'])['plan'];
+        $priceId = config("billing.plans.{$plan}.price_id");
+        $user = $request->user();
+
+        if (! $priceId) {
+            return back()->with('error', 'Invalid plan selected.');
+        }
+
+        if (! AccessPolicy::tier($user)->hasCoach()) {
+            return back()->with('error', AccessPolicy::coachBlockedReason($user));
+        }
+
+        if (AccessPolicy::requiresParentConsent($user) && ! AccessPolicy::hasParentConsent($user)) {
+            return back()->with('error', 'We need a parent or guardian to say yes before anyone pays for anything.');
+        }
+
+        return redirect(
+            $user->newSubscription('default', $priceId)
+                ->checkout([
+                    'success_url' => route('first-run'),
+                    'cancel_url' => route('first-run'),
+                    'metadata' => [
+                        'student_id' => $user->id,
+                        'paid_by' => AccessPolicy::requiresParentCheckout($user) ? 'parent' : 'self',
+                    ],
                 ])
                 ->url
         );

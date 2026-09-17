@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ConfidenceLevel;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,10 +19,17 @@ class VocationalProfile extends Model
         'specific_considerations',
         'next_steps',
         'ai_analysis_raw',
+        'model_version',
+        'prompt_version',
+        'taxonomy_version',
         'primary_domain',
         'mode_of_work',
         'secondary_orientation',
         'category_scores',
+        'confidence_level',
+        'confidence_rationale',
+        'missing_evidence',
+        'evidence_gap',
         'ministry_integration',
     ];
 
@@ -32,6 +40,9 @@ class VocationalProfile extends Model
             'next_steps' => 'array',
             'ai_analysis_raw' => 'array',
             'category_scores' => 'array',
+            'missing_evidence' => 'array',
+            'evidence_gap' => 'array',
+            'confidence_level' => ConfidenceLevel::class,
         ];
     }
 
@@ -77,5 +88,28 @@ class VocationalProfile extends Model
             ->filter()
             ->values()
             ->toArray();
+    }
+
+    /**
+     * Whether the result must run in the blueprint's low-confidence mode:
+     * no forced conclusion, and a testable next step instead.
+     */
+    public function isLowConfidence(): bool
+    {
+        return ($this->confidence_level ?? ConfidenceLevel::InsufficientEvidence)->isLowConfidence();
+    }
+
+    /**
+     * The derived confidence for a single category, by name.
+     */
+    public function confidenceFor(string $category): ?ConfidenceLevel
+    {
+        foreach ($this->category_scores ?? [] as $row) {
+            if (($row['category'] ?? null) === $category && isset($row['confidence'])) {
+                return ConfidenceLevel::tryFrom($row['confidence']);
+            }
+        }
+
+        return null;
     }
 }

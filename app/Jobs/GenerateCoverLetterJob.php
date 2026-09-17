@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Ai\Agents\CoverLetterWriterAgent;
+use App\Ai\Agents\ResumeQualityAgent;
 use App\Ai\Tools\CompanyResearchTool;
 use App\Models\CoverLetter;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -99,12 +100,14 @@ class GenerateCoverLetterJob implements ShouldQueue
         // Quality scoring — same pipeline as resumes
         $qualityScore = null;
         try {
-            $qualityAgent = new \App\Ai\Agents\ResumeQualityAgent(
+            $qualityAgent = new ResumeQualityAgent(
                 resumeText: $content,
                 jobTitle: $jobData['title'] ?? 'General',
             );
-            $qualityResult = $qualityAgent->prompt($qualityAgent->buildPrompt())->json();
-            $qualityScore = $qualityResult['total_score'] ?? null;
+            $qualityResult = ResumeQualityAgent::normalize(
+                $qualityAgent->prompt($qualityAgent->buildPrompt())->json()
+            );
+            $qualityScore = $qualityResult['total_score'];
         } catch (\Throwable $e) {
             Log::info('Cover letter quality scoring skipped', ['error' => $e->getMessage()]);
         }

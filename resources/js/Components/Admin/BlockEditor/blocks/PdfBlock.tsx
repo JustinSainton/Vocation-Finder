@@ -53,7 +53,7 @@ export function PdfBlockEditor({ block, onChange }: Props) {
             {hasPdf ? (
                 <div className="flex items-center gap-3 border border-[var(--color-divider)] bg-[var(--color-stone-100)] px-4 py-3">
                     {/* PDF icon */}
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="shrink-0 text-[var(--color-accent)]">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="shrink-0 text-[var(--color-muted)]">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                         <polyline points="14 2 14 8 20 8" />
                         <line x1="16" y1="13" x2="8" y2="13" />
@@ -75,7 +75,7 @@ export function PdfBlockEditor({ block, onChange }: Props) {
                             onChange({ ...block, media_id: null, url: '', original_filename: '' });
                             setFileSize(null);
                         }}
-                        className="font-sans text-xs text-[var(--color-accent)] hover:text-red-600"
+                        className="font-sans text-xs text-[var(--color-muted)] hover:text-red-600"
                     >
                         Remove
                     </button>
@@ -111,7 +111,7 @@ export function PdfBlockEditor({ block, onChange }: Props) {
                             <button
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
-                                className="font-sans text-sm text-[var(--color-accent)] hover:text-[var(--color-text)]"
+                                className="font-sans text-sm text-[var(--color-muted)] hover:text-[var(--color-text)]"
                             >
                                 Choose file
                             </button>

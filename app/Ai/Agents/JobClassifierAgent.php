@@ -2,6 +2,7 @@
 
 namespace App\Ai\Agents;
 
+use App\Support\TaxonomyPrompt;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Attributes\Model;
 use Laravel\Ai\Attributes\Provider;
@@ -25,7 +26,9 @@ class JobClassifierAgent implements Agent, HasStructuredOutput
 
     public function instructions(): Stringable|string
     {
-        return <<<'INSTRUCTIONS'
+        $categories = "## Vocational Categories\n".TaxonomyPrompt::index();
+
+        return <<<INSTRUCTIONS
 You are a job classification specialist. Given a job title and description, classify the job into:
 
 1. An O*NET SOC major group code (the first part, e.g., "29-0000" for Healthcare)
@@ -56,24 +59,7 @@ You are a job classification specialist. Given a job title and description, clas
 - 53-0000: Transportation & Material Moving
 - 55-0000: Military Specific
 
-## Vocational Categories
-- healing-care: Healing & Care (healthcare, counseling, therapy, caregiving)
-- teaching-formation: Teaching & Formation (education, training, mentorship)
-- leadership-management: Leadership & Management (executive, administration, oversight)
-- law-policy: Law & Policy (legal, regulatory, compliance, governance)
-- protecting-defending: Protecting & Defending (military, law enforcement, security, emergency)
-- creating-building: Creating & Building (construction, engineering, manufacturing, crafts)
-- maintaining-repairing: Maintaining & Repairing (maintenance, repair, technical service)
-- arts-beauty: Arts & Beauty (visual arts, design, performing arts, aesthetics)
-- discovering-innovating: Discovering & Innovating (research, science, exploration, R&D)
-- nourishing-hospitality: Nourishing & Hospitality (food service, hospitality, catering)
-- commerce-enterprise: Commerce & Enterprise (sales, business development, entrepreneurship)
-- finance-economics: Finance & Economics (accounting, banking, financial planning)
-- communication-media: Communication & Media (journalism, PR, marketing, broadcasting)
-- advocating-supporting: Advocating & Supporting (social work, community service, nonprofits)
-- knowledge-information: Knowledge & Information (library science, data management, archives)
-- administration-systems: Administration & Systems (IT, systems admin, office management)
-- pastoral-missionary: Pastoral & Missionary Work (ministry, chaplaincy, missions, church leadership)
+{$categories}
 
 ## Rules
 - Assign 1-3 vocational categories per job (most jobs fit 1-2 primary categories)
@@ -83,14 +69,34 @@ You are a job classification specialist. Given a job title and description, clas
 INSTRUCTIONS;
     }
 
+    /**
+     * Relevance is bounded 0.0-1.0 in the schema itself so a provider that
+     * constrains decoding against it cannot emit an out-of-range score.
+     */
     public function schema(JsonSchema $schema): array
     {
         return [
-            'soc_code' => $schema->string('The O*NET SOC major group code (e.g., "29-0000")'),
-            'categories' => $schema->array('Vocational category classifications', items: [
-                'slug' => $schema->string('Category slug from the list above'),
-                'relevance' => $schema->number('Relevance score from 0.0 to 1.0'),
-            ]),
+            'soc_code' => $schema
+                ->string()
+                ->description('The O*NET SOC major group code (e.g., "29-0000")')
+                ->required(),
+            'categories' => $schema
+                ->array()
+                ->items($schema->object([
+                    'slug' => $schema
+                        ->string()
+                        ->enum(TaxonomyPrompt::slugs())
+                        ->description('Category slug from the list above')
+                        ->required(),
+                    'relevance' => $schema
+                        ->number()
+                        ->min(0)
+                        ->max(1)
+                        ->description('Relevance score from 0.0 to 1.0')
+                        ->required(),
+                ]))
+                ->description('Vocational category classifications. Empty array if none apply.')
+                ->required(),
         ];
     }
 

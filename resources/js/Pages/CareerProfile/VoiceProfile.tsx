@@ -97,7 +97,7 @@ export default function VoiceProfile({ voiceProfile }: Props) {
                 <div className="space-y-8">
                     {/* Profile Display */}
                     <div>
-                        <h2 className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                        <h2 className="type-eyebrow">
                             Your Writing Style
                         </h2>
                         {voiceProfile.style_analysis?.style_summary && (
@@ -109,7 +109,7 @@ export default function VoiceProfile({ voiceProfile }: Props) {
 
                     <div className="grid grid-cols-2 gap-6">
                         <div>
-                            <p className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                            <p className="type-eyebrow">
                                 Tone
                             </p>
                             <p className="mt-1 text-sm capitalize text-[var(--color-text)]">
@@ -117,7 +117,7 @@ export default function VoiceProfile({ voiceProfile }: Props) {
                             </p>
                         </div>
                         <div>
-                            <p className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                            <p className="type-eyebrow">
                                 Avg Sentence Length
                             </p>
                             <p className="mt-1 text-sm text-[var(--color-text)]">
@@ -127,7 +127,7 @@ export default function VoiceProfile({ voiceProfile }: Props) {
                             </p>
                         </div>
                         <div>
-                            <p className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                            <p className="type-eyebrow">
                                 Vocabulary Level
                             </p>
                             <p className="mt-1 text-sm text-[var(--color-text)]">
@@ -135,7 +135,7 @@ export default function VoiceProfile({ voiceProfile }: Props) {
                             </p>
                         </div>
                         <div>
-                            <p className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                            <p className="type-eyebrow">
                                 Samples Analyzed
                             </p>
                             <p className="mt-1 text-sm text-[var(--color-text)]">
@@ -146,7 +146,7 @@ export default function VoiceProfile({ voiceProfile }: Props) {
 
                     {voiceProfile.preferred_verbs && voiceProfile.preferred_verbs.length > 0 && (
                         <div>
-                            <p className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                            <p className="type-eyebrow">
                                 Your Action Verbs
                             </p>
                             <div className="mt-2 flex flex-wrap gap-2">
@@ -164,7 +164,7 @@ export default function VoiceProfile({ voiceProfile }: Props) {
 
                     {voiceProfile.banned_phrases && voiceProfile.banned_phrases.length > 0 && (
                         <div>
-                            <p className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                            <p className="type-eyebrow">
                                 Phrases We'll Avoid
                             </p>
                             <div className="mt-2 flex flex-wrap gap-2">
@@ -190,7 +190,7 @@ export default function VoiceProfile({ voiceProfile }: Props) {
             ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
-                        <h2 className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                        <h2 className="type-eyebrow">
                             Writing Samples
                         </h2>
                         <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
@@ -221,7 +221,7 @@ export default function VoiceProfile({ voiceProfile }: Props) {
                                 onChange={(e) => updateSample(i, e.target.value)}
                                 rows={4}
                                 placeholder="Paste a writing sample here..."
-                                className="mt-1 w-full border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-accent)]"
+                                className="mt-1 w-full border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-muted)]"
                             />
                         </div>
                     ))}

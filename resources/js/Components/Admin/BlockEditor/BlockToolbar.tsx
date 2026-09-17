@@ -27,7 +27,7 @@ export function BlockToolbar({ onAdd }: Props) {
             <button
                 type="button"
                 onClick={() => setOpen(!open)}
-                className="font-sans text-sm text-[var(--color-accent)] transition-colors hover:text-[var(--color-text)]"
+                className="font-sans text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-text)]"
             >
                 + Add block
             </button>

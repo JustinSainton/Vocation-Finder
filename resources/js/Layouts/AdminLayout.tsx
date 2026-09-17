@@ -33,7 +33,7 @@ export default function AdminLayout({ title, children }: Props) {
                         >
                             Vocation Finder
                         </Link>
-                        <p className="mb-4 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                        <p className="mb-4 type-eyebrow">
                             Admin
                         </p>
                         <nav className="space-y-1">

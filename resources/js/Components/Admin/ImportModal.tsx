@@ -171,7 +171,7 @@ export function ImportModal({ open, onClose, onConfirm, courseId }: Props) {
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-[var(--color-divider)] px-6 py-4">
                     <h2 className="font-serif text-lg text-[var(--color-text)]">Import Content</h2>
-                    <button type="button" onClick={onClose} className="font-sans text-sm text-[var(--color-accent)] hover:text-[var(--color-text)]">
+                    <button type="button" onClick={onClose} className="font-sans text-sm text-[var(--color-muted)] hover:text-[var(--color-text)]">
                         Close
                     </button>
                 </div>
@@ -192,7 +192,7 @@ export function ImportModal({ open, onClose, onConfirm, courseId }: Props) {
                                         className={`flex cursor-pointer items-start gap-3 border p-4 transition-colors ${
                                             sourceType === src.value
                                                 ? 'border-[var(--color-text)] bg-[var(--color-stone-100)]'
-                                                : 'border-[var(--color-divider)] hover:border-[var(--color-accent)]'
+                                                : 'border-[var(--color-divider)] hover:border-[var(--color-muted)]'
                                         }`}
                                     >
                                         <input
@@ -272,7 +272,7 @@ export function ImportModal({ open, onClose, onConfirm, courseId }: Props) {
                             <p className="font-sans text-sm text-[var(--color-text-secondary)]">
                                 AI is analyzing your content and building a course structure...
                             </p>
-                            <p className="font-sans text-xs text-[var(--color-accent)]">
+                            <p className="font-sans text-xs text-[var(--color-muted)]">
                                 This usually takes 15-30 seconds
                             </p>
                         </div>
@@ -285,7 +285,7 @@ export function ImportModal({ open, onClose, onConfirm, courseId }: Props) {
                             <button
                                 type="button"
                                 onClick={resetState}
-                                className="font-sans text-sm text-[var(--color-accent)] hover:text-[var(--color-text)]"
+                                className="font-sans text-sm text-[var(--color-muted)] hover:text-[var(--color-text)]"
                             >
                                 Try again
                             </button>
@@ -296,7 +296,7 @@ export function ImportModal({ open, onClose, onConfirm, courseId }: Props) {
                     {step === 'review' && structure && (
                         <div className="space-y-4">
                             <div className="border-b border-[var(--color-divider)] pb-4">
-                                <p className="mb-1 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                                <p className="mb-1 type-eyebrow">
                                     Proposed Course Structure
                                 </p>
                                 <p className="font-serif text-lg text-[var(--color-text)]">
@@ -305,7 +305,7 @@ export function ImportModal({ open, onClose, onConfirm, courseId }: Props) {
                                 <p className="font-sans text-sm text-[var(--color-text-secondary)]">
                                     {structure.suggested_description}
                                 </p>
-                                <p className="mt-2 font-sans text-xs text-[var(--color-accent)]">
+                                <p className="mt-2 font-sans text-xs text-[var(--color-muted)]">
                                     {structure.modules.length} module{structure.modules.length !== 1 ? 's' : ''} generated.
                                     Review and edit below, then confirm to add to your course.
                                 </p>
@@ -320,7 +320,7 @@ export function ImportModal({ open, onClose, onConfirm, courseId }: Props) {
                                         >
                                             <svg
                                                 width="12" height="12" viewBox="0 0 12 12" fill="currentColor"
-                                                className={`shrink-0 text-[var(--color-accent)] transition-transform ${expandedModule === i ? 'rotate-90' : ''}`}
+                                                className={`shrink-0 text-[var(--color-muted)] transition-transform ${expandedModule === i ? 'rotate-90' : ''}`}
                                             >
                                                 <path d="M4 2l4 4-4 4" />
                                             </svg>
@@ -337,7 +337,7 @@ export function ImportModal({ open, onClose, onConfirm, courseId }: Props) {
                                             <button
                                                 type="button"
                                                 onClick={(e) => { e.stopPropagation(); removeModule(i); }}
-                                                className="font-sans text-xs text-[var(--color-accent)] hover:text-red-600"
+                                                className="font-sans text-xs text-[var(--color-muted)] hover:text-red-600"
                                             >
                                                 Remove
                                             </button>

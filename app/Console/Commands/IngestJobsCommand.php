@@ -9,6 +9,7 @@ use App\Services\Jobs\Adapters\JSearchAdapter;
 use App\Services\Jobs\Adapters\TheMuseAdapter;
 use App\Services\Jobs\Contracts\JobSourceAdapter;
 use App\Services\Jobs\JobDeduplicationService;
+use App\Services\Jobs\JobNormalizerService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -21,7 +22,7 @@ class IngestJobsCommand extends Command
 
     protected $description = 'Ingest job listings from external APIs';
 
-    public function handle(JobDeduplicationService $dedup): int
+    public function handle(JobDeduplicationService $dedup, JobNormalizerService $normalizer): int
     {
         $source = $this->option('source');
         $pages = (int) $this->option('pages');

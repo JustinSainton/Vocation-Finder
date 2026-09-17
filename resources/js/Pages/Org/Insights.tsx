@@ -134,7 +134,7 @@ export default function OrgInsights({
             )}
 
             <div className="mt-12 border-t border-[var(--color-divider)] pt-6">
-                <p className="text-center text-sm italic text-[var(--color-accent)]">
+                <p className="text-center text-sm italic text-[var(--color-muted)]">
                     All data is anonymized. Individual member identities are not associated
                     with specific results in this view.
                 </p>
@@ -146,7 +146,7 @@ export default function OrgInsights({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
     return (
         <div>
-            <p className="mb-4 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+            <p className="mb-4 type-eyebrow">
                 {title}
             </p>
             {children}

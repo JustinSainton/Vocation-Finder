@@ -43,7 +43,7 @@ export function CheckpointBlockEditor({ block, onChange }: Props) {
                 <div className="space-y-2">
                     {block.options.map((option, i) => (
                         <div key={i} className="flex items-center gap-2">
-                            <span className="flex h-6 w-6 shrink-0 items-center justify-center font-sans text-xs text-[var(--color-accent)]">
+                            <span className="flex h-6 w-6 shrink-0 items-center justify-center font-sans text-xs text-[var(--color-muted)]">
                                 {String.fromCharCode(65 + i)}
                             </span>
                             <input
@@ -57,7 +57,7 @@ export function CheckpointBlockEditor({ block, onChange }: Props) {
                                 <button
                                     type="button"
                                     onClick={() => removeOption(i)}
-                                    className="shrink-0 px-2 py-1 font-sans text-xs text-[var(--color-accent)] hover:text-red-600"
+                                    className="shrink-0 px-2 py-1 font-sans text-xs text-[var(--color-muted)] hover:text-red-600"
                                 >
                                     Remove
                                 </button>
@@ -68,7 +68,7 @@ export function CheckpointBlockEditor({ block, onChange }: Props) {
                 <button
                     type="button"
                     onClick={addOption}
-                    className="mt-2 font-sans text-xs text-[var(--color-accent)] hover:text-[var(--color-text)]"
+                    className="mt-2 font-sans text-xs text-[var(--color-muted)] hover:text-[var(--color-text)]"
                 >
                     + Add option
                 </button>

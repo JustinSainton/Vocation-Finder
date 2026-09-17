@@ -452,14 +452,14 @@ export default function AdminCourseForm({ categories, course, allCourses }: Prop
                 {/* Modules section */}
                 <div className="border-t border-[var(--color-divider)] pt-6">
                     <div className="mb-4 flex items-center justify-between">
-                        <p className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                        <p className="type-eyebrow">
                             Modules
                         </p>
                         <div className="flex items-center gap-3">
                             <button
                                 type="button"
                                 onClick={() => setImportModalOpen(true)}
-                                className="font-sans text-sm text-[var(--color-accent)] hover:text-[var(--color-text)]"
+                                className="font-sans text-sm text-[var(--color-muted)] hover:text-[var(--color-text)]"
                             >
                                 Import content
                             </button>
@@ -467,7 +467,7 @@ export default function AdminCourseForm({ categories, course, allCourses }: Prop
                             <button
                                 type="button"
                                 onClick={addModule}
-                                className="font-sans text-sm text-[var(--color-accent)] hover:text-[var(--color-text)]"
+                                className="font-sans text-sm text-[var(--color-muted)] hover:text-[var(--color-text)]"
                             >
                                 + Add module
                             </button>
@@ -598,7 +598,7 @@ function SortableModule({ module, index, expanded, onToggle, onUpdate, onRemove,
                     {/* Drag handle */}
                     <button
                         type="button"
-                        className="cursor-grab touch-none text-[var(--color-accent)] hover:text-[var(--color-text)]"
+                        className="cursor-grab touch-none text-[var(--color-muted)] hover:text-[var(--color-text)]"
                         {...attributes}
                         {...listeners}
                     >
@@ -623,7 +623,7 @@ function SortableModule({ module, index, expanded, onToggle, onUpdate, onRemove,
                             height="12"
                             viewBox="0 0 12 12"
                             fill="currentColor"
-                            className={`shrink-0 text-[var(--color-accent)] transition-transform ${expanded ? 'rotate-90' : ''}`}
+                            className={`shrink-0 text-[var(--color-muted)] transition-transform ${expanded ? 'rotate-90' : ''}`}
                         >
                             <path d="M4 2l4 4-4 4" />
                         </svg>
@@ -640,7 +640,7 @@ function SortableModule({ module, index, expanded, onToggle, onUpdate, onRemove,
                     <button
                         type="button"
                         onClick={onRemove}
-                        className="font-sans text-xs text-[var(--color-accent)] hover:text-red-600"
+                        className="font-sans text-xs text-[var(--color-muted)] hover:text-red-600"
                     >
                         Remove
                     </button>
@@ -687,7 +687,7 @@ function SortableModule({ module, index, expanded, onToggle, onUpdate, onRemove,
 function FieldGroup({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <div>
-            <label className="mb-1 block font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+            <label className="mb-1 block type-eyebrow">
                 {label}
             </label>
             {children}

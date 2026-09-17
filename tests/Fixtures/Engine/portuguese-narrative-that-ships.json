@@ -1,0 +1,49 @@
+{
+  "name": "portuguese-narrative-that-ships",
+  "description": "A Portuguese narrative that is allowed to ship. The refusal fixtures prove the lint catches the claims; this one proves it does not simply refuse a language it cannot read. Without it, deleting the Portuguese rules and refusing all Portuguese would both look like success.",
+  "locale": "pt-BR",
+  "answers": [
+    "consertei a roçadeira do meu vizinho no verão passado porque ninguém mais ia fazer isso e levou o sábado inteiro. não me incomodei, gostei mais de descobrir o que estava errado do que de consertar",
+    "o que me dá raiva é quando tratam alguém como burro porque não sabe explicar direito. acontece com a minha mãe no médico e falam por cima dela",
+    "não sei. alguma coisa com as mãos talvez. todo mundo diz que eu deveria fazer faculdade mas ninguém da minha família fez",
+    "fiz uma semana num hospital pela escola. a parte em que eu fico pensando é quando ainda ninguém sabia o que a senhora tinha. foi a única semana que eu não quis ir embora mais cedo",
+    "dinheiro, sinceramente. lá em casa ninguém fala disso e eu não sei quanto custa nada disso",
+    "eu sou bom de notar quando alguma coisa está errada antes dos outros. meu treinador falou isso de mim também",
+    "eu só sentei com ela até ela parar de chorar, foi só isso. ela disse que ajudou mas eu não fiz nada de verdade"
+  ],
+  "signals": [
+    {
+      "answer_index": 0,
+      "type": "energy_source",
+      "track": "demonstrated",
+      "content": "Energised by working out what is wrong rather than by the repair itself",
+      "verbatim": "gostei mais de descobrir o que estava errado do que de consertar"
+    },
+    {
+      "answer_index": 1,
+      "type": "burden",
+      "track": "demonstrated",
+      "content": "Carries the indignity of people being talked over when they cannot explain themselves",
+      "verbatim": "tratam alguém como burro porque não sabe explicar direito"
+    },
+    {
+      "answer_index": 3,
+      "type": "energy_source",
+      "track": "demonstrated",
+      "content": "Stayed with the part of the week where the answer was not yet known",
+      "verbatim": "quando ainda ninguém sabia o que a senhora tinha"
+    }
+  ],
+  "category_scores": [
+    {
+      "category": "Health & Medicine",
+      "score": 71,
+      "rationale": "n/a",
+      "evidence": []
+    }
+  ],
+  "narrative": "O que você escreveu sobre a semana no hospital aparece de novo quando fala da roçadeira: nas duas vezes, a parte que te segurou foi não saber ainda o que estava errado. Você descreve o que fez, não o que gostaria de ter feito. Isso é uma pista, não uma resposta, e vale a pena testar antes de decidir qualquer coisa. Converse com alguém que faz esse trabalho e pergunte como é a semana mais difícil dela.",
+  "expect": {
+    "red_team_clean": true
+  }
+}

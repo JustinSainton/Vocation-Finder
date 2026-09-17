@@ -59,7 +59,7 @@ export default function OrgDashboard({ organization, stats, recentActivity }: Pr
             </div>
 
             {/* Recent activity */}
-            <p className="mb-4 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+            <p className="mb-4 type-eyebrow">
                 Recent Activity
             </p>
 
@@ -89,7 +89,7 @@ export default function OrgDashboard({ organization, stats, recentActivity }: Pr
                                         {item.user_name}
                                     </p>
                                     {item.user_email && (
-                                        <p className="text-xs text-[var(--color-accent)]">
+                                        <p className="text-xs text-[var(--color-muted)]">
                                             {item.user_email}
                                         </p>
                                     )}
@@ -118,7 +118,7 @@ export default function OrgDashboard({ organization, stats, recentActivity }: Pr
 function StatCard({ label, value }: { label: string; value: string }) {
     return (
         <div className="border border-[var(--color-divider)] bg-[var(--color-surface)] p-5">
-            <p className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+            <p className="type-eyebrow">
                 {label}
             </p>
             <p className="mt-2 font-serif text-2xl text-[var(--color-text)]">{value}</p>
@@ -128,7 +128,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
 
 function Th({ children }: { children: React.ReactNode }) {
     return (
-        <th className="pb-3 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+        <th className="pb-3 type-eyebrow">
             {children}
         </th>
     );
@@ -139,7 +139,7 @@ function StatusBadge({ status }: { status: string }) {
         status === 'completed'
             ? 'text-[var(--color-stone-700)]'
             : status === 'analyzing'
-              ? 'text-[var(--color-accent)]'
+              ? 'text-[var(--color-muted)]'
               : 'text-[var(--color-stone-400)]';
 
     return (

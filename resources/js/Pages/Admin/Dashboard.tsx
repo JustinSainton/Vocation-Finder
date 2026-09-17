@@ -104,7 +104,7 @@ function KpiCard({ label, value, subtitle }: { label: string; value: string | nu
             </p>
             <p className="mt-2 font-serif text-2xl text-[var(--color-text)]">{value}</p>
             {subtitle && (
-                <p className="mt-1 text-xs text-[var(--color-accent)]">{subtitle}</p>
+                <p className="mt-1 text-xs text-[var(--color-muted)]">{subtitle}</p>
             )}
         </div>
     );
@@ -373,7 +373,7 @@ export default function Dashboard({
                                     <div key={stage} className="flex flex-col items-center gap-1">
                                         <span className="text-xs text-[var(--color-text)]">{count}</span>
                                         <div className="w-14 bg-[var(--color-text)]" style={{ height: `${height}px` }} />
-                                        <span className="text-[10px] capitalize text-[var(--color-accent)]">{stage}</span>
+                                        <span className="text-[10px] capitalize text-[var(--color-muted)]">{stage}</span>
                                     </div>
                                 );
                             })}

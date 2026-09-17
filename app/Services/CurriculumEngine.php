@@ -11,7 +11,6 @@ use App\Models\CurriculumPathway;
 use App\Models\CurriculumPathwayCourse;
 use App\Models\PersonalizedContent;
 use App\Models\User;
-use App\Models\VocationalCategory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -34,7 +33,7 @@ class CurriculumEngine
         $agent = new CurriculumCuration($profileContext, $courseCatalog);
         $response = $agent->prompt(
             $agent->buildPrompt(),
-            model: config('vocation.ai.model', 'claude-sonnet-4-20250514'),
+            model: config('vocation.ai.model', 'claude-sonnet-4-6'),
         );
 
         $result = $response->structured;

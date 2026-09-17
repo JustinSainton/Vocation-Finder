@@ -2,18 +2,29 @@
 
 namespace App\Models;
 
+use App\Enums\VettingStatus;
+use App\Enums\WorkKind;
+use App\Support\JobVetting;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class JobListing extends Model
 {
+    use HasFactory;
     use HasUuids, SoftDeletes;
 
     protected $fillable = [
         'title',
+        'work_kind',
+        'minimum_age',
+        'supervised',
+        'vetting_status',
+        'vetting_findings',
+        'vetted_at',
         'company_name',
         'company_url',
         'location',
@@ -39,6 +50,12 @@ class JobListing extends Model
     {
         return [
             'is_remote' => 'boolean',
+            'work_kind' => WorkKind::class,
+            'minimum_age' => 'integer',
+            'supervised' => 'boolean',
+            'vetting_status' => VettingStatus::class,
+            'vetting_findings' => 'array',
+            'vetted_at' => 'datetime',
             'required_skills' => 'array',
             'raw_data' => 'array',
             'posted_at' => 'datetime',
@@ -64,8 +81,17 @@ class JobListing extends Model
     {
         return $query->where(function ($q) {
             $q->whereNull('expires_at')
-              ->orWhere('expires_at', '>', now());
+                ->orWhere('expires_at', '>', now());
         });
+    }
+
+    /**
+     * Only listings that have been through {@see JobVetting}
+     * and came out clean. Pending is the default and means invisible.
+     */
+    public function scopeVetted(Builder $query): Builder
+    {
+        return $query->where('vetting_status', VettingStatus::Passed);
     }
 
     public function scopeClassified(Builder $query): Builder

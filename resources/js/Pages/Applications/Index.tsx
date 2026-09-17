@@ -47,7 +47,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-    saved: 'bg-[var(--color-accent)] text-[var(--color-background)]',
+    saved: 'bg-[var(--color-muted)] text-[var(--color-background)]',
     applied: 'bg-blue-100 text-blue-800',
     phone_screen: 'bg-indigo-100 text-indigo-800',
     interviewing: 'bg-purple-100 text-purple-800',
@@ -82,7 +82,7 @@ function FunnelBar({ analytics }: { analytics: Analytics }) {
                             className="w-10 bg-[var(--color-text)]"
                             style={{ height: `${height}px` }}
                         />
-                        <span className="text-[10px] text-[var(--color-accent)]">
+                        <span className="text-[10px] text-[var(--color-muted)]">
                             {stage === 'phone_screen' ? 'Screen' : STATUS_LABELS[stage]}
                         </span>
                     </div>
@@ -110,17 +110,17 @@ export default function ApplicationsIndex({ applications, analytics, currentFilt
                         <FunnelBar analytics={analytics} />
                         <div className="space-y-2 text-right">
                             <div>
-                                <p className="text-xs text-[var(--color-accent)]">Weekly velocity</p>
+                                <p className="text-xs text-[var(--color-muted)]">Weekly velocity</p>
                                 <p className="text-lg text-[var(--color-text)]">{analytics.weekly_velocity}/wk</p>
                             </div>
                             {analytics.avg_response_days && (
                                 <div>
-                                    <p className="text-xs text-[var(--color-accent)]">Avg response</p>
+                                    <p className="text-xs text-[var(--color-muted)]">Avg response</p>
                                     <p className="text-sm text-[var(--color-text)]">{analytics.avg_response_days} days</p>
                                 </div>
                             )}
                             <div>
-                                <p className="text-xs text-[var(--color-accent)]">Ghosted rate</p>
+                                <p className="text-xs text-[var(--color-muted)]">Ghosted rate</p>
                                 <p className="text-sm text-[var(--color-text)]">{Math.round(analytics.ghosted_rate * 100)}%</p>
                             </div>
                         </div>
@@ -190,13 +190,13 @@ export default function ApplicationsIndex({ applications, analytics, currentFilt
                                         {app.applied_at && ` \u00B7 Applied ${formatDate(app.applied_at)}`}
                                     </p>
                                     {app.next_action && (
-                                        <p className="mt-1 text-xs text-[var(--color-accent)]">
+                                        <p className="mt-1 text-xs text-[var(--color-muted)]">
                                             Next: {app.next_action}
                                             {app.next_action_date && ` (${formatDate(app.next_action_date)})`}
                                         </p>
                                     )}
                                 </div>
-                                <span className="text-xs text-[var(--color-accent)]">
+                                <span className="text-xs text-[var(--color-muted)]">
                                     {formatDate(app.updated_at)}
                                 </span>
                             </div>

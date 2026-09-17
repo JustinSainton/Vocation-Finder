@@ -2,12 +2,14 @@
 
 namespace App\Ai\Agents;
 
+use App\Ai\Concerns\RunsOnTheConfiguredEngine;
 use App\Support\ConversationLocale;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Attributes\Model;
 use Laravel\Ai\Attributes\Provider;
 use Laravel\Ai\Attributes\Timeout;
 use Laravel\Ai\Contracts\Agent;
+use Laravel\Ai\Contracts\HasProviderOptions;
 use Laravel\Ai\Contracts\HasStructuredOutput;
 use Laravel\Ai\Promptable;
 use Stringable;
@@ -15,9 +17,9 @@ use Stringable;
 #[Provider('anthropic')]
 #[Model('claude-haiku-4-5-20251001')]
 #[Timeout(30)]
-class ConversationAgent implements Agent, HasStructuredOutput
+class ConversationAgent implements Agent, HasProviderOptions, HasStructuredOutput
 {
-    use Promptable;
+    use Promptable, RunsOnTheConfiguredEngine;
 
     public function __construct(
         protected string $questionText,
@@ -86,17 +88,35 @@ When synthesizing:
 INSTRUCTIONS;
     }
 
+    /**
+     * Every field is marked required so the serialized schema carries a
+     * "required" list. Providers that constrain decoding against the schema
+     * (Ollama compiles it to a grammar) treat an absent "required" as
+     * "every key is optional" and will happily emit a partial object. The two
+     * optional-by-intent fields stay nullable: the key must be present, its
+     * value may be null.
+     */
     public function schema(JsonSchema $schema): array
     {
         return [
-            'is_sufficient' => $schema->boolean('Whether the response provides enough substance for vocational analysis'),
+            'is_sufficient' => $schema
+                ->boolean()
+                ->description('Whether the response provides enough substance for vocational analysis')
+                ->required(),
             'follow_up_question' => $schema
-                ->string('If not sufficient, a natural follow-up question to draw out more depth')
-                ->nullable(),
+                ->string()
+                ->description('If not sufficient, a natural follow-up question to draw out more depth. Null when is_sufficient is true.')
+                ->nullable()
+                ->required(),
             'synthesized_answer' => $schema
-                ->string('If sufficient, a clean third-person summary of the user\'s full answer across all turns')
-                ->nullable(),
-            'reasoning' => $schema->string('Brief explanation of why the response is or is not sufficient'),
+                ->string()
+                ->description('If sufficient, a clean third-person summary of the user\'s full answer across all turns. Null when is_sufficient is false.')
+                ->nullable()
+                ->required(),
+            'reasoning' => $schema
+                ->string()
+                ->description('Brief explanation of why the response is or is not sufficient')
+                ->required(),
         ];
     }
 

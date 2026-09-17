@@ -11,13 +11,32 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>
+        <testsuite name="Live">
+            <directory>tests/Live</directory>
+        </testsuite>
     </testsuites>
+    <!--
+      Live tests make real API calls and cost real money. Excluded by default;
+      run them deliberately by passing the "live" group to artisan test.
+    -->
+    <groups>
+        <exclude>
+            <group>live</group>
+        </exclude>
+    </groups>
     <source>
         <include>
             <directory>app</directory>
         </include>
     </source>
     <php>
+        <!--
+          The suite peaks around 127MB, which is inside PHP's 128M default by
+          a margin too small to add a test to. Raising it here keeps the plain
+          "artisan test" working rather than requiring a -d flag nobody will
+          remember to pass in CI.
+        -->
+        <ini name="memory_limit" value="512M"/>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>

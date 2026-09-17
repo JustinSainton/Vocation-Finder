@@ -7,7 +7,9 @@ use App\Http\Resources\AssessmentResource;
 use App\Jobs\AnalyzeAssessmentJob;
 use App\Models\Answer;
 use App\Models\Assessment;
+use App\Support\AssessmentAccess;
 use App\Support\ConversationLocale;
+use App\Support\CrisisCheck;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -46,7 +48,7 @@ class AssessmentController extends Controller
 
     public function show(Request $request, Assessment $assessment): AssessmentResource
     {
-        $this->authorizeAccess($request, $assessment);
+        AssessmentAccess::authorizeReading($request, $assessment);
         $assessment->load(['answers.question', 'vocationalProfile']);
 
         return new AssessmentResource($assessment);
@@ -73,7 +75,24 @@ class AssessmentController extends Controller
             ]
         );
 
-        return response()->json(['id' => $answer->id], 200);
+        /*
+         | The assessment is the other place a student says something that
+         | cannot wait for a portrait. The answer is still saved — refusing to
+         | store it would throw away what they wrote — but the support block
+         | travels back with the save, so it reaches them while they are still
+         | on the question rather than in an analysis twenty minutes later.
+         |
+         | Same rule as the coach: {@see CrisisCheck} runs before any
+         | interpretation, and nobody is notified.
+         */
+        $crisis = (new CrisisCheck)->standing((string) ($validated['response_text'] ?? ''));
+
+        return response()->json(array_filter([
+            'id' => $answer->id,
+            'support' => $crisis->isEscalation()
+                ? (new CrisisCheck)->support($answer->response_locale)
+                : null,
+        ]), 200);
     }
 
     public function updateAnswer(Request $request, Assessment $assessment, Answer $answer): JsonResponse
@@ -136,16 +155,6 @@ class AssessmentController extends Controller
 
     private function authorizeAccess(Request $request, Assessment $assessment): void
     {
-        $user = $request->user();
-
-        if ($user && $assessment->user_id === $user->id) {
-            return;
-        }
-
-        if (! $user && $assessment->guest_token && hash_equals($assessment->guest_token, (string) $request->header('X-Guest-Token'))) {
-            return;
-        }
-
-        abort(403, 'Unauthorized access to assessment.');
+        AssessmentAccess::authorize($request, $assessment);
     }
 }

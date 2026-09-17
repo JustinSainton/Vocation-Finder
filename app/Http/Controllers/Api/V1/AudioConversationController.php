@@ -213,11 +213,30 @@ class AudioConversationController extends Controller
         ]);
 
         if ($result['is_sufficient']) {
+            $synthesized = trim((string) ($result['synthesized_answer'] ?? ''));
+
+            // A model can judge the answer sufficient and still omit the
+            // synthesis; smaller models do this routinely. Storing that would
+            // create an empty answer and silently lose the student's words, so
+            // fall back to the transcript, which is the more faithful record
+            // of what they actually said.
+            if ($synthesized === '') {
+                Log::warning('conversation_synthesis_missing', [
+                    'session_id' => $session->id,
+                    'assessment_id' => $session->assessment_id,
+                    'question_id' => $currentQuestion->id,
+                    'provider' => $modelSelection['provider'],
+                    'model' => $modelSelection['model'],
+                ]);
+
+                $synthesized = $transcript;
+            }
+
             // Save the synthesized answer for this question
             Answer::create([
                 'assessment_id' => $session->assessment_id,
                 'question_id' => $currentQuestion->id,
-                'response_text' => $result['synthesized_answer'],
+                'response_text' => $synthesized,
                 'response_locale' => $session->locale,
                 'audio_storage_path' => $validated['audio_storage_path'] ?? null,
                 'duration_seconds' => $validated['duration_seconds'] ?? null,

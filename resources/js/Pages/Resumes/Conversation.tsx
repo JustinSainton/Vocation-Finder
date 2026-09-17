@@ -142,7 +142,7 @@ export default function ResumeConversation() {
                         ))}
                         {loading && (
                             <div className="flex justify-start">
-                                <div className="border border-[var(--color-border)] px-4 py-3 text-sm text-[var(--color-accent)]">
+                                <div className="border border-[var(--color-border)] px-4 py-3 text-sm text-[var(--color-muted)]">
                                     Thinking...
                                 </div>
                             </div>
@@ -157,7 +157,7 @@ export default function ResumeConversation() {
                             onChange={(e) => setInput(e.target.value)}
                             placeholder="Type your response..."
                             disabled={loading}
-                            className="flex-1 border border-[var(--color-border)] bg-transparent px-3 py-3 text-sm text-[var(--color-text)] placeholder:text-[var(--color-accent)] disabled:opacity-50"
+                            className="flex-1 border border-[var(--color-border)] bg-transparent px-3 py-3 text-sm text-[var(--color-text)] placeholder:text-[var(--color-muted)] disabled:opacity-50"
                             autoFocus
                         />
                         <button

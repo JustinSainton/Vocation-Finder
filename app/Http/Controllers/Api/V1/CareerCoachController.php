@@ -21,8 +21,8 @@ class CareerCoachController extends Controller
             );
 
             return response()->json([
-                'conversation_id' => $response->conversationId(),
-                'message' => $response->text(),
+                'conversation_id' => $response->conversationId,
+                'message' => $response->text,
             ]);
         } catch (\Throwable $e) {
             Log::error('Career coach start failed', ['error' => $e->getMessage()]);
@@ -48,7 +48,7 @@ class CareerCoachController extends Controller
 
             return response()->json([
                 'conversation_id' => $validated['conversation_id'],
-                'message' => $response->text(),
+                'message' => $response->text,
             ]);
         } catch (\Throwable $e) {
             Log::error('Career coach message failed', ['error' => $e->getMessage()]);

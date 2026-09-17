@@ -5,6 +5,8 @@ namespace App\Jobs;
 use App\Ai\Agents\ResumeQualityAgent;
 use App\Ai\Agents\ResumeWriterAgent;
 use App\Models\ResumeVersion;
+use App\Services\ResumeDocxService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -96,9 +98,9 @@ class GenerateResumeJob implements ShouldQueue
         );
 
         $qualityResponse = $quality->prompt($quality->buildPrompt());
-        $qualityResult = $qualityResponse->json();
+        $qualityResult = ResumeQualityAgent::normalize($qualityResponse->json());
 
-        $score = $qualityResult['total_score'] ?? 0;
+        $score = $qualityResult['total_score'];
 
         // Quality gate: if below 70 on first attempt, regenerate with feedback
         if ($score < 70 && $this->attempts() === 1) {
@@ -229,7 +231,7 @@ class GenerateResumeJob implements ShouldQueue
     private function generateDocx(array $resumeData): void
     {
         try {
-            $service = new \App\Services\ResumeDocxService;
+            $service = new ResumeDocxService;
             $path = $service->generate(
                 $resumeData,
                 $this->resumeVersion->user_id,
@@ -263,7 +265,7 @@ class GenerateResumeJob implements ShouldQueue
     {
         try {
             $html = view('resumes.pdf', ['resume' => $resumeData])->render();
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html);
+            $pdf = Pdf::loadHTML($html);
             $content = $pdf->output();
 
             $path = "resumes/{$this->resumeVersion->user_id}/{$this->resumeVersion->id}.pdf";

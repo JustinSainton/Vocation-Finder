@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\OrganizationRole;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -36,6 +37,26 @@ class Organization extends Model
         ];
     }
 
+    /**
+     * Whether staff may read the portrait of a student in this organization.
+     *
+     * On by default: a counsellor who cannot see the result cannot do the job
+     * the school bought the tool for, and the student's own guidance office
+     * is not a stranger. It is a flag rather than a constant because a
+     * diocese, a clinic-adjacent programme or a district with its own policy
+     * must be able to close it without us shipping a release.
+     *
+     * Note what it does *not* open. This governs the portrait — the profile
+     * written from an assessment. Coaching conversations and the vocational
+     * brain are not reachable through it, by design and by test.
+     */
+    public const SETTING_STAFF_MAY_READ_PORTRAITS = 'staff_may_read_portraits';
+
+    public function staffMayReadPortraits(): bool
+    {
+        return (bool) ($this->settings[self::SETTING_STAFF_MAY_READ_PORTRAITS] ?? true);
+    }
+
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class)
@@ -51,21 +72,21 @@ class Organization extends Model
     public function admins(): BelongsToMany
     {
         return $this->belongsToMany(User::class)
-            ->wherePivot('role', 'admin')
+            ->wherePivot('role', OrganizationRole::Admin->value)
             ->withTimestamps();
     }
 
     public function mentors(): BelongsToMany
     {
         return $this->belongsToMany(User::class)
-            ->wherePivot('role', 'mentor')
+            ->wherePivot('role', OrganizationRole::Mentor->value)
             ->withTimestamps();
     }
 
     public function members(): BelongsToMany
     {
         return $this->belongsToMany(User::class)
-            ->wherePivot('role', 'member')
+            ->wherePivot('role', OrganizationRole::Member->value)
             ->withTimestamps();
     }
 

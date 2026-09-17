@@ -46,7 +46,7 @@ export function ImageBlockEditor({ block, onChange }: Props) {
                     <button
                         type="button"
                         onClick={() => onChange({ ...block, media_id: null, url: '' })}
-                        className="absolute right-2 top-2 bg-[var(--color-background)] px-2 py-1 font-sans text-xs text-[var(--color-accent)] shadow-sm hover:text-red-600"
+                        className="absolute right-2 top-2 bg-[var(--color-background)] px-2 py-1 font-sans text-xs text-[var(--color-muted)] shadow-sm hover:text-red-600"
                     >
                         Remove
                     </button>
@@ -82,7 +82,7 @@ export function ImageBlockEditor({ block, onChange }: Props) {
                             <button
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
-                                className="font-sans text-sm text-[var(--color-accent)] hover:text-[var(--color-text)]"
+                                className="font-sans text-sm text-[var(--color-muted)] hover:text-[var(--color-text)]"
                             >
                                 Choose file
                             </button>

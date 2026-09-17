@@ -1,0 +1,36 @@
+{
+  "name": "thin-answers",
+  "description": "A student who answered in one to three words throughout. The engine must refuse to produce a direction from this and must still reach a next step. This is the case the product is most tempted to fake, because a blank result feels like a broken product.",
+  "answers": [
+    "idk",
+    "nothing really",
+    "yes",
+    "i guess",
+    "no",
+    "maybe",
+    "not sure"
+  ],
+  "signals": [],
+  "category_scores": [
+    {
+      "category": "Health & Medicine",
+      "score": 52,
+      "rationale": "Nothing in the responses supports this.",
+      "evidence": []
+    },
+    {
+      "category": "Trades & Technical",
+      "score": 48,
+      "rationale": "Nothing in the responses supports this.",
+      "evidence": []
+    }
+  ],
+  "narrative": "There is not enough here yet to say anything about where you are headed, and it would be dishonest to try. What you wrote is short, which might mean the questions missed you, or might mean this was not the moment.\n\nThat is not a dead end. It means the next thing is to get one real answer rather than twenty short ones. Pick the last time you lost track of an hour, and tell me what you were doing.",
+  "expect": {
+    "leading_category": "Health & Medicine",
+    "evidence_standing": "unevidenced",
+    "confidence": "insufficient_evidence",
+    "red_team_clean": true,
+    "response_quality_max": 25
+  }
+}

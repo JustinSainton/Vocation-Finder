@@ -2,7 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\StudentPlace;
 use App\Services\FeatureFlagService;
+use App\Support\StudentNavigation;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -55,6 +57,14 @@ class HandleInertiaRequests extends Middleware
                         ]),
                 ] : null,
             ],
+            /**
+             * The five places, resolved once per response rather than by each
+             * page. Navigation that a page had to opt into is not first-class
+             * navigation; it is a component some pages remembered.
+             *
+             * @see StudentPlace
+             */
+            'places' => fn () => (new StudentNavigation)->for($request->user()),
             'features' => fn () => app(FeatureFlagService::class)->allFlags(),
             'flash' => [
                 'status' => $request->session()->get('status'),

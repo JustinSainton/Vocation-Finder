@@ -34,15 +34,15 @@ export default function OrgMemberShow({ organization, member, assessments }: Pro
         <OrgLayout title={member.name} orgName={organization.name} orgSlug={organization.slug}>
             <Link
                 href={`/org/${organization.slug}/members`}
-                className="mb-6 inline-block font-sans text-sm text-[var(--color-accent)] hover:text-[var(--color-text)]"
+                className="mb-6 inline-block font-sans text-sm text-[var(--color-muted)] hover:text-[var(--color-text)]"
             >
                 &larr; All members
             </Link>
 
             <h1 className="mb-1 font-serif text-2xl text-[var(--color-text)]">{member.name}</h1>
-            <p className="mb-8 font-sans text-sm text-[var(--color-accent)]">{member.email}</p>
+            <p className="mb-8 font-sans text-sm text-[var(--color-muted)]">{member.email}</p>
 
-            <p className="mb-4 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+            <p className="mb-4 type-eyebrow">
                 Assessments
             </p>
 
@@ -85,7 +85,7 @@ export default function OrgMemberShow({ organization, member, assessments }: Pro
                                 <div className="mt-4 flex gap-6">
                                     {assessment.primary_domain && (
                                         <div>
-                                            <p className="font-sans text-xs text-[var(--color-accent)]">
+                                            <p className="font-sans text-xs text-[var(--color-muted)]">
                                                 Primary Domain
                                             </p>
                                             <p className="mt-1 text-sm text-[var(--color-text)]">
@@ -95,7 +95,7 @@ export default function OrgMemberShow({ organization, member, assessments }: Pro
                                     )}
                                     {assessment.mode_of_work && (
                                         <div>
-                                            <p className="font-sans text-xs text-[var(--color-accent)]">
+                                            <p className="font-sans text-xs text-[var(--color-muted)]">
                                                 Mode of Work
                                             </p>
                                             <p className="mt-1 text-sm text-[var(--color-text)]">
@@ -103,12 +103,15 @@ export default function OrgMemberShow({ organization, member, assessments }: Pro
                                             </p>
                                         </div>
                                     )}
-                                    <Link
-                                        href={`/assessment/${assessment.id}/results`}
-                                        className="ml-auto self-end font-sans text-sm text-[var(--color-accent)] hover:text-[var(--color-text)]"
-                                    >
-                                        View results &rarr;
-                                    </Link>
+                                    {/*
+                                      No link to the full portrait. It used to
+                                      open because the results page authorized
+                                      nobody, not because staff were granted
+                                      access — a counsellor reading a student's
+                                      verbatim answers is a decision this
+                                      product has not made yet. The summary
+                                      above is what staff see for now.
+                                    */}
                                 </div>
                             )}
                         </div>

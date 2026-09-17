@@ -71,7 +71,7 @@ export default function AssessmentShow({ assessment, answers, profile }: Props) 
                 </h2>
                 {Object.entries(grouped).map(([category, catAnswers]) => (
                     <div key={category} className="mt-6">
-                        <h3 className="text-xs uppercase tracking-wider text-[var(--color-accent)]">
+                        <h3 className="text-xs uppercase tracking-wider text-[var(--color-muted)]">
                             {category}
                         </h3>
                         <div className="mt-3 space-y-4">

@@ -71,7 +71,7 @@ export default function OrgMembersIndex({
             <div className="mb-6 flex items-center justify-between">
                 <div>
                     <h1 className="font-serif text-2xl text-[var(--color-text)]">Members</h1>
-                    <p className="mt-1 font-sans text-sm text-[var(--color-accent)]">
+                    <p className="mt-1 font-sans text-sm text-[var(--color-muted)]">
                         {totalSlots} of {memberLimit} seats used
                     </p>
                 </div>
@@ -89,7 +89,7 @@ export default function OrgMembersIndex({
                     onSubmit={handleInvite}
                     className="mb-8 border border-[var(--color-divider)] bg-[var(--color-surface)] p-5"
                 >
-                    <p className="mb-4 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                    <p className="mb-4 type-eyebrow">
                         Send Invitation
                     </p>
                     <div className="flex gap-3">
@@ -145,7 +145,7 @@ export default function OrgMembersIndex({
                                 {member.email}
                             </td>
                             <td className="py-3 pr-4">
-                                <span className="font-sans text-xs uppercase tracking-wider text-[var(--color-accent)]">
+                                <span className="font-sans text-xs uppercase tracking-wider text-[var(--color-muted)]">
                                     {member.role}
                                 </span>
                             </td>
@@ -159,7 +159,7 @@ export default function OrgMembersIndex({
                                 <div className="flex gap-3">
                                     <Link
                                         href={`/org/${organization.slug}/members/${member.id}`}
-                                        className="font-sans text-sm text-[var(--color-accent)] hover:text-[var(--color-text)]"
+                                        className="font-sans text-sm text-[var(--color-muted)] hover:text-[var(--color-text)]"
                                     >
                                         View
                                     </Link>
@@ -179,7 +179,7 @@ export default function OrgMembersIndex({
             {/* Pending invitations */}
             {pendingInvitations.length > 0 && (
                 <>
-                    <p className="mb-4 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                    <p className="mb-4 type-eyebrow">
                         Pending Invitations
                     </p>
                     <table className="w-full">
@@ -199,7 +199,7 @@ export default function OrgMembersIndex({
                                     <td className="py-3 pr-4 font-sans text-sm text-[var(--color-text)]">
                                         {inv.email}
                                     </td>
-                                    <td className="py-3 pr-4 font-sans text-xs uppercase tracking-wider text-[var(--color-accent)]">
+                                    <td className="py-3 pr-4 font-sans text-xs uppercase tracking-wider text-[var(--color-muted)]">
                                         {inv.role}
                                     </td>
                                     <td className="py-3 font-sans text-sm text-[var(--color-text-secondary)]">
@@ -217,7 +217,7 @@ export default function OrgMembersIndex({
 
 function Th({ children }: { children: React.ReactNode }) {
     return (
-        <th className="pb-3 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+        <th className="pb-3 type-eyebrow">
             {children}
         </th>
     );

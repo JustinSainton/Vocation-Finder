@@ -38,7 +38,7 @@ export default function CareerProfileImport() {
 
             <div className="space-y-6">
                 <div>
-                    <h2 className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                    <h2 className="type-eyebrow">
                         From LinkedIn
                     </h2>
                     <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
@@ -48,7 +48,7 @@ export default function CareerProfileImport() {
                 </div>
 
                 <div>
-                    <h2 className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                    <h2 className="type-eyebrow">
                         From any resume
                     </h2>
                     <p className="mt-2 text-sm text-[var(--color-text-secondary)]">

@@ -48,6 +48,16 @@ class Assessment extends Model
         return $this->belongsTo(Organization::class);
     }
 
+    /**
+     * The two readings of how clear this person was, before and after.
+     *
+     * @return HasMany<ClarityCheck, $this>
+     */
+    public function clarityChecks(): HasMany
+    {
+        return $this->hasMany(ClarityCheck::class);
+    }
+
     public function answers(): HasMany
     {
         return $this->hasMany(Answer::class);
@@ -81,5 +91,13 @@ class Assessment extends Model
     public function isGuest(): bool
     {
         return $this->user_id === null && $this->guest_token !== null;
+    }
+
+    /**
+     * @return HasMany<SignalExtraction, $this>
+     */
+    public function signalExtractions(): HasMany
+    {
+        return $this->hasMany(SignalExtraction::class)->orderBy('sort_order');
     }
 }

@@ -56,7 +56,7 @@ export default function FeatureFlagsIndex({ flags }: Props) {
                             className={`relative ml-4 inline-flex h-6 w-11 shrink-0 cursor-pointer items-center transition-colors duration-200 ${
                                 flag.is_enabled
                                     ? 'bg-[var(--color-text)]'
-                                    : 'bg-[var(--color-accent)]'
+                                    : 'bg-[var(--color-muted)]'
                             }`}
                             role="switch"
                             aria-checked={flag.is_enabled}

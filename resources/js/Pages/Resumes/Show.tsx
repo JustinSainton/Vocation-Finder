@@ -55,7 +55,7 @@ export default function ResumeShow({ resume }: Props) {
 
             {data.summary && (
                 <div className="mb-6">
-                    <h2 className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                    <h2 className="type-eyebrow">
                         Professional Summary
                     </h2>
                     <p className="mt-2 text-sm leading-relaxed text-[var(--color-text)]">{data.summary}</p>
@@ -64,7 +64,7 @@ export default function ResumeShow({ resume }: Props) {
 
             {data.work && data.work.length > 0 && (
                 <div className="mb-6">
-                    <h2 className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                    <h2 className="type-eyebrow">
                         Experience
                     </h2>
                     <div className="mt-3 space-y-4">
@@ -89,7 +89,7 @@ export default function ResumeShow({ resume }: Props) {
 
             {data.education && data.education.length > 0 && (
                 <div className="mb-6">
-                    <h2 className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                    <h2 className="type-eyebrow">
                         Education
                     </h2>
                     <div className="mt-3 space-y-2">
@@ -107,7 +107,7 @@ export default function ResumeShow({ resume }: Props) {
 
             {data.skills && data.skills.length > 0 && (
                 <div className="mb-6">
-                    <h2 className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                    <h2 className="type-eyebrow">
                         Skills
                     </h2>
                     <div className="mt-2 space-y-1">

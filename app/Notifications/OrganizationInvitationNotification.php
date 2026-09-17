@@ -23,13 +23,22 @@ class OrganizationInvitationNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         $orgName = $this->invitation->organization->name;
-        $acceptUrl = url("/invitations/{$this->invitation->token}/accept");
+
+        /*
+         * This pointed at `/invitations/{token}/accept`, which was an API
+         * route that no web request ever reached — the link in every
+         * invitation email was dead. The entry path is a page now, and a page
+         * is the right thing anyway: somebody with no account needs to be told
+         * what they are joining before they are asked to join it.
+         */
+        $acceptUrl = url("/invitations/{$this->invitation->token}");
 
         return (new MailMessage)
-            ->subject("You've been invited to join {$orgName}")
-            ->greeting("Hello!")
-            ->line("You have been invited to join **{$orgName}** as a {$this->invitation->role}.")
-            ->action('Accept Invitation', $acceptUrl)
-            ->line("This invitation expires on {$this->invitation->expires_at->format('F j, Y')}.");
+            ->subject("{$orgName} has set up a place for you")
+            ->greeting('Hello,')
+            ->line("{$orgName} is using Vocation Finder, and has set up a place for you.")
+            ->line('It starts with twenty questions about what you are actually like, and ends with one concrete thing to do next.')
+            ->action('See what this is', $acceptUrl)
+            ->line("The link works until {$this->invitation->expires_at->format('F j, Y')}.");
     }
 }

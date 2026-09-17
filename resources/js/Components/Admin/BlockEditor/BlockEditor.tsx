@@ -135,7 +135,7 @@ export function BlockEditor({ value, onChange, label, personalizationPrompts, on
     return (
         <div>
             {label && (
-                <p className="mb-2 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                <p className="mb-2 type-eyebrow">
                     {label}
                 </p>
             )}

@@ -1,4 +1,6 @@
 import { CachesDirectoryPath, mkdir, exists } from '@dr.pogodin/react-native-fs';
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 // Lazy-load native module to prevent startup crash if models aren't bundled
 let _createTTS: any = null;
@@ -39,20 +41,30 @@ async function getEngine(): Promise<any> {
   if (initPromise) return initPromise;
 
   console.log('[TTS] Initializing Kokoro TTS engine...');
-  initPromise = mod.createTTS({
-    modelPath: { type: 'asset', path: 'models/kokoro-en' },
-    modelType: 'kokoro',
-    numThreads: 4,
-    provider: 'coreml',
-  }).catch((coremlErr: any) => {
-    console.warn('[TTS] CoreML init failed, falling back to CPU:', coremlErr);
-    return mod.createTTS({
+  // CoreML only works on physical devices; skip it on simulator to avoid redbox errors
+  const isSimulator = !Constants.isDevice;
+  if (!isSimulator) {
+    initPromise = mod.createTTS({
+      modelPath: { type: 'asset', path: 'models/kokoro-en' },
+      modelType: 'kokoro',
+      numThreads: 4,
+      provider: 'coreml',
+    }).catch(() => {
+      return mod.createTTS({
+        modelPath: { type: 'asset', path: 'models/kokoro-en' },
+        modelType: 'kokoro',
+        numThreads: 4,
+        provider: 'cpu',
+      });
+    });
+  } else {
+    initPromise = mod.createTTS({
       modelPath: { type: 'asset', path: 'models/kokoro-en' },
       modelType: 'kokoro',
       numThreads: 4,
       provider: 'cpu',
     });
-  });
+  }
 
   try {
     engine = await initPromise;

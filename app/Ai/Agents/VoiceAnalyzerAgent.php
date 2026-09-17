@@ -43,23 +43,48 @@ Analyze these dimensions:
 INSTRUCTIONS;
     }
 
+    /**
+     * Every field is required so the serialized schema carries a "required"
+     * list; providers that constrain decoding against the schema otherwise
+     * treat every key as optional and emit partial objects.
+     */
     public function schema(JsonSchema $schema): array
     {
+        $list = fn (string $description) => $schema
+            ->array()
+            ->items($schema->string())
+            ->description($description)
+            ->required();
+
         return [
-            'avg_sentence_length' => $schema->number('Average words per sentence across all samples'),
-            'tone_register' => $schema->string('One of: formal, conversational, academic, casual, warm, analytical'),
-            'vocabulary_level' => $schema->string('Approximate Flesch-Kincaid grade level, e.g., "9th grade", "12th grade", "professional"'),
-            'preferred_verbs' => $schema->array('Top 15-20 action verbs this person naturally uses', items: $schema->string()),
-            'banned_phrases' => $schema->array('AI-sounding phrases that would clash with this voice', items: $schema->string()),
-            'characteristic_patterns' => $schema->array('Distinctive writing patterns or habits', items: $schema->string()),
-            'style_summary' => $schema->string('2-3 sentence summary of their overall writing voice'),
+            'avg_sentence_length' => $schema
+                ->number()
+                ->min(0)
+                ->description('Average words per sentence across all samples')
+                ->required(),
+            'tone_register' => $schema
+                ->string()
+                ->enum(['formal', 'conversational', 'academic', 'casual', 'warm', 'analytical'])
+                ->description('The register that best characterises this voice')
+                ->required(),
+            'vocabulary_level' => $schema
+                ->string()
+                ->description('Approximate Flesch-Kincaid grade level, e.g., "9th grade", "12th grade", "professional"')
+                ->required(),
+            'preferred_verbs' => $list('Top 15-20 action verbs this person naturally uses'),
+            'banned_phrases' => $list('AI-sounding phrases that would clash with this voice'),
+            'characteristic_patterns' => $list('Distinctive writing patterns or habits'),
+            'style_summary' => $schema
+                ->string()
+                ->description('2-3 sentence summary of their overall writing voice')
+                ->required(),
         ];
     }
 
     public function buildPrompt(): string
     {
         $samples = collect($this->writingSamples)
-            ->map(fn ($sample, $i) => "--- Sample " . ($i + 1) . " ---\n{$sample}")
+            ->map(fn ($sample, $i) => '--- Sample '.($i + 1)." ---\n{$sample}")
             ->implode("\n\n");
 
         return <<<PROMPT

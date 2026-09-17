@@ -36,35 +36,66 @@ Rules:
 INSTRUCTIONS;
     }
 
+    /**
+     * Every field is required so the serialized schema carries a "required"
+     * list. Providers that constrain decoding against the schema treat an
+     * absent list as "all keys optional" and emit partial objects. A section
+     * the resume does not contain is an empty array, never a missing key.
+     */
     public function schema(JsonSchema $schema): array
     {
+        $text = fn (string $description) => $schema
+            ->string()
+            ->description($description)
+            ->required();
+
         return [
-            'work' => $schema->array('Work experience entries', items: [
-                'company' => $schema->string('Company name'),
-                'position' => $schema->string('Job title'),
-                'startDate' => $schema->string('Start date'),
-                'endDate' => $schema->string('End date or empty if current'),
-                'summary' => $schema->string('Role description or key responsibilities'),
-            ]),
-            'education' => $schema->array('Education entries', items: [
-                'institution' => $schema->string('School name'),
-                'area' => $schema->string('Field of study'),
-                'studyType' => $schema->string('Degree type'),
-                'startDate' => $schema->string('Start date'),
-                'endDate' => $schema->string('End date'),
-            ]),
-            'skills' => $schema->array('Skills', items: [
-                'name' => $schema->string('Skill name'),
-                'level' => $schema->string('Proficiency level if stated'),
-            ]),
-            'certifications' => $schema->array('Certifications', items: $schema->string()),
-            'volunteer' => $schema->array('Volunteer experience', items: [
-                'organization' => $schema->string('Organization name'),
-                'position' => $schema->string('Role'),
-                'startDate' => $schema->string('Start date'),
-                'endDate' => $schema->string('End date'),
-                'summary' => $schema->string('Description'),
-            ]),
+            'work' => $schema
+                ->array()
+                ->items($schema->object([
+                    'company' => $text('Company name'),
+                    'position' => $text('Job title'),
+                    'startDate' => $text('Start date'),
+                    'endDate' => $text('End date, or an empty string if this is the current role'),
+                    'summary' => $text('Role description or key responsibilities'),
+                ]))
+                ->description('Work experience entries. Empty array if none are present.')
+                ->required(),
+            'education' => $schema
+                ->array()
+                ->items($schema->object([
+                    'institution' => $text('School name'),
+                    'area' => $text('Field of study'),
+                    'studyType' => $text('Degree type'),
+                    'startDate' => $text('Start date'),
+                    'endDate' => $text('End date'),
+                ]))
+                ->description('Education entries. Empty array if none are present.')
+                ->required(),
+            'skills' => $schema
+                ->array()
+                ->items($schema->object([
+                    'name' => $text('Skill name'),
+                    'level' => $text('Proficiency level if stated, otherwise an empty string'),
+                ]))
+                ->description('Skills. Empty array if none are present.')
+                ->required(),
+            'certifications' => $schema
+                ->array()
+                ->items($schema->string())
+                ->description('Certifications. Empty array if none are present.')
+                ->required(),
+            'volunteer' => $schema
+                ->array()
+                ->items($schema->object([
+                    'organization' => $text('Organization name'),
+                    'position' => $text('Role'),
+                    'startDate' => $text('Start date'),
+                    'endDate' => $text('End date'),
+                    'summary' => $text('Description'),
+                ]))
+                ->description('Volunteer experience. Empty array if none are present.')
+                ->required(),
         ];
     }
 

@@ -50,6 +50,16 @@ class FeatureFlagSeeder extends Seeder
                 'name' => 'AI Career Coaching Conversation',
                 'description' => 'Multi-turn AI conversation for career exploration and job narrowing.',
             ],
+            [
+                'key' => 'courses',
+                'name' => 'Courses & Learning Pathways',
+                'description' => 'Course catalogue, enrollment, personalized content and AI-curated curriculum pathways. Legacy: V1 ships no published courses, so this stays off until there are some.',
+            ],
+            [
+                'key' => 'pathway_coach',
+                'name' => 'Pathway Coach (students)',
+                'description' => 'The student-facing coach and vocational brain. Separate from career_coach, which is the adult product — the two must be able to ship independently.',
+            ],
         ];
 
         foreach ($flags as $flag) {

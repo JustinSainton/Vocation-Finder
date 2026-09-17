@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from '@inertiajs/react';
 import AppLayout from '../../Layouts/AppLayout';
+import ClarityCheck from '../../Components/ClarityCheck';
+import ResultFeedback from '../../Components/ResultFeedback';
 
 interface VocationalProfile {
     id: string;
@@ -123,7 +125,7 @@ export default function Results({
 
     return (
         <AppLayout title="Your Vocational Portrait">
-            <p className="mb-4 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+            <p className="mb-4 type-eyebrow">
                 Your vocational articulation
             </p>
 
@@ -170,7 +172,7 @@ export default function Results({
                         {profile.primary_pathways.map((pathway, i) => (
                             <div
                                 key={i}
-                                className="border-l-[3px] border-[var(--color-accent)] bg-[var(--color-surface)] px-5 py-4"
+                                className="border-l-[3px] border-[var(--color-muted)] bg-[var(--color-surface)] px-5 py-4"
                             >
                                 <p className="text-[15px] leading-relaxed text-[var(--color-stone-800)]">
                                     {pathway}
@@ -241,7 +243,7 @@ export default function Results({
             </p>
 
             {emailSent ? (
-                <p className="text-[var(--color-accent)]">Sent — check your inbox.</p>
+                <p className="text-[var(--color-muted)]">Sent — check your inbox.</p>
             ) : (
                 <div className="flex gap-3">
                     <input
@@ -264,7 +266,7 @@ export default function Results({
             <div className="my-8 h-px bg-[var(--color-divider)]" />
 
             {/* Disclaimer */}
-            <p className="text-center text-sm italic text-[var(--color-accent)]">
+            <p className="text-center text-sm italic text-[var(--color-muted)]">
                 This vocational portrait was generated with the assistance of artificial
                 intelligence based on your written reflections. It is intended as a tool
                 for discernment, not a definitive assessment.
@@ -275,7 +277,7 @@ export default function Results({
                 <>
                     <Link
                         href={`/pathway/${pathway.id}`}
-                        className="block w-full bg-[var(--color-text)] py-4 text-center font-sans text-sm tracking-wide text-[var(--color-background)] transition-colors hover:bg-[var(--color-stone-800)]"
+                        className="action-primary"
                     >
                         View your learning path &rarr;
                     </Link>
@@ -295,17 +297,29 @@ export default function Results({
                 </>
             )}
 
+            <ResultFeedback assessmentId={assessment_id} guestToken={guest_token} />
+
+            {/*
+              The second reading. After the portrait, so that what moved (or
+              did not) is attributable to having read it. What the two answers
+              add up to is never shown here — that is a question about us, not
+              a grade for them.
+            */}
+            <div className="mt-12 border-t border-[var(--color-divider)] pt-8">
+                <ClarityCheck assessmentId={assessment_id} guestToken={guest_token} moment="after" />
+            </div>
+
             {/* Actions */}
             <div className="mt-8 space-y-3">
                 <a
                     href="/"
-                    className="block w-full bg-[var(--color-text)] py-4 text-center font-sans text-sm tracking-wide text-[var(--color-background)]"
+                    className="action-secondary"
                 >
                     Return home
                 </a>
                 <a
                     href="/assessment"
-                    className="block w-full border border-[var(--color-divider)] py-4 text-center font-sans text-sm tracking-wide text-[var(--color-text)]"
+                    className="action-secondary"
                 >
                     Take assessment again
                 </a>
@@ -316,7 +330,7 @@ export default function Results({
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
     return (
-        <p className="mb-4 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+        <p className="mb-4 type-eyebrow">
             {children}
         </p>
     );
@@ -325,7 +339,7 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 function MetaBadge({ label, value }: { label: string; value: string }) {
     return (
         <div>
-            <p className="font-sans text-xs text-[var(--color-accent)]">{label}</p>
+            <p className="font-sans text-xs text-[var(--color-muted)]">{label}</p>
             <p className="mt-1 text-lg text-[var(--color-text)]">{value}</p>
         </div>
     );

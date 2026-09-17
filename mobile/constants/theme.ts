@@ -3,24 +3,34 @@ import { Appearance, ColorSchemeName } from 'react-native';
 export type ThemePreference = 'system' | 'light' | 'dark';
 export type ThemeName = 'light' | 'dark';
 
+/*
+ * Derived from DESIGN.md, not chosen here. `DesignSystemTest` parses that
+ * document and asserts these values, so a token edited in one place and not
+ * the other fails the suite rather than shipping two products.
+ *
+ * What this replaced is worth recording: light `accent` was #A8A29E, the warm
+ * stone DESIGN.md says indigo replaced; the dark canvas was #0F1216, a cool
+ * blue-black the document explicitly rules out; and dark `accent` was
+ * #94A3B8, a second accent hue where the document allows exactly one.
+ */
 export const lightColors = {
   background: '#FAFAF7',
   text: '#1C1917',
-  textSecondary: '#78716C',
-  accent: '#A8A29E',
-  divider: '#E7E5E4',
+  textSecondary: '#44403C',
+  accent: '#3A3AA0',
+  divider: '#D6D3D1',
   buttonBg: '#1C1917',
   buttonText: '#FAFAF7',
 };
 
 export const darkColors = {
-  background: '#0F1216',
-  text: '#E7E5E4',
+  background: '#14120F',
+  text: '#FAFAF7',
   textSecondary: '#A8A29E',
-  accent: '#94A3B8',
-  divider: '#262E3A',
-  buttonBg: '#E7E5E4',
-  buttonText: '#0F1216',
+  accent: '#8F8FF5',
+  divider: '#3A3530',
+  buttonBg: '#FAFAF7',
+  buttonText: '#14120F',
 };
 
 export const palettes: Record<ThemeName, typeof lightColors> = {

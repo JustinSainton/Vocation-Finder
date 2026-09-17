@@ -27,8 +27,12 @@ export default function OrgLayout({ title, orgName, orgSlug, children }: Props) 
         { label: 'Dashboard', href: `/org/${slug}` },
         { label: 'Members', href: `/org/${slug}/members` },
         ...(role === 'admin' || role === 'mentor'
-            ? [{ label: 'Insights', href: `/org/${slug}/insights` }]
+            ? [
+                  { label: 'Cohort', href: `/org/${slug}/cohort` },
+                  { label: 'Insights', href: `/org/${slug}/insights` },
+              ]
             : []),
+        ...(role === 'admin' ? [{ label: 'Settings', href: `/org/${slug}/settings` }] : []),
     ];
 
     return (
@@ -44,7 +48,7 @@ export default function OrgLayout({ title, orgName, orgSlug, children }: Props) 
                         >
                             Vocation Finder
                         </Link>
-                        <p className="mb-8 font-sans text-xs text-[var(--color-accent)]">
+                        <p className="mb-8 font-sans text-xs text-[var(--color-muted)]">
                             {name}
                         </p>
                         <nav className="space-y-1">

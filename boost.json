@@ -1,0 +1,20 @@
+{
+    "agents": [
+        "claude_code",
+        "codex",
+        "opencode",
+        "cursor"
+    ],
+    "guidelines": true,
+    "mcp": true,
+    "nightwatch_mcp": false,
+    "sail": false,
+    "skills": [
+        "cashier-stripe-development",
+        "laravel-best-practices",
+        "configuring-horizon",
+        "socialite-development",
+        "inertia-react-development",
+        "tailwindcss-development"
+    ]
+}

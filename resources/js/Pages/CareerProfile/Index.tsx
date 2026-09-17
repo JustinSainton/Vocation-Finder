@@ -50,7 +50,7 @@ function Section({
     return (
         <div>
             <div className="flex items-center justify-between">
-                <h2 className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                <h2 className="type-eyebrow">
                     {title}
                 </h2>
                 {onAdd && (

@@ -66,7 +66,7 @@ export default function CourseShow({ course, enrollment, personalizationStatus }
     return (
         <AppLayout title={course.title}>
             {course.category_name && (
-                <p className="mb-4 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                <p className="mb-4 type-eyebrow">
                     {course.category_name}
                 </p>
             )}
@@ -76,7 +76,7 @@ export default function CourseShow({ course, enrollment, personalizationStatus }
             </h1>
 
             {course.estimated_duration && (
-                <p className="mb-6 font-sans text-sm text-[var(--color-accent)]">
+                <p className="mb-6 font-sans text-sm text-[var(--color-muted)]">
                     {course.estimated_duration}
                 </p>
             )}
@@ -87,13 +87,13 @@ export default function CourseShow({ course, enrollment, personalizationStatus }
 
             {/* Personalization notice */}
             {course.requires_personalization && (
-                <div className="mt-6 border-l-[3px] border-[var(--color-accent)] bg-[var(--color-surface)] p-5">
+                <div className="mt-6 border-l-[3px] border-[var(--color-muted)] bg-[var(--color-surface)] p-5">
                     <p className="font-sans text-sm text-[var(--color-text)]">
                         This course adapts its content to your vocational profile.
                         {!isEnrolled && ' Enroll to begin your personalized learning path.'}
                     </p>
                     {personalizationStatus && !personalizationStatus.complete && (
-                        <p className="mt-2 font-sans text-xs text-[var(--color-accent)]">
+                        <p className="mt-2 font-sans text-xs text-[var(--color-muted)]">
                             Personalizing: {personalizationStatus.ready} of {personalizationStatus.total} modules ready
                         </p>
                     )}
@@ -105,7 +105,7 @@ export default function CourseShow({ course, enrollment, personalizationStatus }
             {/* Modules */}
             {course.modules.length > 0 && (
                 <>
-                    <p className="mb-4 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                    <p className="mb-4 type-eyebrow">
                         Modules
                     </p>
                     <div className="space-y-3">
@@ -133,7 +133,7 @@ export default function CourseShow({ course, enrollment, personalizationStatus }
                                         )}
                                     </div>
                                     {isCurrent && (
-                                        <span className="font-sans text-xs text-[var(--color-accent)]">
+                                        <span className="font-sans text-xs text-[var(--color-muted)]">
                                             Current
                                         </span>
                                     )}
@@ -179,7 +179,7 @@ export default function CourseShow({ course, enrollment, personalizationStatus }
             <div className="mt-4">
                 <Link
                     href="/courses"
-                    className="font-sans text-sm text-[var(--color-accent)] hover:text-[var(--color-text)]"
+                    className="font-sans text-sm text-[var(--color-muted)] hover:text-[var(--color-text)]"
                 >
                     &larr; All courses
                 </Link>

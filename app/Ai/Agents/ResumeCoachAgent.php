@@ -17,7 +17,7 @@ use Laravel\Ai\Promptable;
 use Stringable;
 
 #[Provider('anthropic')]
-#[Model('claude-sonnet-4-20250514')]
+#[Model('claude-sonnet-4-6')]
 #[Timeout(30)]
 class ResumeCoachAgent implements Agent, Conversational, HasTools
 {

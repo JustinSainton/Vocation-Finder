@@ -105,7 +105,7 @@ export default function ApplicationShow({ application }: Props) {
 
             {/* Status + Actions */}
             <div className="mb-8">
-                <h2 className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                <h2 className="type-eyebrow">
                     Status
                 </h2>
                 <p className="mt-2 text-sm font-medium text-[var(--color-text)]">
@@ -132,23 +132,23 @@ export default function ApplicationShow({ application }: Props) {
             <div className="mb-8 grid grid-cols-2 gap-4">
                 {application.applied_at && (
                     <div>
-                        <p className="text-xs text-[var(--color-accent)]">Applied</p>
+                        <p className="text-xs text-[var(--color-muted)]">Applied</p>
                         <p className="text-sm text-[var(--color-text)]">{formatDate(application.applied_at)}</p>
                     </div>
                 )}
                 <div>
-                    <p className="text-xs text-[var(--color-accent)]">Priority</p>
+                    <p className="text-xs text-[var(--color-muted)]">Priority</p>
                     <p className="text-sm capitalize text-[var(--color-text)]">{application.priority}</p>
                 </div>
                 {application.salary_offered && (
                     <div>
-                        <p className="text-xs text-[var(--color-accent)]">Salary Offered</p>
+                        <p className="text-xs text-[var(--color-muted)]">Salary Offered</p>
                         <p className="text-sm text-[var(--color-text)]">${application.salary_offered.toLocaleString()}</p>
                     </div>
                 )}
                 {application.contact_name && (
                     <div>
-                        <p className="text-xs text-[var(--color-accent)]">Contact</p>
+                        <p className="text-xs text-[var(--color-muted)]">Contact</p>
                         <p className="text-sm text-[var(--color-text)]">
                             {application.contact_name}
                             {application.contact_email && ` (${application.contact_email})`}
@@ -157,7 +157,7 @@ export default function ApplicationShow({ application }: Props) {
                 )}
                 {application.next_action && (
                     <div className="col-span-2">
-                        <p className="text-xs text-[var(--color-accent)]">Next Action</p>
+                        <p className="text-xs text-[var(--color-muted)]">Next Action</p>
                         <p className="text-sm text-[var(--color-text)]">
                             {application.next_action}
                             {application.next_action_date && ` \u2014 ${formatDate(application.next_action_date)}`}
@@ -168,7 +168,7 @@ export default function ApplicationShow({ application }: Props) {
 
             {application.notes && (
                 <div className="mb-8">
-                    <h2 className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">Notes</h2>
+                    <h2 className="type-eyebrow">Notes</h2>
                     <p className="mt-2 text-sm leading-relaxed text-[var(--color-text-secondary)]">{application.notes}</p>
                 </div>
             )}
@@ -190,7 +190,7 @@ export default function ApplicationShow({ application }: Props) {
             <div className="my-6 h-px bg-[var(--color-divider)]" />
 
             {/* Event Timeline */}
-            <h2 className="font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+            <h2 className="type-eyebrow">
                 Activity Timeline
             </h2>
             <div className="mt-4 space-y-3">
@@ -199,14 +199,14 @@ export default function ApplicationShow({ application }: Props) {
                 ) : (
                     application.events.map((event) => (
                         <div key={event.id} className="flex gap-3">
-                            <div className="mt-1.5 h-2 w-2 shrink-0 bg-[var(--color-accent)]" />
+                            <div className="mt-1.5 h-2 w-2 shrink-0 bg-[var(--color-muted)]" />
                             <div>
                                 <p className="text-sm text-[var(--color-text)]">
                                     {event.event_type === 'status_change'
                                         ? `${STATUS_LABELS[event.from_status ?? ''] ?? event.from_status} \u2192 ${STATUS_LABELS[event.to_status ?? ''] ?? event.to_status}`
                                         : event.event_type.replace(/_/g, ' ')}
                                 </p>
-                                <p className="text-xs text-[var(--color-accent)]">
+                                <p className="text-xs text-[var(--color-muted)]">
                                     {formatDateTime(event.occurred_at)}
                                 </p>
                                 {event.details?.reason && (

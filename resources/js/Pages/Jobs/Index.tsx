@@ -67,7 +67,7 @@ function MatchBadge({ percent }: { percent: number }) {
         ? 'bg-[var(--color-text)] text-[var(--color-background)]'
         : percent >= 60
             ? 'border border-[var(--color-text)] text-[var(--color-text)]'
-            : 'border border-[var(--color-accent)] text-[var(--color-text-secondary)]';
+            : 'border border-[var(--color-muted)] text-[var(--color-text-secondary)]';
 
     return (
         <span className={`inline-block px-2 py-0.5 text-xs font-medium tracking-wide ${color}`}>
@@ -85,7 +85,7 @@ function PaginationLink({ link }: { link: { url: string | null; label: string; a
 
     if (!link.url) {
         return (
-            <span className="px-3 py-1 text-xs text-[var(--color-accent)]">
+            <span className="px-3 py-1 text-xs text-[var(--color-muted)]">
                 {cleanLabel}
             </span>
         );
@@ -143,7 +143,7 @@ export default function JobsIndex({ jobs, filters, pathways }: Props) {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search by title, company..."
-                    className="flex-1 border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-accent)]"
+                    className="flex-1 border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-muted)]"
                 />
                 <button
                     type="submit"
@@ -234,14 +234,14 @@ export default function JobsIndex({ jobs, filters, pathways }: Props) {
                                             </span>
                                         )}
                                         {job.posted_at && (
-                                            <span className="text-xs text-[var(--color-accent)]">
+                                            <span className="text-xs text-[var(--color-muted)]">
                                                 {timeAgo(job.posted_at)}
                                             </span>
                                         )}
                                         {job.categories.slice(0, 2).map((cat) => (
                                             <span
                                                 key={cat.slug}
-                                                className="text-xs text-[var(--color-accent)]"
+                                                className="text-xs text-[var(--color-muted)]"
                                             >
                                                 {cat.name}
                                             </span>

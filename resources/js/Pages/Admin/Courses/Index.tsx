@@ -45,22 +45,22 @@ export default function AdminCoursesIndex({ courses }: Props) {
                 <table className="w-full">
                     <thead>
                         <tr className="border-b border-[var(--color-divider)] text-left">
-                            <th className="pb-3 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                            <th className="pb-3 type-eyebrow">
                                 Title
                             </th>
-                            <th className="pb-3 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                            <th className="pb-3 type-eyebrow">
                                 Category
                             </th>
-                            <th className="pb-3 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                            <th className="pb-3 type-eyebrow">
                                 Modules
                             </th>
-                            <th className="pb-3 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                            <th className="pb-3 type-eyebrow">
                                 Enrolled
                             </th>
-                            <th className="pb-3 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                            <th className="pb-3 type-eyebrow">
                                 Status
                             </th>
-                            <th className="pb-3 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                            <th className="pb-3 type-eyebrow">
                                 Actions
                             </th>
                         </tr>
@@ -76,7 +76,7 @@ export default function AdminCoursesIndex({ courses }: Props) {
                                         {course.title}
                                     </p>
                                     {course.estimated_duration && (
-                                        <p className="mt-1 font-sans text-xs text-[var(--color-accent)]">
+                                        <p className="mt-1 font-sans text-xs text-[var(--color-muted)]">
                                             {course.estimated_duration}
                                         </p>
                                     )}
@@ -105,7 +105,7 @@ export default function AdminCoursesIndex({ courses }: Props) {
                                     <div className="flex gap-3">
                                         <Link
                                             href={`/admin/courses/${course.slug}/edit`}
-                                            className="font-sans text-sm text-[var(--color-accent)] hover:text-[var(--color-text)]"
+                                            className="font-sans text-sm text-[var(--color-muted)] hover:text-[var(--color-text)]"
                                         >
                                             Edit
                                         </Link>

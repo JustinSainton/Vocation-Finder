@@ -1,0 +1,127 @@
+<?php
+
+namespace App\Http\Controllers\Web;
+
+use App\Ai\Agents\PathwayCoachAgent;
+use App\Http\Controllers\Controller;
+use App\Support\AccessPolicy;
+use App\Support\ActionQueue;
+use App\Support\BrainCapture;
+use App\Support\BrainstormSchedule;
+use App\Support\ConversationLocale;
+use App\Support\CrisisCheck;
+use App\Support\FirstRunSequence;
+use App\Support\HabitTracker;
+use App\Support\ReadinessCalculator;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+use RuntimeException;
+
+/**
+ * The coach: the front door, not a feature tab.
+ *
+ * Every response here carries the first-run step, computed rather than stored,
+ * so the one question the interface has to answer — what happens next — has a
+ * single source and cannot drift between screens.
+ */
+class PathwayCoachController extends Controller
+{
+    public function index(Request $request): Response|RedirectResponse
+    {
+        $user = $request->user();
+
+        if (! AccessPolicy::canUseCoach($user)) {
+            return redirect()->route('first-run')
+                ->with('status', AccessPolicy::coachBlockedReason($user));
+        }
+
+        return Inertia::render('Coach/Index', [
+            'firstRun' => FirstRunSequence::toArray($user),
+            'currentAction' => (new ActionQueue)->current($user)?->only(['id', 'title', 'rationale']),
+            /**
+             * Readiness is shown here rather than being a step in
+             * {@see FirstRunSequence}. The vision lists it between refinement
+             * and the first action, but it is something a student *reads*, not
+             * something they *complete* — making it a step would put a screen
+             * with no action on it between them and the one thing that matters.
+             */
+            'readiness' => (new ReadinessCalculator)->explain($user),
+            /**
+             * Words and a move, never the counts. The coach gets the counts
+             * so it can tell that a habit is the wrong size; handing them to
+             * a sixteen-year-old turns their week into a score.
+             */
+            'habits' => (new HabitTracker)->forStudent($user),
+            /**
+             * Roadmap 2.4. Null most of the time, and that is the point — the
+             * return loop is voluntary, so the cadence is a ceiling on
+             * contact rather than a schedule of it. When it does appear it
+             * opens with something the student has said repeatedly, in their
+             * own words, because an invitation with nothing in it is a nag.
+             */
+            'invitation' => (new BrainstormSchedule)->invitation($user),
+        ]);
+    }
+
+    /**
+     * One turn of the conversation.
+     *
+     * Goes through {@see PathwayCoachAgent::respondTo()} rather than
+     * `prompt()` so the student's words are captured to their brain before the
+     * model is called. A conversation that is not captured as it happens
+     * cannot be recovered afterwards.
+     */
+    public function message(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'message' => ['required', 'string', 'max:4000'],
+        ]);
+
+        /*
+         | Before entitlement, before the model, before anything. A student
+         | whose parent has not consented, or whose plan has lapsed, still gets
+         | the phone number — the one thing in this product that is not a
+         | feature is not behind a paywall either.
+         |
+         | Their words are still captured. The brain is never allowed to lose
+         | what somebody said (see the persistence invariant), and this is the
+         | sentence they would least want to have to write twice.
+         */
+        if ((new CrisisCheck)->standing($validated['message'])->isEscalation()) {
+            (new BrainCapture)->captureCoachTurn(
+                $request->user(),
+                role: 'user',
+                content: $validated['message'],
+            );
+
+            /*
+             | The locale lives on the assessment rather than the user, so it
+             | is read from the most recent one. Unknown falls back to English
+             | rather than refusing: a message in the wrong language with the
+             | right phone number in it still works.
+             */
+            return back()->with('support', (new CrisisCheck)->support(
+                ConversationLocale::normalize($request->user()->assessments()->latest()->value('locale')),
+            ));
+        }
+
+        try {
+            $agent = new PathwayCoachAgent($request->user());
+        } catch (RuntimeException $exception) {
+            return back()->with('status', $exception->getMessage());
+        }
+
+        $agent->respondTo($validated['message']);
+
+        /*
+         * Turning up is what counts as attending, not clicking the
+         * invitation. A student who came back on their own has told the
+         * schedule everything it needed to know.
+         */
+        (new BrainstormSchedule)->attended($request->user());
+
+        return back();
+    }
+}

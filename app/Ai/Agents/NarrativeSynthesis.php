@@ -2,25 +2,30 @@
 
 namespace App\Ai\Agents;
 
+use App\Ai\Concerns\RunsOnTheConfiguredEngine;
+use App\Enums\ConfidenceLevel;
 use App\Support\ConversationLocale;
 use Laravel\Ai\Attributes\Model;
 use Laravel\Ai\Attributes\Provider;
 use Laravel\Ai\Attributes\Timeout;
 use Laravel\Ai\Contracts\Agent;
+use Laravel\Ai\Contracts\HasProviderOptions;
 use Laravel\Ai\Promptable;
 use Stringable;
 
 #[Provider('anthropic')]
-#[Model('claude-sonnet-4-20250514')]
+#[Model('claude-sonnet-4-6')]
 #[Timeout(120)]
-class NarrativeSynthesis implements Agent
+class NarrativeSynthesis implements Agent, HasProviderOptions
 {
-    use Promptable;
+    use Promptable, RunsOnTheConfiguredEngine;
 
     public function __construct(
         protected array $analysisData,
         protected string $respondentContext = '',
         protected string $responseLocale = ConversationLocale::DEFAULT,
+        protected ?ConfidenceLevel $confidence = null,
+        protected array $missingEvidence = [],
     ) {}
 
     public function instructions(): Stringable|string
@@ -90,13 +95,15 @@ INSTRUCTIONS;
             ? "\n\n## Additional Context\n{$this->respondentContext}"
             : '';
 
+        $confidence = $this->confidenceBrief();
+
         return <<<PROMPT
 Based on the following vocational analysis data, write a complete vocational profile for this person.
 
 ## Analysis Data
 
 {$analysis}
-{$context}
+{$context}{$confidence}
 
 Write all body paragraphs, bullet items, and numbered steps in {$languageName} ({$locale}).
 Keep the exact English markdown headers specified in the instructions so the output can be parsed correctly.
@@ -104,5 +111,60 @@ Keep the exact English markdown headers specified in the instructions so the out
 Write the complete vocational profile now. Remember: this person is reading about their own calling. Make it worthy of that moment.
 Return the result with the exact markdown headers specified in the instructions.
 PROMPT;
+    }
+
+    /**
+     * How certain the profile is allowed to sound.
+     *
+     * The level is computed from the evidence, not from the model's sense of
+     * its own fluency, so it is handed to the writer as a constraint rather
+     * than a suggestion. Below Moderate the blueprint forbids naming a
+     * direction at all: the profile must instead say what is missing and
+     * drive toward something testable.
+     */
+    protected function confidenceBrief(): string
+    {
+        if ($this->confidence === null) {
+            return '';
+        }
+
+        $missing = $this->missingEvidence === []
+            ? 'Nothing essential is missing.'
+            : '- '.implode("\n- ", $this->missingEvidence);
+
+        $instruction = $this->confidence->permitsConclusion()
+            ? <<<'HIGH'
+            You may name a vocational direction. Still write it as a reading to be
+            tested against their lived experience, never as a verdict about who they
+            are. Do not claim more certainty than the evidence below supports.
+            HIGH
+            : <<<'LOW'
+            You may NOT name a single vocational direction. There is not enough
+            evidence yet. Do not hedge your way into naming one anyway, and do not
+            substitute a generic list of careers.
+
+            Instead: say plainly that this is an early reading, name what is still
+            missing, and make the next steps the point of the profile. Every next
+            step must be something they can actually do — a person to talk to, a
+            responsibility to test, a field to explore, a small project, a mentor to
+            ask, an environment to enter, a skill to practise, a constraint to
+            clarify, or a low-risk experiment to run.
+
+            Never write that there is not enough information to help them. There is
+            always enough to know what to test next.
+            LOW;
+
+        return <<<CONFIDENCE
+
+
+        ## Confidence
+
+        Derived level: {$this->confidence->label()}
+
+        What the evidence does not yet show:
+        {$missing}
+
+        {$instruction}
+        CONFIDENCE;
     }
 }

@@ -182,13 +182,29 @@ class AssessmentFlowTest extends TestCase
         ]);
     }
 
+    /**
+     * Asserts translation happened, not which question happens to be first.
+     *
+     * The previous version matched a phrase from one specific question, which
+     * made it fail whenever the beta question set was enabled and a different
+     * question led the list. Comparing the same question across two locales
+     * tests the thing that actually matters — and still fails if the locale
+     * silently falls back to English, which is the bug worth catching.
+     */
     public function test_questions_can_be_requested_in_spanish(): void
     {
-        $response = $this->getJson('/api/v1/questions?locale=es-419');
+        $spanish = $this->getJson('/api/v1/questions?locale=es-419');
+        $english = $this->getJson('/api/v1/questions');
 
-        $response->assertOk();
-        $response->assertJsonPath('data.0.locale', 'es-419');
-        $this->assertStringContainsString('6 a 12 meses', $response->json('data.0.question_text'));
+        $spanish->assertOk();
+        $english->assertOk();
+        $spanish->assertJsonPath('data.0.locale', 'es-419');
+
+        $this->assertSame($english->json('data.0.id'), $spanish->json('data.0.id'));
+        $this->assertNotSame(
+            $english->json('data.0.question_text'),
+            $spanish->json('data.0.question_text'),
+        );
     }
 
     public function test_conversation_start_returns_localized_first_question(): void

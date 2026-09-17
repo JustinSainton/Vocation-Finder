@@ -20,6 +20,26 @@ class ConversationModelSelector
         /** @var array<string, mixed> $config */
         $config = config('vocation.ai.conversation_experiment', []);
 
+        /*
+         | An engine override is an explicit operator instruction — "run all
+         | of this on that model" — and outranks a rollout nobody asked for in
+         | this run. The variant is named for what it is rather than reported
+         | as an arm: a turn that ran on an override is not a sample of the
+         | control or the treatment, and recording it as one would quietly
+         | poison whatever the experiment later concludes.
+         */
+        $override = config('vocation.engine.provider');
+
+        if (filled($override)) {
+            return [
+                'variant' => 'engine_override',
+                'provider' => $this->nullableString($override),
+                'model' => $this->nullableString(config('vocation.engine.model')),
+                'rollout_percentage' => 0,
+                'experiment_enabled' => false,
+            ];
+        }
+
         $enabled = (bool) ($config['enabled'] ?? false);
         $rolloutPercentage = $this->normalizePercentage((int) ($config['rollout_percentage'] ?? 0));
         $forcedVariant = $this->normalizeVariant($config['force_variant'] ?? null);

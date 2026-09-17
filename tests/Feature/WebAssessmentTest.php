@@ -66,7 +66,7 @@ class WebAssessmentTest extends TestCase
             'completed_at' => now(),
         ]);
 
-        $response = $this->get("/assessment/{$assessment->id}/results");
+        $response = $this->get("/assessment/{$assessment->id}/results?t={$assessment->guest_token}");
 
         $response->assertOk();
     }
@@ -96,7 +96,7 @@ class WebAssessmentTest extends TestCase
             'ai_analysis_raw' => [],
         ]);
 
-        $response = $this->get("/assessment/{$assessment->id}/results");
+        $response = $this->get("/assessment/{$assessment->id}/results?t={$assessment->guest_token}");
 
         $response->assertOk();
     }

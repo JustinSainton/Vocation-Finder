@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Assessment;
 use App\Models\Question;
+use App\Support\AssessmentAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -41,6 +42,8 @@ class AssessmentController extends Controller
             'started_at' => now(),
         ]);
 
+        AssessmentAccess::remember($request, $assessment);
+
         return Inertia::render('Assessment/Written', [
             'questions' => $questions,
             'assessment_id' => $assessment->id,
@@ -50,6 +53,9 @@ class AssessmentController extends Controller
 
     public function results(Request $request, Assessment $assessment): Response
     {
+        AssessmentAccess::authorizeReading($request, $assessment);
+        AssessmentAccess::remember($request, $assessment);
+
         $profile = $assessment->vocationalProfile;
 
         $profileData = null;

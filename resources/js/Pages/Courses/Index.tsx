@@ -36,7 +36,7 @@ interface Props {
 export default function CoursesIndex({ categories, coursesByCategory, uncategorized, recommendations }: Props) {
     return (
         <AppLayout title="Courses">
-            <p className="mb-4 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+            <p className="mb-4 type-eyebrow">
                 Formation
             </p>
 
@@ -52,7 +52,7 @@ export default function CoursesIndex({ categories, coursesByCategory, uncategori
             {/* Personalized Recommendations */}
             {recommendations.length > 0 && (
                 <div className="mb-12">
-                    <p className="mb-4 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                    <p className="mb-4 type-eyebrow">
                         Recommended for you
                     </p>
                     <div className="space-y-4">
@@ -60,12 +60,12 @@ export default function CoursesIndex({ categories, coursesByCategory, uncategori
                             <Link
                                 key={rec.course_id}
                                 href={`/courses/${rec.course_slug}`}
-                                className="block border border-[var(--color-accent)] bg-[var(--color-surface)] p-6 transition-colors hover:border-[var(--color-text)]"
+                                className="block border border-[var(--color-muted)] bg-[var(--color-surface)] p-6 transition-colors hover:border-[var(--color-text)]"
                             >
                                 <h3 className="font-serif text-lg text-[var(--color-text)]">
                                     {rec.course_title}
                                 </h3>
-                                <p className="mt-2 text-sm italic leading-relaxed text-[var(--color-accent)]">
+                                <p className="mt-2 text-sm italic leading-relaxed text-[var(--color-muted)]">
                                     {rec.reason}
                                 </p>
                             </Link>
@@ -82,7 +82,7 @@ export default function CoursesIndex({ categories, coursesByCategory, uncategori
 
                 return (
                     <div key={category.id} className="mb-12">
-                        <p className="mb-4 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                        <p className="mb-4 type-eyebrow">
                             {category.name}
                         </p>
                         <div className="space-y-4">
@@ -96,7 +96,7 @@ export default function CoursesIndex({ categories, coursesByCategory, uncategori
 
             {uncategorized.length > 0 && (
                 <div className="mb-12">
-                    <p className="mb-4 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                    <p className="mb-4 type-eyebrow">
                         General
                     </p>
                     <div className="space-y-4">
@@ -126,7 +126,7 @@ function CourseCardItem({ course }: { course: CourseCard }) {
             <div className="flex items-start justify-between">
                 <h3 className="font-serif text-lg text-[var(--color-text)]">{course.title}</h3>
                 {course.requires_personalization && (
-                    <span className="ml-3 shrink-0 font-sans text-[10px] uppercase tracking-widest text-[var(--color-accent)]">
+                    <span className="ml-3 shrink-0 font-sans text-[10px] uppercase tracking-widest text-[var(--color-muted)]">
                         Personalized
                     </span>
                 )}
@@ -137,7 +137,7 @@ function CourseCardItem({ course }: { course: CourseCard }) {
                 </p>
             )}
             {course.estimated_duration && (
-                <p className="mt-3 font-sans text-xs text-[var(--color-accent)]">
+                <p className="mt-3 font-sans text-xs text-[var(--color-muted)]">
                     {course.estimated_duration}
                 </p>
             )}

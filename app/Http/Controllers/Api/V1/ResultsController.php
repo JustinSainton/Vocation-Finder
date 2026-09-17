@@ -7,6 +7,7 @@ use App\Http\Resources\VocationalProfileResource;
 use App\Jobs\EmailResultsJob;
 use App\Models\Assessment;
 use App\Services\ResultsPdf;
+use App\Support\AssessmentAccess;
 use App\Support\VocationalProfileCopy;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,7 +17,7 @@ class ResultsController extends Controller
 {
     public function show(Request $request, Assessment $assessment): VocationalProfileResource|JsonResponse
     {
-        $this->authorizeAccess($request, $assessment);
+        $this->authorizeReading($request, $assessment);
         $copy = VocationalProfileCopy::forLocale($assessment->locale);
 
         $profile = $assessment->vocationalProfile;
@@ -49,7 +50,7 @@ class ResultsController extends Controller
 
     public function pdf(Request $request, Assessment $assessment, ResultsPdf $resultsPdf): Response|JsonResponse
     {
-        $this->authorizeAccess($request, $assessment);
+        $this->authorizeReading($request, $assessment);
 
         $profile = $assessment->vocationalProfile;
         if (! $profile) {
@@ -105,18 +106,21 @@ class ResultsController extends Controller
         EmailResultsJob::dispatchAfterResponse($assessment, $email);
     }
 
+    /**
+     * Reading the portrait. Open to the subject and, subject to the
+     * organization's flag, to its staff.
+     */
+    private function authorizeReading(Request $request, Assessment $assessment): void
+    {
+        AssessmentAccess::authorizeReading($request, $assessment);
+    }
+
+    /**
+     * Acting on the assessment. Subject only — mailing a portrait to a typed
+     * address is the student's decision, not their counsellor's.
+     */
     private function authorizeAccess(Request $request, Assessment $assessment): void
     {
-        $user = $request->user();
-
-        if ($user && $assessment->user_id === $user->id) {
-            return;
-        }
-
-        if (! $user && $assessment->guest_token && hash_equals($assessment->guest_token, (string) $request->header('X-Guest-Token'))) {
-            return;
-        }
-
-        abort(403, 'Unauthorized access to assessment.');
+        AssessmentAccess::authorize($request, $assessment);
     }
 }

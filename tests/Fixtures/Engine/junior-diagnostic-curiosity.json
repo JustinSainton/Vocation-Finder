@@ -1,0 +1,134 @@
+{
+  "name": "junior-diagnostic-curiosity",
+  "description": "The assessment from the first live run, 2026-09-16. A real junior's register: lowercase, unpunctuated, self-deprecating, concrete. The engine reached moderate confidence and nineteen verified signals on it. It is the library's baseline — if this case stops behaving, the engine has drifted on the exact input it was proven against.",
+  "answers": [
+    "i fixed my neighbours mower last summer because nobody else was going to and it took me all saturday. i didnt really mind, i liked figuring out what was wrong with it more than actually fixing it",
+    "the thing that makes me mad is when people get treated like theyre stupid because they cant explain something right. my mom does that at the doctor and they talk over her",
+    "i dont know. maybe something with my hands? everyone says i should go to college but nobody in my family has",
+    "i did a week at a hospital thing through school. the part i keep thinking about is when nobody knew what was wrong with someone yet. that was the only week i didnt want to leave early",
+    "money honestly. nobody in my house will actually talk about it and i dont know what any of this costs",
+    "i am good at noticing when something is off before other people do. my coach said that about me too",
+    "i just sat with her until she stopped crying, thats all i did. she said it helped but i didnt really do anything"
+  ],
+  "signals": [
+    {
+      "answer_index": 0,
+      "type": "skill",
+      "track": "demonstrated",
+      "content": "Diagnosed and repaired a machine unsupervised over a full day",
+      "verbatim": "i fixed my neighbours mower last summer"
+    },
+    {
+      "answer_index": 0,
+      "type": "energy_source",
+      "track": "demonstrated",
+      "content": "Energised by diagnosis rather than by the repair itself",
+      "verbatim": "i liked figuring out what was wrong with it more than actually fixing it"
+    },
+    {
+      "answer_index": 1,
+      "type": "burden",
+      "track": "demonstrated",
+      "content": "Carries the indignity of people being talked over when they cannot explain themselves",
+      "verbatim": "when people get treated like theyre stupid because they cant explain something right"
+    },
+    {
+      "answer_index": 1,
+      "type": "burden",
+      "track": "demonstrated",
+      "content": "Has witnessed this happen to his mother in a clinical setting",
+      "verbatim": "my mom does that at the doctor and they talk over her"
+    },
+    {
+      "answer_index": 2,
+      "type": "constraint",
+      "track": "demonstrated",
+      "content": "First generation; no family map for college",
+      "verbatim": "nobody in my family has"
+    },
+    {
+      "answer_index": 3,
+      "type": "interest",
+      "track": "aspiration",
+      "content": "Drawn to the undiagnosed interval, before anyone knows the answer",
+      "verbatim": "the part i keep thinking about is when nobody knew what was wrong with someone yet"
+    },
+    {
+      "answer_index": 3,
+      "type": "energy_source",
+      "track": "demonstrated",
+      "content": "Sustained engagement where he usually disengages",
+      "verbatim": "that was the only week i didnt want to leave early"
+    },
+    {
+      "answer_index": 4,
+      "type": "constraint",
+      "track": "demonstrated",
+      "content": "Financial uncertainty compounded by family silence about money",
+      "verbatim": "nobody in my house will actually talk about it"
+    },
+    {
+      "answer_index": 5,
+      "type": "strength",
+      "track": "demonstrated",
+      "content": "Noticing anomaly early; corroborated by an outside adult",
+      "verbatim": "i am good at noticing when something is off before other people do"
+    },
+    {
+      "answer_index": 6,
+      "type": "strength",
+      "track": "demonstrated",
+      "content": "Stayed with distress without needing to fix it",
+      "verbatim": "i just sat with her until she stopped crying"
+    },
+    {
+      "answer_index": 6,
+      "type": "tension",
+      "track": "demonstrated",
+      "content": "Discounts the care he gave as having done nothing",
+      "verbatim": "i didnt really do anything"
+    }
+  ],
+  "category_scores": [
+    {
+      "category": "Health & Medicine",
+      "score": 84,
+      "rationale": "Diagnostic draw plus a burden located in clinical settings.",
+      "evidence": [
+        "S1",
+        "S2",
+        "S3",
+        "S4",
+        "S6",
+        "S7",
+        "S9"
+      ]
+    },
+    {
+      "category": "Trades & Technical",
+      "score": 71,
+      "rationale": "Demonstrated mechanical repair, but the draw is diagnosis not building.",
+      "evidence": [
+        "S1",
+        "S2"
+      ]
+    },
+    {
+      "category": "Human Services",
+      "score": 66,
+      "rationale": "Stayed with someone in distress without needing to fix it.",
+      "evidence": [
+        "S10",
+        "S11"
+      ]
+    }
+  ],
+  "narrative": "You keep returning to the moment before anyone knows the answer. You said the part you keep thinking about is when nobody knew what was wrong with someone yet, and you said the mower interested you because you liked figuring out what was wrong with it more than actually fixing it. That is the same interval twice, in two different settings.\n\nYou also carry something specific about people being talked over when they cannot explain themselves. You watched it happen to your mother. That is not a general wish to help people; it is a particular objection to a particular failure, and it points somewhere narrower than kindness does.\n\nWhat the evidence does not yet settle is whether that belongs in medicine, in a technical trade, or somewhere adjacent to both. One week in a hospital is a real data point and it is one week. The next thing worth doing is finding a second interval like it and seeing whether it holds.",
+  "expect": {
+    "leading_category": "Health & Medicine",
+    "evidence_standing": "demonstrated",
+    "confidence": "moderate",
+    "red_team_clean": true,
+    "response_quality_min": 30
+  }
+}

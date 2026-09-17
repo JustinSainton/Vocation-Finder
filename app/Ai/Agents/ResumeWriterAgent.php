@@ -12,7 +12,7 @@ use Laravel\Ai\Promptable;
 use Stringable;
 
 #[Provider('anthropic')]
-#[Model('claude-sonnet-4-20250514')]
+#[Model('claude-sonnet-4-6')]
 #[Timeout(60)]
 class ResumeWriterAgent implements Agent, HasStructuredOutput
 {
@@ -59,36 +59,69 @@ Return structured JSON Resume data. Include only sections that have content — 
 INSTRUCTIONS;
     }
 
+    /**
+     * Every field is required so the serialized schema carries a "required"
+     * list. Providers that constrain decoding against the schema treat an
+     * absent list as "all keys optional" and emit partial objects. A section
+     * with nothing to say is an empty array, never a missing key.
+     */
     public function schema(JsonSchema $schema): array
     {
+        $text = fn (string $description) => $schema
+            ->string()
+            ->description($description)
+            ->required();
+
+        $bullets = fn (string $description) => $schema
+            ->array()
+            ->items($schema->string())
+            ->description($description)
+            ->required();
+
         return [
-            'summary' => $schema->string('Professional summary or objective (2-3 sentences)'),
-            'work' => $schema->array('Work experience entries', items: [
-                'company' => $schema->string('Company name'),
-                'position' => $schema->string('Job title'),
-                'startDate' => $schema->string('Start date'),
-                'endDate' => $schema->string('End date or "Present"'),
-                'highlights' => $schema->array('Achievement bullets', items: $schema->string()),
-            ]),
-            'education' => $schema->array('Education entries', items: [
-                'institution' => $schema->string('School name'),
-                'area' => $schema->string('Field of study'),
-                'studyType' => $schema->string('Degree type'),
-                'startDate' => $schema->string('Start date'),
-                'endDate' => $schema->string('End date'),
-                'highlights' => $schema->array('Relevant achievements', items: $schema->string()),
-            ]),
-            'skills' => $schema->array('Skills grouped by category', items: [
-                'name' => $schema->string('Skill category'),
-                'keywords' => $schema->array('Individual skills', items: $schema->string()),
-            ]),
-            'volunteer' => $schema->array('Volunteer experience', items: [
-                'organization' => $schema->string('Organization name'),
-                'position' => $schema->string('Role'),
-                'startDate' => $schema->string('Start date'),
-                'endDate' => $schema->string('End date'),
-                'highlights' => $schema->array('Achievement bullets', items: $schema->string()),
-            ]),
+            'summary' => $text('Professional summary or objective (2-3 sentences)'),
+            'work' => $schema
+                ->array()
+                ->items($schema->object([
+                    'company' => $text('Company name'),
+                    'position' => $text('Job title'),
+                    'startDate' => $text('Start date'),
+                    'endDate' => $text('End date, or "Present" if this is the current role'),
+                    'highlights' => $bullets('Achievement bullets'),
+                ]))
+                ->description('Work experience entries. Empty array if none are present.')
+                ->required(),
+            'education' => $schema
+                ->array()
+                ->items($schema->object([
+                    'institution' => $text('School name'),
+                    'area' => $text('Field of study'),
+                    'studyType' => $text('Degree type'),
+                    'startDate' => $text('Start date'),
+                    'endDate' => $text('End date'),
+                    'highlights' => $bullets('Relevant achievements'),
+                ]))
+                ->description('Education entries. Empty array if none are present.')
+                ->required(),
+            'skills' => $schema
+                ->array()
+                ->items($schema->object([
+                    'name' => $text('Skill category'),
+                    'keywords' => $bullets('Individual skills'),
+                ]))
+                ->description('Skills grouped by category. Empty array if none are present.')
+                ->required(),
+            'volunteer' => $schema
+                ->array()
+                ->items($schema->object([
+                    'organization' => $text('Organization name'),
+                    'position' => $text('Role'),
+                    'startDate' => $text('Start date'),
+                    'endDate' => $text('End date'),
+                    'highlights' => $bullets('Achievement bullets'),
+                ]))
+                ->description('Volunteer experience. Empty array if none are present.')
+                ->required(),
         ];
     }
 

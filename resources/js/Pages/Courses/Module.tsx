@@ -44,7 +44,7 @@ export default function CourseModule({ course, module, isPersonalized, nextModul
         <AppLayout title={`${module.title} — ${course.title}`}>
             <Link
                 href={`/courses/${course.slug}`}
-                className="mb-6 inline-block font-sans text-sm text-[var(--color-accent)] hover:text-[var(--color-text)]"
+                className="mb-6 inline-block font-sans text-sm text-[var(--color-muted)] hover:text-[var(--color-text)]"
             >
                 &larr; {course.title}
             </Link>
@@ -58,7 +58,7 @@ export default function CourseModule({ course, module, isPersonalized, nextModul
             )}
 
             {isPersonalized && (
-                <p className="mb-4 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+                <p className="mb-4 type-eyebrow">
                     Personalized for you
                 </p>
             )}
@@ -78,7 +78,7 @@ export default function CourseModule({ course, module, isPersonalized, nextModul
                     <p className="text-[var(--color-text-secondary)]">
                         Your personalized content is being prepared.
                     </p>
-                    <p className="mt-2 text-sm text-[var(--color-accent)]">
+                    <p className="mt-2 text-sm text-[var(--color-muted)]">
                         This usually takes a moment. Refresh to check.
                     </p>
                 </div>
@@ -91,7 +91,7 @@ export default function CourseModule({ course, module, isPersonalized, nextModul
                 {prevModule ? (
                     <Link
                         href={`/courses/${course.slug}/modules/${prevModule.slug}`}
-                        className="font-sans text-sm text-[var(--color-accent)] hover:text-[var(--color-text)]"
+                        className="font-sans text-sm text-[var(--color-muted)] hover:text-[var(--color-text)]"
                     >
                         &larr; {prevModule.title}
                     </Link>
@@ -158,7 +158,7 @@ function VideoBlock({ url, title }: { url: string; title?: string }) {
     return (
         <div>
             {title && (
-                <p className="mb-2 font-sans text-sm text-[var(--color-accent)]">{title}</p>
+                <p className="mb-2 font-sans text-sm text-[var(--color-muted)]">{title}</p>
             )}
             <div className="aspect-video w-full bg-[var(--color-surface)]">
                 <iframe
@@ -177,8 +177,8 @@ function ReflectionBlock({ prompt }: { prompt: string }) {
     const [value, setValue] = useState('');
 
     return (
-        <div className="border-l-[3px] border-[var(--color-accent)] bg-[var(--color-surface)] p-6">
-            <p className="mb-1 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+        <div className="border-l-[3px] border-[var(--color-muted)] bg-[var(--color-surface)] p-6">
+            <p className="mb-1 type-eyebrow">
                 Reflection
             </p>
             <p className="mb-4 font-serif text-lg text-[var(--color-text)]">{prompt}</p>
@@ -198,7 +198,7 @@ function CheckpointBlock({ question, options }: { question: string; options: str
 
     return (
         <div className="border border-[var(--color-divider)] bg-[var(--color-surface)] p-6">
-            <p className="mb-1 font-sans text-xs uppercase tracking-widest text-[var(--color-accent)]">
+            <p className="mb-1 type-eyebrow">
                 Checkpoint
             </p>
             <p className="mb-4 font-serif text-lg text-[var(--color-text)]">{question}</p>
