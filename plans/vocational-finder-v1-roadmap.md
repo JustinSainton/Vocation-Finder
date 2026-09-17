@@ -1321,6 +1321,75 @@ When a field's valid values depend on the prompt you just assembled, that is
 the case that needs the enum most, and it is the case where nobody thinks to
 look.
 
+### The corpus, measured on a model we host *(2026-09-16)*
+
+Five fixtures, `qwen2.5:7b-instruct` on Ollama, all three citation enums in
+force, 2063 seconds total. **Four of five pass.**
+
+| Fixture | Locale | Signals | Standing | Confidence | Wall clock |
+|---|---|---|---|---|---|
+| aspiration-only | en-US | 7 | `emerging` | insufficient_evidence | 449s |
+| junior-diagnostic-curiosity | en-US | 8 | `emerging` | weak | 406s |
+| portuguese-narrative-that-ships | pt-BR | 7 | `demonstrated` | insufficient_evidence | 416s |
+| spanish-narrative-that-ships | es-419 | 6 | `emerging` | insufficient_evidence | 461s |
+| thin-answers | en-US | 4 | `aspiration_only` | insufficient_evidence | 330s |
+
+What holds on a 7B, and it is more than expected:
+
+- **Verbatim provenance holds completely.** Thirty-two signals across five
+  assessments and not one invented span. This is the claim the whole product
+  rests on and it is a substring check, not a matter of model quality.
+- **Citations resolve.** Zero `evidence_citations_discarded` warnings once the
+  vocabulary was closed. Before the enum, every citation on every category was
+  discarded.
+- **Both other languages work.** The Spanish and Portuguese fixtures passed the
+  lint *and* the language assertion — the engine answered each student in the
+  language they wrote in.
+- **Thin stays thin.** The deliberately empty assessment produced the fewest
+  signals and landed on `aspiration_only` / `insufficient_evidence`. The
+  ceiling holds.
+
+### What does not hold: the aspiration/demonstrated distinction
+
+`aspiration-only` fails, and it fails on the distinction the blueprint is built
+around. The fixture is a student who *wants* healthcare and has never done any
+of it. The engine returned `emerging` — meaning at least one cited signal was
+filed on the **demonstrated** track — so `supports_naming_a_direction` came
+back true and assertion 4 caught it:
+
+> The engine treated an untested ambition as demonstrated.
+
+This is not a format failure and it cannot be fixed with a grammar. `track` is
+already a closed vocabulary and already an enum; the model picked the wrong
+member of it. Telling wanting from having done is a *judgement*, and it is the
+judgement this product exists to get right — the blueprint's whole reason for
+the split is that "the distance between the two generates the development plan."
+
+**We are not papering over this with a heuristic.** The obvious patch — refuse
+`demonstrated` for any span containing desire language — would mis-file "I
+wanted to help so I sat with her until she stopped crying," which is
+demonstrated evidence in the language of wanting. Suppressing real evidence is
+the same failure with the sign flipped, and inventing a value we cannot
+actually compute violates the guardrail it would claim to serve.
+
+So the measured position is:
+
+| Layer | On a 7B we host |
+|---|---|
+| Layer 4 extraction, verbatim provenance | ✅ holds |
+| Citation resolution, taxonomy naming | ✅ holds, once the vocabularies are closed |
+| Red-team lint, language, confidence ceiling | ✅ holds — all deterministic, no model involved |
+| Aspiration vs demonstrated track | ❌ **does not hold** |
+
+The failing assertion stays failing. It is correct, it caught a real defect on
+the first honest run, and a live harness that only ever passes is the thing
+this whole section was written about. The open question for the pilot is
+whether Layer 4 alone runs on a stronger model while the rest stays local —
+which the engine override cannot express today, since it is global by design.
+
+Cost of the run, for planning: **~7 minutes per assessment**, 100% GPU
+resident, 32k context.
+
 ---
 
 ## Decision 3 — the legacy fold-in map
