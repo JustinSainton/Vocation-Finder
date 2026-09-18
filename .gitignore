@@ -35,3 +35,6 @@ mobile/expo-env.d.ts
 /.claude/worktrees
 /tmp
 mobile/build/
+
+# Bundled on-device model binaries live on disk only (too large for git)
+mobile/assets/models/
