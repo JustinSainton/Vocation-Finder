@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
 import { getAssessmentCopy } from '../../constants/assessmentLocale';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
-import { ScoreSelector } from '../../components/ui/ScoreSelector';
 import { useAssessmentStore } from '../../stores/assessmentStore';
 import { spacing } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
@@ -16,27 +14,28 @@ export default function AfterSurveyScreen() {
   const { colors } = useTheme();
   const styles = getStyles(colors);
 
-  const { locale, submitSurvey } = useAssessmentStore();
+  const { locale, submitClarity } = useAssessmentStore();
   const copy = getAssessmentCopy(locale);
 
-  const [clarityScore, setClarityScore] = useState<number | null>(null);
-  const [likelihoodScore, setLikelihoodScore] = useState<number | null>(null);
+  const [standing, setStanding] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const canSubmit = clarityScore !== null && likelihoodScore !== null && !submitting;
-
   const handleSubmit = async () => {
-    if (!canSubmit) return;
+    if (!standing || submitting) return;
     setSubmitting(true);
 
     try {
-      await submitSurvey('after', clarityScore!, likelihoodScore!);
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await submitClarity('after', standing);
     } catch {
       // Non-fatal — proceed to results regardless
     } finally {
       router.replace('/(assessment)/results');
     }
+  };
+
+  const handleSkip = () => {
+    if (submitting) return;
+    router.replace('/(assessment)/results');
   };
 
   return (
@@ -50,61 +49,61 @@ export default function AfterSurveyScreen() {
           {copy.afterSurvey.title}
         </Typography>
 
-        <Typography
-          variant="body"
-          color={colors.textSecondary}
-          style={styles.subtitle}
-        >
-          {copy.afterSurvey.subtitle}
+        <Typography variant="bodyLarge" style={styles.question}>
+          {copy.afterSurvey.question}
         </Typography>
 
-        <View style={styles.divider} />
+        <Typography
+          variant="small"
+          family="sans"
+          color={colors.textSecondary}
+          style={styles.note}
+        >
+          {copy.afterSurvey.note}
+        </Typography>
 
-        {/* Question 1 */}
-        <View style={styles.question}>
-          <Typography variant="bodyLarge" style={styles.questionText}>
-            {copy.afterSurvey.clarityQuestion}
-          </Typography>
-          <Typography
-            variant="caption"
-            family="sans"
-            color={colors.accent}
-            style={styles.scaleLabel}
-          >
-            {copy.afterSurvey.clarityScale}
-          </Typography>
-          <ScoreSelector value={clarityScore} onChange={setClarityScore} colors={colors} />
-        </View>
-
-        {/* Question 2 */}
-        <View style={styles.question}>
-          <Typography variant="bodyLarge" style={styles.questionText}>
-            {copy.afterSurvey.likelihoodQuestion}
-          </Typography>
-          <Typography
-            variant="caption"
-            family="sans"
-            color={colors.accent}
-            style={styles.scaleLabel}
-          >
-            {copy.afterSurvey.likelihoodScale}
-          </Typography>
-          <ScoreSelector value={likelihoodScore} onChange={setLikelihoodScore} colors={colors} />
+        <View style={styles.options}>
+          {copy.afterSurvey.options.map((option) => (
+            <Pressable
+              key={option.value}
+              onPress={() => setStanding(option.value)}
+              style={[
+                styles.option,
+                standing === option.value && styles.optionSelected,
+              ]}
+            >
+              <Typography
+                variant="body"
+                style={standing === option.value ? styles.optionTextSelected : undefined}
+              >
+                {option.label}
+              </Typography>
+            </Pressable>
+          ))}
         </View>
 
         <View style={styles.actions}>
           <Button
             title={submitting ? copy.common.continueLoading : copy.afterSurvey.submitButton}
             onPress={handleSubmit}
-            disabled={!canSubmit}
+            disabled={!standing || submitting}
           />
+          <Pressable onPress={handleSkip} style={styles.skip} disabled={submitting}>
+            <Typography
+              variant="small"
+              family="sans"
+              color={colors.textSecondary}
+            >
+              {copy.afterSurvey.skip}
+            </Typography>
+          </Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const getStyles = (colors: { background: string; divider: string }) =>
+const getStyles = (colors: { background: string; text: string; divider: string }) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -116,26 +115,37 @@ const getStyles = (colors: { background: string; divider: string }) =>
       paddingBottom: spacing.section,
     },
     title: {
-      marginBottom: spacing.md,
-    },
-    subtitle: {
-      marginBottom: spacing.sm,
-    },
-    divider: {
-      height: 1,
-      backgroundColor: colors.divider,
-      marginVertical: spacing.xl,
+      marginBottom: spacing.xl,
     },
     question: {
-      marginBottom: spacing.xxl,
-    },
-    questionText: {
       marginBottom: spacing.sm,
     },
-    scaleLabel: {
-      marginBottom: spacing.xs ?? 4,
+    note: {
+      marginBottom: spacing.xl,
+    },
+    options: {
+      gap: spacing.sm,
+      marginBottom: spacing.xxl,
+    },
+    option: {
+      borderWidth: 1,
+      borderColor: colors.divider,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+    },
+    optionSelected: {
+      borderColor: colors.text,
+      backgroundColor: colors.text,
+    },
+    optionTextSelected: {
+      color: colors.background,
     },
     actions: {
       marginTop: spacing.md,
+    },
+    skip: {
+      alignItems: 'center',
+      paddingVertical: spacing.md,
+      marginTop: spacing.sm,
     },
   });

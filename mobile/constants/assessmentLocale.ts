@@ -123,21 +123,19 @@ type AssessmentCopy = {
   };
   beforeSurvey: {
     title: string;
-    subtitle: string;
-    clarityQuestion: string;
-    clarityScale: string;
-    readinessQuestion: string;
-    readinessScale: string;
+    question: string;
+    note: string;
+    options: { value: string; label: string }[];
     beginButton: string;
+    skip: string;
   };
   afterSurvey: {
     title: string;
-    subtitle: string;
-    clarityQuestion: string;
-    clarityScale: string;
-    likelihoodQuestion: string;
-    likelihoodScale: string;
+    question: string;
+    note: string;
+    options: { value: string; label: string }[];
     submitButton: string;
+    skip: string;
   };
   results: {
     notReadyTitle: string;
@@ -232,21 +230,29 @@ const COPY: Record<AssessmentLocale, AssessmentCopy> = {
     },
     beforeSurvey: {
       title: 'Before You Begin',
-      subtitle: 'Answer honestly — this is for your clarity.',
-      clarityQuestion: 'How clear are you about your vocational direction right now?',
-      clarityScale: '1 = no clarity · 10 = extremely clear',
-      readinessQuestion: 'How ready do you feel to make a real decision about your future (career, education, or calling)?',
-      readinessScale: '1 = not ready at all · 10 = fully ready',
+      question: 'Right now, how clear are you about what to do next?',
+      note: 'There is no right answer to this and it does not affect anything you are shown.',
+      options: [
+        { value: 'no_idea', label: 'No idea at all' },
+        { value: 'vague_sense', label: 'A vague sense' },
+        { value: 'few_options', label: 'A few options in mind' },
+        { value: 'know_what_to_try', label: 'I know what I want to try next' },
+      ],
       beginButton: 'Begin Assessment',
+      skip: 'Skip',
     },
     afterSurvey: {
       title: 'One More Step',
-      subtitle: 'Take 20 seconds to reflect on your experience.',
-      clarityQuestion: 'After taking this assessment, how clear are you about your vocational direction?',
-      clarityScale: '1 = no clarity · 10 = extremely clear',
-      likelihoodQuestion: 'How likely are you to take a concrete next step based on this assessment?',
-      likelihoodScale: '1 = very unlikely · 10 = very likely',
+      question: 'Right now, how clear are you about what to do next?',
+      note: 'There is no right answer to this and it does not affect anything you are shown.',
+      options: [
+        { value: 'no_idea', label: 'No idea at all' },
+        { value: 'vague_sense', label: 'A vague sense' },
+        { value: 'few_options', label: 'A few options in mind' },
+        { value: 'know_what_to_try', label: 'I know what I want to try next' },
+      ],
       submitButton: 'See My Results',
+      skip: 'Skip',
     },
     results: {
       notReadyTitle: 'Your vocational portrait is being prepared.',
@@ -343,21 +349,29 @@ const COPY: Record<AssessmentLocale, AssessmentCopy> = {
     },
     beforeSurvey: {
       title: 'Antes de comenzar',
-      subtitle: 'Responde con honestidad — esto es para tu propia claridad.',
-      clarityQuestion: '¿Qué tan claro tienes tu dirección vocacional ahora mismo?',
-      clarityScale: '1 = sin claridad · 10 = completamente claro',
-      readinessQuestion: '¿Qué tan listo(a) te sientes para tomar una decisión real sobre tu futuro (carrera, educación o llamado)?',
-      readinessScale: '1 = para nada listo(a) · 10 = completamente listo(a)',
+      question: 'Ahora mismo, ¿qué tan claro tienes lo que quieres hacer?',
+      note: 'No hay una respuesta correcta y esto no cambia nada de lo que verás.',
+      options: [
+        { value: 'no_idea', label: 'Ninguna idea' },
+        { value: 'vague_sense', label: 'Una sensación vaga' },
+        { value: 'few_options', label: 'Algunas opciones en mente' },
+        { value: 'know_what_to_try', label: 'Sé lo que quiero intentar' },
+      ],
       beginButton: 'Comenzar evaluación',
+      skip: 'Omitir',
     },
     afterSurvey: {
       title: 'Un paso más',
-      subtitle: 'Tómate 20 segundos para reflexionar sobre tu experiencia.',
-      clarityQuestion: 'Después de esta evaluación, ¿qué tan claro tienes tu dirección vocacional?',
-      clarityScale: '1 = sin claridad · 10 = completamente claro',
-      likelihoodQuestion: '¿Qué tan probable es que des un próximo paso concreto basado en esta evaluación?',
-      likelihoodScale: '1 = muy poco probable · 10 = muy probable',
+      question: 'Ahora mismo, ¿qué tan claro tienes lo que quieres hacer?',
+      note: 'No hay una respuesta correcta y esto no cambia nada de lo que verás.',
+      options: [
+        { value: 'no_idea', label: 'Ninguna idea' },
+        { value: 'vague_sense', label: 'Una sensación vaga' },
+        { value: 'few_options', label: 'Algunas opciones en mente' },
+        { value: 'know_what_to_try', label: 'Sé lo que quiero intentar' },
+      ],
       submitButton: 'Ver mis resultados',
+      skip: 'Omitir',
     },
     results: {
       notReadyTitle: 'Tu retrato vocacional se está preparando.',
@@ -455,21 +469,29 @@ const COPY: Record<AssessmentLocale, AssessmentCopy> = {
     },
     beforeSurvey: {
       title: 'Antes de começarmos',
-      subtitle: 'Responda com honestidade — isso é para a sua própria clareza.',
-      clarityQuestion: 'Quão claro(a) você está sobre sua direção vocacional agora?',
-      clarityScale: '1 = nenhuma clareza · 10 = extremamente claro',
-      readinessQuestion: 'Quão pronto(a) você se sente para tomar uma decisão real sobre seu futuro (carreira, educação ou chamado)?',
-      readinessScale: '1 = nada pronto(a) · 10 = completamente pronto(a)',
+      question: 'Neste momento, quão claro está para você o que fazer a seguir?',
+      note: 'Não há resposta certa e isso não muda nada do que você verá.',
+      options: [
+        { value: 'no_idea', label: 'Nenhuma ideia' },
+        { value: 'vague_sense', label: 'Uma sensação vaga' },
+        { value: 'few_options', label: 'Algumas opções em mente' },
+        { value: 'know_what_to_try', label: 'Sei o que quero tentar' },
+      ],
       beginButton: 'Iniciar avaliação',
+      skip: 'Pular',
     },
     afterSurvey: {
       title: 'Mais um passo',
-      subtitle: 'Tire 20 segundos para refletir sobre sua experiência.',
-      clarityQuestion: 'Após esta avaliação, quão claro(a) você está sobre sua direção vocacional?',
-      clarityScale: '1 = nenhuma clareza · 10 = extremamente claro',
-      likelihoodQuestion: 'Qual a probabilidade de você dar um próximo passo concreto com base nesta avaliação?',
-      likelihoodScale: '1 = muito improvável · 10 = muito provável',
+      question: 'Neste momento, quão claro está para você o que fazer a seguir?',
+      note: 'Não há resposta certa e isso não muda nada do que você verá.',
+      options: [
+        { value: 'no_idea', label: 'Nenhuma ideia' },
+        { value: 'vague_sense', label: 'Uma sensação vaga' },
+        { value: 'few_options', label: 'Algumas opções em mente' },
+        { value: 'know_what_to_try', label: 'Sei o que quero tentar' },
+      ],
       submitButton: 'Ver meus resultados',
+      skip: 'Pular',
     },
     results: {
       notReadyTitle: 'Seu retrato vocacional está sendo preparado.',

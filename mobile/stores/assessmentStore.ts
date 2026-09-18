@@ -76,7 +76,7 @@ interface AssessmentState {
   fetchQuestions: () => Promise<void>;
   createAssessment: (mode: 'written' | 'conversation') => Promise<string>;
   saveAnswerToApi: (questionIndex: number, answer: string) => Promise<void>;
-  submitSurvey: (type: 'before' | 'after', clarityScore: number, actionScore: number) => Promise<void>;
+  submitClarity: (moment: 'before' | 'after', standing: string) => Promise<void>;
   completeAssessment: () => Promise<void>;
   fetchResults: () => Promise<VocationalProfile | null>;
 
@@ -242,20 +242,19 @@ export const useAssessmentStore = create<AssessmentState>()(
         await assessmentApi.completeAssessment(assessmentId, guestToken ?? undefined);
       },
 
-      submitSurvey: async (type, clarityScore, actionScore) => {
+      submitClarity: async (moment, standing) => {
         const { assessmentId, guestToken } = get();
         if (!assessmentId) return;
 
         try {
-          await assessmentApi.submitSurvey(
+          await assessmentApi.submitClarity(
             assessmentId,
-            type,
-            clarityScore,
-            actionScore,
+            moment,
+            standing,
             guestToken ?? undefined
           );
         } catch {
-          // Survey failures are non-fatal — do not block the user flow
+          // Clarity failures are non-fatal — do not block the user flow
         }
       },
 

@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
-import { TypewriterText } from '../../components/ui/TypewriterText';
 import { spacing } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 
@@ -28,14 +27,9 @@ export default function AssessmentLandingScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.body}>
-          <TypewriterText
-            text={HERO_HEADLINE}
-            variant="headingLarge"
-            style={styles.headline}
-            speedMs={30}
-            enableHaptics
-            hapticEveryNChars={3}
-          />
+          <Typography variant="headingLarge" style={styles.headline}>
+            {HERO_HEADLINE}
+          </Typography>
 
           <Typography
             variant="body"
@@ -60,7 +54,6 @@ export default function AssessmentLandingScreen() {
           <Button
             title="Begin discernment"
             onPress={handleBegin}
-            hapticStyle="medium"
           />
         </View>
       </View>

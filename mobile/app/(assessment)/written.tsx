@@ -159,7 +159,7 @@ export default function WrittenAssessmentScreen() {
             <Typography
               variant="caption"
               family="sans"
-              color={colors.accent}
+              color={colors.textSecondary}
               style={styles.category}
             >
               {localizedCategory}
@@ -187,7 +187,7 @@ export default function WrittenAssessmentScreen() {
             <Typography
               variant="caption"
               family="sans"
-              color={colors.accent}
+              color={colors.textSecondary}
               style={styles.indicator}
             >
               {copy.written.progress(currentQuestion, totalQuestions)}

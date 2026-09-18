@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
 import { getAssessmentCopy } from '../../constants/assessmentLocale';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
-import { ScoreSelector } from '../../components/ui/ScoreSelector';
 import { useAssessmentStore } from '../../stores/assessmentStore';
 import { spacing } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
@@ -21,26 +19,33 @@ export default function BeforeSurveyScreen() {
   const nextRoute =
     assessmentMode === 'conversation' ? '/(assessment)/conversation' : '/(assessment)/written';
 
-  const { locale, createAssessment, submitSurvey } = useAssessmentStore();
+  const { locale, createAssessment, submitClarity } = useAssessmentStore();
   const copy = getAssessmentCopy(locale);
 
-  const [clarityScore, setClarityScore] = useState<number | null>(null);
-  const [readinessScore, setReadinessScore] = useState<number | null>(null);
+  const [standing, setStanding] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const canSubmit = clarityScore !== null && readinessScore !== null && !submitting;
-
   const handleBegin = async () => {
-    if (!canSubmit) return;
+    if (!standing || submitting) return;
     setSubmitting(true);
 
     try {
       await createAssessment(assessmentMode);
-      await submitSurvey('before', clarityScore!, readinessScore!);
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await submitClarity('before', standing);
       router.push(nextRoute as any);
     } catch {
-      // Even if survey fails, proceed to the assessment
+      router.push(nextRoute as any);
+    }
+  };
+
+  const handleSkip = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+
+    try {
+      await createAssessment(assessmentMode);
+      router.push(nextRoute as any);
+    } catch {
       router.push(nextRoute as any);
     }
   };
@@ -56,61 +61,61 @@ export default function BeforeSurveyScreen() {
           {copy.beforeSurvey.title}
         </Typography>
 
-        <Typography
-          variant="body"
-          color={colors.textSecondary}
-          style={styles.subtitle}
-        >
-          {copy.beforeSurvey.subtitle}
+        <Typography variant="bodyLarge" style={styles.question}>
+          {copy.beforeSurvey.question}
         </Typography>
 
-        <View style={styles.divider} />
+        <Typography
+          variant="small"
+          family="sans"
+          color={colors.textSecondary}
+          style={styles.note}
+        >
+          {copy.beforeSurvey.note}
+        </Typography>
 
-        {/* Question 1 */}
-        <View style={styles.question}>
-          <Typography variant="bodyLarge" style={styles.questionText}>
-            {copy.beforeSurvey.clarityQuestion}
-          </Typography>
-          <Typography
-            variant="caption"
-            family="sans"
-            color={colors.accent}
-            style={styles.scaleLabel}
-          >
-            {copy.beforeSurvey.clarityScale}
-          </Typography>
-          <ScoreSelector value={clarityScore} onChange={setClarityScore} colors={colors} />
-        </View>
-
-        {/* Question 2 */}
-        <View style={styles.question}>
-          <Typography variant="bodyLarge" style={styles.questionText}>
-            {copy.beforeSurvey.readinessQuestion}
-          </Typography>
-          <Typography
-            variant="caption"
-            family="sans"
-            color={colors.accent}
-            style={styles.scaleLabel}
-          >
-            {copy.beforeSurvey.readinessScale}
-          </Typography>
-          <ScoreSelector value={readinessScore} onChange={setReadinessScore} colors={colors} />
+        <View style={styles.options}>
+          {copy.beforeSurvey.options.map((option) => (
+            <Pressable
+              key={option.value}
+              onPress={() => setStanding(option.value)}
+              style={[
+                styles.option,
+                standing === option.value && styles.optionSelected,
+              ]}
+            >
+              <Typography
+                variant="body"
+                style={standing === option.value ? styles.optionTextSelected : undefined}
+              >
+                {option.label}
+              </Typography>
+            </Pressable>
+          ))}
         </View>
 
         <View style={styles.actions}>
           <Button
             title={submitting ? copy.common.continueLoading : copy.beforeSurvey.beginButton}
             onPress={handleBegin}
-            disabled={!canSubmit}
+            disabled={!standing || submitting}
           />
+          <Pressable onPress={handleSkip} style={styles.skip} disabled={submitting}>
+            <Typography
+              variant="small"
+              family="sans"
+              color={colors.textSecondary}
+            >
+              {copy.beforeSurvey.skip}
+            </Typography>
+          </Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const getStyles = (colors: { background: string; divider: string }) =>
+const getStyles = (colors: { background: string; text: string; divider: string }) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -122,26 +127,37 @@ const getStyles = (colors: { background: string; divider: string }) =>
       paddingBottom: spacing.section,
     },
     title: {
-      marginBottom: spacing.md,
-    },
-    subtitle: {
-      marginBottom: spacing.sm,
-    },
-    divider: {
-      height: 1,
-      backgroundColor: colors.divider,
-      marginVertical: spacing.xl,
+      marginBottom: spacing.xl,
     },
     question: {
-      marginBottom: spacing.xxl,
-    },
-    questionText: {
       marginBottom: spacing.sm,
     },
-    scaleLabel: {
-      marginBottom: spacing.xs ?? 4,
+    note: {
+      marginBottom: spacing.xl,
+    },
+    options: {
+      gap: spacing.sm,
+      marginBottom: spacing.xxl,
+    },
+    option: {
+      borderWidth: 1,
+      borderColor: colors.divider,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+    },
+    optionSelected: {
+      borderColor: colors.text,
+      backgroundColor: colors.text,
+    },
+    optionTextSelected: {
+      color: colors.background,
     },
     actions: {
       marginTop: spacing.md,
+    },
+    skip: {
+      alignItems: 'center',
+      paddingVertical: spacing.md,
+      marginTop: spacing.sm,
     },
   });

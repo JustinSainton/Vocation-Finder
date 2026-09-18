@@ -36,14 +36,14 @@ export default function FirstRunShow() {
     return (
         <AppLayout>
             <div className="mx-auto max-w-[640px] py-24">
-                {status && <p className="mb-8 border-l-2 border-stone-300 pl-4 text-stone-700">{status}</p>}
+                {status && <p className="mb-8 border-l-2 border-[var(--color-divider)] pl-4 text-[var(--color-text-secondary)]">{status}</p>}
 
-                <p className="font-serif text-2xl leading-relaxed text-stone-900">{firstRun.prompt}</p>
+                <p className="font-serif text-2xl leading-relaxed text-[var(--color-text)]">{firstRun.prompt}</p>
 
                 {destination && (
                     <Link
                         href={destination.href}
-                        className="mt-10 inline-block border border-stone-900 px-6 py-3 text-sm text-stone-900 hover:bg-stone-900 hover:text-stone-50"
+                        className="mt-10 inline-block border border-[var(--color-text)] px-6 py-3 text-sm text-[var(--color-text)] hover:bg-[var(--color-text)] hover:text-[var(--color-background)]"
                     >
                         {destination.label}
                     </Link>

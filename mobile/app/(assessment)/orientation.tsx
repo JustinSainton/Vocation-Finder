@@ -3,17 +3,14 @@ import { View, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import {
   getAssessmentCopy,
 } from '../../constants/assessmentLocale';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
-import { SingleLineInput } from '../../components/ui/SingleLineInput';
 import { spacing, layout } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { useAssessmentStore } from '../../stores/assessmentStore';
-import { useAuthStore } from '../../stores/authStore';
 export default function OrientationScreen() {
   const router = useRouter();
   const { colors } = useTheme();
@@ -21,31 +18,6 @@ export default function OrientationScreen() {
   const [checked, setChecked] = useState(false);
   const locale = useAssessmentStore((state) => state.locale);
   const copy = getAssessmentCopy(locale);
-
-  // Ambient music — starts playing immediately on orientation screen
-  const ambientPlayer = useAudioPlayer(require('../../assets/audio/calm-space.mp3'));
-
-  useEffect(() => {
-    const startMusic = async () => {
-      try {
-        await setAudioModeAsync({ playsInSilentMode: true });
-        ambientPlayer.loop = true;
-        ambientPlayer.volume = 0.08;
-        // Wait a tick for player to be ready after source loads
-        setTimeout(() => {
-          try { ambientPlayer.play(); } catch {}
-        }, 200);
-      } catch (e) {
-        console.warn('[Music] Failed to start ambient:', e);
-      }
-    };
-    startMusic();
-    return () => { try { ambientPlayer.pause(); } catch {} };
-  }, [ambientPlayer]);
-
-  // Pre-fill name from auth store if user is logged in
-  const authUser = useAuthStore((s) => s.user);
-  const [firstName, setFirstName] = useState(authUser?.name?.split(' ')[0] ?? '');
 
   useEffect(() => {
     const prefetch = async () => {
@@ -67,13 +39,10 @@ export default function OrientationScreen() {
   }, [locale]);
 
   const handleSpeak = () => {
-    // Store the name for use in the conversation greeting
-    useAssessmentStore.setState({ guestName: firstName.trim() || undefined });
     router.push('/(assessment)/before?mode=conversation');
   };
 
   const handleWrite = () => {
-    useAssessmentStore.setState({ guestName: firstName.trim() || undefined });
     router.push('/(assessment)/before?mode=written');
   };
 
@@ -82,7 +51,7 @@ export default function OrientationScreen() {
     setChecked((prev) => !prev);
   };
 
-  const canProceed = checked && firstName.trim().length > 0;
+  const canProceed = checked;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -92,26 +61,6 @@ export default function OrientationScreen() {
           <Typography variant="heading" style={styles.title}>
             {copy.orientation.title}
           </Typography>
-
-          {/* Name input */}
-          <View style={styles.nameSection}>
-            <Typography
-              variant="caption"
-              family="sans"
-              color={colors.textSecondary}
-              style={styles.nameLabel}
-            >
-              What should we call you?
-            </Typography>
-            <SingleLineInput
-              value={firstName}
-              onChangeText={setFirstName}
-              placeholder="Your first name"
-              autoCapitalize="words"
-              autoFocus={!firstName}
-              returnKeyType="done"
-            />
-          </View>
 
           <Typography variant="body" style={styles.paragraph}>
             {copy.orientation.introOne}
@@ -160,14 +109,14 @@ export default function OrientationScreen() {
           <View style={styles.actionRow}>
             <View style={styles.actionHalf}>
               <Button
-                title="Speak"
+                title={copy.orientation.speak}
                 onPress={handleSpeak}
                 disabled={!canProceed}
               />
             </View>
             <View style={styles.actionHalf}>
               <Button
-                title="Write"
+                title={copy.orientation.write}
                 onPress={handleWrite}
                 variant="secondary"
                 disabled={!canProceed}
@@ -204,14 +153,6 @@ const getStyles = (colors: {
     body: {},
     title: {
       marginBottom: spacing.xl,
-    },
-    nameSection: {
-      marginBottom: spacing.xl,
-    },
-    nameLabel: {
-      textTransform: 'uppercase',
-      letterSpacing: 1,
-      marginBottom: spacing.sm,
     },
     paragraph: {
       marginBottom: spacing.md,

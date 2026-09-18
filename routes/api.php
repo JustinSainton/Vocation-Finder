@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AdminStatsController;
+use App\Http\Controllers\Api\V1\AssessmentClarityController;
 use App\Http\Controllers\Api\V1\AssessmentController;
 use App\Http\Controllers\Api\V1\AssessmentSurveyController;
 use App\Http\Controllers\Api\V1\AudioConversationController;
@@ -58,6 +59,7 @@ Route::prefix('v1')->group(function () {
     Route::patch('assessments/{assessment}/answers/{answer}', [AssessmentController::class, 'updateAnswer']);
     Route::post('assessments/{assessment}/complete', [AssessmentController::class, 'complete']);
     Route::post('assessments/{assessment}/surveys', [AssessmentSurveyController::class, 'store']);
+    Route::post('assessments/{assessment}/clarity', [AssessmentClarityController::class, 'store']);
 
     // Results
     Route::get('assessments/{assessment}/results', [ResultsController::class, 'show']);

@@ -27,6 +27,12 @@ export default function Written({ questions, assessment_id, guest_token }: Props
      */
     const [baselineTaken, setBaselineTaken] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
+    /*
+     | The synthesis pause (spec Page 4). The last answer is already saved by
+     | the debounced save; this screen exists so the student arrives at the
+     | results deliberately rather than being pushed into them.
+     */
+    const [pausing, setPausing] = useState(false);
 
     /*
      | Returned by the save, not computed here. The check is deterministic and
@@ -87,6 +93,14 @@ export default function Written({ questions, assessment_id, guest_token }: Props
 
     const handleContinue = () => {
         if (isLast) {
+            // Pause before the results — the synthesis page (spec Page 4).
+            setPausing(true);
+            return;
+        }
+        setCurrentIndex((i) => i + 1);
+    };
+
+    const handleFinish = () => {
             // Complete the assessment
             const headers: Record<string, string> = {
                 'Content-Type': 'application/json',
@@ -108,9 +122,6 @@ export default function Written({ questions, assessment_id, guest_token }: Props
                         : `/assessment/${assessment_id}/results`,
                 );
             });
-        } else {
-            setCurrentIndex((i) => i + 1);
-        }
     };
 
     const handleBack = () => {
@@ -146,6 +157,42 @@ export default function Written({ questions, assessment_id, guest_token }: Props
                     <p className="text-[var(--color-text-secondary)]">
                         Preparing your questions...
                     </p>
+                </div>
+            </AppLayout>
+        );
+    }
+
+    if (pausing) {
+        return (
+            <AppLayout title="Synthesis">
+                <div className="flex min-h-[70vh] flex-col justify-between">
+                    <div>
+                        <p className="type-eyebrow mb-6">A pause before the portrait</p>
+                        <p className="text-xl leading-relaxed text-[var(--color-text)]">
+                            We&rsquo;re now looking for patterns across what you shared —
+                            not isolated answers, but the story they tell together.
+                        </p>
+                        <p className="mt-4 text-lg leading-relaxed text-[var(--color-text-secondary)]">
+                            Your reflections deserve careful attention. What comes next
+                            is not a summary — it is an articulation of what already
+                            lives within your responses.
+                        </p>
+                    </div>
+
+                    <div className="mt-16">
+                        <button
+                            onClick={handleFinish}
+                            className="w-full bg-[var(--color-text)] py-4 font-sans text-sm tracking-wide text-[var(--color-background)] transition-colors hover:bg-[var(--color-stone-800)]"
+                        >
+                            Continue &rarr;
+                        </button>
+                        <button
+                            onClick={() => setPausing(false)}
+                            className="mt-4 w-full py-2 font-sans text-sm text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text)]"
+                        >
+                            Return to your answers
+                        </button>
+                    </div>
                 </div>
             </AppLayout>
         );

@@ -310,17 +310,16 @@ export const assessmentApi = {
     );
   },
 
-  /** Submit a before or after survey for an assessment */
-  submitSurvey: (
+  /** Submit a clarity reading in words — the same instrument the web uses */
+  submitClarity: (
     assessmentId: string,
-    type: 'before' | 'after',
-    clarityScore: number,
-    actionScore: number,
+    moment: 'before' | 'after',
+    standing: string,
     guestToken?: string
   ) =>
     api.post<{ id: string }>(
-      `/assessments/${assessmentId}/surveys`,
-      { type, clarity_score: clarityScore, action_score: actionScore },
+      `/assessments/${assessmentId}/clarity`,
+      { moment, standing },
       guestToken ? { 'X-Guest-Token': guestToken } : undefined
     ),
 

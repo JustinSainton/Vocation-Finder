@@ -6,6 +6,7 @@ export default function Welcome() {
         <AppLayout title="Home">
             <div className="flex min-h-[70vh] flex-col justify-between">
                 <div>
+                    <p className="type-eyebrow mb-6">A threshold, not a test</p>
                     <h1 className="font-serif text-3xl leading-snug tracking-tight text-[var(--color-text)] md:text-4xl">
                         Most people are taught
                         <br />

@@ -9,6 +9,7 @@ export default function Orientation() {
         <AppLayout title="Before We Begin">
             <div className="flex min-h-[70vh] flex-col justify-between">
                 <div>
+                    <p className="type-eyebrow mb-6">Orientation</p>
                     <h1 className="font-serif text-2xl tracking-tight text-[var(--color-text)]">
                         Before we begin
                     </h1>
@@ -28,6 +29,11 @@ export default function Orientation() {
 
                     <p className="mt-4 font-sans text-sm text-[var(--color-muted)]">
                         ~30–45 minutes
+                    </p>
+
+                    <p className="mt-4 font-sans text-sm leading-relaxed text-[var(--color-muted)]">
+                        Your own words are kept as you wrote them — nothing is summarized
+                        or rewritten.
                     </p>
 
                     <div className="my-8 h-px bg-[var(--color-divider)]" />
