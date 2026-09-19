@@ -106,22 +106,18 @@ export default function OrientationScreen() {
         </View>
 
         <View style={styles.actions}>
-          <View style={styles.actionRow}>
-            <View style={styles.actionHalf}>
-              <Button
-                title={copy.orientation.speak}
-                onPress={handleSpeak}
-                disabled={!canProceed}
-              />
-            </View>
-            <View style={styles.actionHalf}>
-              <Button
-                title={copy.orientation.write}
-                onPress={handleWrite}
-                variant="secondary"
-                disabled={!canProceed}
-              />
-            </View>
+          <Button
+            title={copy.orientation.speak}
+            onPress={handleSpeak}
+            disabled={!canProceed}
+          />
+          <View style={styles.actionGap}>
+            <Button
+              title={copy.orientation.write}
+              onPress={handleWrite}
+              variant="secondary"
+              disabled={!canProceed}
+            />
           </View>
         </View>
         </View>
@@ -196,11 +192,7 @@ const getStyles = (colors: {
     actions: {
       marginTop: spacing.xxl,
     },
-    actionRow: {
-      flexDirection: 'row',
-      gap: spacing.md,
-    },
-    actionHalf: {
-      flex: 1,
+    actionGap: {
+      marginTop: spacing.md,
     },
   });
