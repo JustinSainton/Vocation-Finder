@@ -486,3 +486,72 @@ export const assessmentApi = {
   synthesizeConversationSpeech: (text: string, locale?: AssessmentLocale) =>
     api.post<ConversationSpeechResponse>('/conversations/speech', { text, locale }),
 };
+
+export interface CoachAction {
+  id: string;
+  title: string;
+  rationale: string | null;
+}
+
+export interface CoachReadinessFactor {
+  label: string;
+  standing: string;
+  move: string;
+}
+
+export interface CoachReadiness {
+  level: string;
+  level_label: string;
+  level_description: string;
+  what_moves_it: string;
+  factors: Record<string, CoachReadinessFactor>;
+  history: { on: string; level: string; because?: string }[];
+}
+
+export interface CoachHabit {
+  id: string;
+  title: string;
+  why: string | null;
+  cadence: string;
+  standing: string;
+  meaning: string;
+  next_move: string;
+  answered_today: boolean;
+}
+
+export interface CoachState {
+  current_action: CoachAction | null;
+  readiness: CoachReadiness;
+  habits: CoachHabit[];
+  invitation: { prompt: string; opens_with: unknown } | null;
+}
+
+export interface CoachMessage {
+  role: string;
+  content: string;
+}
+
+/** Student pathway coach — the front door, not a feature tab */
+export const coachApi = {
+  /** Current action, readiness, habits, and any return invitation */
+  state: () => api.get<CoachState>('/coach/state'),
+
+  /** Turns of the ongoing conversation, oldest first */
+  history: () => api.get<{ messages: CoachMessage[] }>('/coach/history'),
+
+  /** One turn of the conversation; may return support instead of a reply */
+  message: (message: string) =>
+    api.post<{ message?: string; support?: { phone?: string; text?: string } }>('/coach/message', { message }),
+
+  /** Settle the current action as done, with an optional reflection */
+  completeAction: (actionId: string, reflection?: string) =>
+    api.post<{ current_action: CoachAction | null }>(`/actions/${actionId}/complete`, { reflection }),
+
+  /** Set the current action down on purpose, with an optional reason */
+  skipAction: (actionId: string, reason?: string) =>
+    api.post<{ current_action: CoachAction | null }>(`/actions/${actionId}/skip`, { reason }),
+
+  /** Record today's check-in for a habit — the student's act alone */
+  checkInHabit: (habitId: string, happened: boolean, note?: string) =>
+    api.post<{ answered_today: boolean }>(`/habits/${habitId}/check-in`, { happened, note }),
+};

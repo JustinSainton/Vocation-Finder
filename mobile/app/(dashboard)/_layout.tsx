@@ -62,6 +62,13 @@ export default function DashboardLayout() {
         }}
       />
       <Tabs.Screen
+        name="coach"
+        options={{
+          title: 'Coach',
+          href: isEnabled('pathway_coach') ? '/(dashboard)/coach' : null,
+        }}
+      />
+      <Tabs.Screen
         name="job-detail"
         options={{ href: null }}
       />

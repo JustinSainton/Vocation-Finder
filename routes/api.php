@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\ActionController;
 use App\Http\Controllers\Api\V1\AdminStatsController;
 use App\Http\Controllers\Api\V1\AssessmentClarityController;
 use App\Http\Controllers\Api\V1\AssessmentController;
@@ -12,9 +13,11 @@ use App\Http\Controllers\Api\V1\CareerProfileController;
 use App\Http\Controllers\Api\V1\CourseController;
 use App\Http\Controllers\Api\V1\CoverLetterController;
 use App\Http\Controllers\Api\V1\FeatureFlagController;
+use App\Http\Controllers\Api\V1\HabitCheckInController;
 use App\Http\Controllers\Api\V1\JobApplicationController;
 use App\Http\Controllers\Api\V1\JobListingController;
 use App\Http\Controllers\Api\V1\OrganizationInvitationController;
+use App\Http\Controllers\Api\V1\PathwayCoachController;
 use App\Http\Controllers\Api\V1\PathwayController;
 use App\Http\Controllers\Api\V1\QuestionController;
 use App\Http\Controllers\Api\V1\ResultsController;
@@ -189,6 +192,16 @@ Route::prefix('v1')->group(function () {
             Route::post('career-coach/start', [CareerCoachController::class, 'start']);
             Route::post('career-coach/message', [CareerCoachController::class, 'message']);
             Route::get('career-coach/history', [CareerCoachController::class, 'history']);
+        });
+
+        // Pathway Coach — the student coach. Same flag as the web surface.
+        Route::middleware('feature:pathway_coach')->group(function () {
+            Route::get('coach/state', [PathwayCoachController::class, 'state']);
+            Route::get('coach/history', [PathwayCoachController::class, 'history']);
+            Route::post('coach/message', [PathwayCoachController::class, 'message']);
+            Route::post('actions/{action}/complete', [ActionController::class, 'complete']);
+            Route::post('actions/{action}/skip', [ActionController::class, 'skip']);
+            Route::post('habits/{habit}/check-in', [HabitCheckInController::class, 'store']);
         });
 
         // Organization job analytics (org admins only)
