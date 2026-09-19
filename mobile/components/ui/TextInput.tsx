@@ -25,9 +25,9 @@ export const TextInput = forwardRef<RNTextInput, TextInputProps>(
       <View style={styles.container}>
         <RNTextInput
           ref={ref}
-          multiline
+          multiline={!props.secureTextEntry}
           placeholder={placeholder}
-          placeholderTextColor={colors.accent}
+          placeholderTextColor={colors.textSecondary}
           textAlignVertical="top"
           style={[
             styles.input,

@@ -150,6 +150,7 @@ export default function WrittenAssessmentScreen() {
       >
         <ScrollView
           ref={scrollRef}
+          style={styles.flex}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -180,50 +181,48 @@ export default function WrittenAssessmentScreen() {
             placeholder={copy.written.placeholder}
             minHeight={200}
           />
-
-          {/* Bottom area */}
-          <View style={styles.bottomArea}>
-            {/* Question indicator */}
-            <Typography
-              variant="caption"
-              family="sans"
-              color={colors.textSecondary}
-              style={styles.indicator}
-            >
-              {copy.written.progress(currentQuestion, totalQuestions)}
-            </Typography>
-
-            {/* Continue button */}
-            <Button
-              title={isLastQuestion ? copy.written.finish : copy.written.continueLabel}
-              onPress={handleContinue}
-              disabled={currentAnswer.trim().length === 0}
-            />
-
-            {/* Back link */}
-            {currentQuestion > 0 ? (
-              <Pressable
-                onPress={handleBack}
-                style={styles.backButton}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              >
-                <Typography
-                  variant="small"
-                  family="sans"
-                  color={colors.textSecondary}
-                >
-                  {copy.common.back}
-                </Typography>
-              </Pressable>
-            ) : null}
-          </View>
         </ScrollView>
+
+        {/* Pinned footer — the next move is always visible; only the
+            question and the answer scroll. */}
+        <View style={styles.footer}>
+          <Typography
+            variant="caption"
+            family="sans"
+            color={colors.textSecondary}
+            style={styles.indicator}
+          >
+            {copy.written.progress(currentQuestion, totalQuestions)}
+          </Typography>
+
+          <Button
+            title={isLastQuestion ? copy.written.finish : copy.written.continueLabel}
+            onPress={handleContinue}
+            disabled={currentAnswer.trim().length === 0}
+          />
+
+          {currentQuestion > 0 ? (
+            <Pressable
+              onPress={handleBack}
+              style={styles.backButton}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Typography
+                variant="small"
+                family="sans"
+                color={colors.textSecondary}
+              >
+                {copy.common.back}
+              </Typography>
+            </Pressable>
+          ) : null}
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-const getStyles = (colors: { background: string }) =>
+const getStyles = (colors: { background: string; divider: string }) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -258,6 +257,14 @@ const getStyles = (colors: { background: string }) =>
     bottomArea: {
       marginTop: spacing.xxl,
       paddingBottom: spacing.lg,
+    },
+    footer: {
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.lg,
+      borderTopWidth: 1,
+      borderTopColor: colors.divider,
+      backgroundColor: colors.background,
     },
     indicator: {
       marginBottom: spacing.lg,

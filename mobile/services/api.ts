@@ -67,6 +67,7 @@ async function request<T>(
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    Accept: 'application/json',
     ...getAuthHeaders(),
     ...extraHeaders,
   };
@@ -105,6 +106,15 @@ async function request<T>(
   // Handle 204 No Content
   if (response.status === 204) {
     return undefined as T;
+  }
+
+  const contentType = response.headers.get('content-type') ?? '';
+  if (!contentType.includes('application/json')) {
+    const rawBody = await response.text();
+    throw {
+      message: deriveErrorMessage(response.statusText, response.status, rawBody),
+      status: response.status,
+    } as ApiError;
   }
 
   return response.json();
@@ -222,6 +232,7 @@ export interface VocationalProfile {
   mode_of_work: string;
   secondary_orientation: string;
   matched_pathway_blurbs: MatchedPathwayBlurb[];
+  confidence: string | null;
   created_at: string;
 }
 

@@ -21,6 +21,7 @@ class VocationalProfileResource extends JsonResource
             'secondary_orientation' => $this->secondary_orientation,
             'ministry_integration' => $this->ministry_integration,
             'matched_pathway_blurbs' => $this->matchedPathwayBlurbs(3),
+            'confidence' => $this->confidence_level?->label(),
             'created_at' => $this->created_at->toISOString(),
         ];
     }

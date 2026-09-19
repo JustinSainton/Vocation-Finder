@@ -24,18 +24,16 @@ import { useTheme } from '../../hooks/useTheme';
 const POLL_INTERVAL = 5000;
 const POLL_TIMEOUT_MS = 120000;
 
-const STAGE_MESSAGES = [
-  'Reflecting on your responses',
-  'Identifying patterns and themes',
-  'Mapping vocational resonances',
-  'Building your portrait',
-  'Crafting personalized insights',
-];
+function formatElapsed(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')} elapsed`;
+}
 
 export default function ResultsScreen() {
   const router = useRouter();
-  const { colors, isDark } = useTheme();
-  const styles = getStyles(colors, isDark);
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const {
@@ -150,35 +148,30 @@ export default function ResultsScreen() {
     router.replace('/(assessment)');
   };
 
-  // Animated stage messages while waiting
-  const [stageIndex, setStageIndex] = useState(0);
-  const [dots, setDots] = useState('');
-  const pulseScale = useSharedValue(1);
+  // Breathing rings + elapsed timer while waiting. No spinners, no
+  // staged progress theatre, no haptics: the wait is honest and quiet.
+  const [elapsed, setElapsed] = useState(0);
+  const breathe = useSharedValue(1);
 
   useEffect(() => {
     if (results || resultsError) return;
-    pulseScale.value = withRepeat(
-      withTiming(1.08, { duration: 1800, easing: Easing.inOut(Easing.sin) }),
-      -1, true
+    setElapsed(0);
+    breathe.value = withRepeat(
+      withTiming(1.15, { duration: 2400, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
     );
-    const stageTimer = setInterval(() => {
-      setStageIndex((prev) => (prev + 1) % STAGE_MESSAGES.length);
-    }, 4000);
-    const dotsTimer = setInterval(() => {
-      setDots((prev) => (prev.length >= 3 ? '' : prev + '.'));
-    }, 500);
-    const hapticTimer = setInterval(() => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }, 3000);
+    const timer = setInterval(() => {
+      setElapsed((s) => s + 1);
+    }, 1000);
     return () => {
-      clearInterval(stageTimer);
-      clearInterval(dotsTimer);
-      clearInterval(hapticTimer);
+      clearInterval(timer);
     };
-  }, [results, resultsError]);
+  }, [results, resultsError, breathe]);
 
-  const pulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulseScale.value }],
+  const ringStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: breathe.value }],
+    opacity: 1.15 - (breathe.value - 1) * 2,
   }));
 
   // Waiting for results
@@ -209,19 +202,36 @@ export default function ResultsScreen() {
             </>
           ) : (
             <>
-              <Animated.View style={[styles.pulseOrb, pulseStyle]}>
-                <View style={[styles.pulseOrbInner, { backgroundColor: isDark ? '#1E293B' : colors.text }]} />
-              </Animated.View>
+              <View style={styles.orbWrap}>
+                <Animated.View style={[styles.orbRing, ringStyle]} />
+                <View style={[styles.orbCore, { backgroundColor: colors.text }]} />
+              </View>
 
               <Typography variant="bodyLarge" style={styles.waitingText}>
                 {copy.results.notReadyTitle}
+              </Typography>
+              <Typography
+                variant="caption"
+                family="sans"
+                color={colors.textSecondary}
+                style={styles.timer}
+              >
+                {formatElapsed(elapsed)}
               </Typography>
               <Typography
                 variant="body"
                 color={colors.textSecondary}
                 style={styles.waitingSub}
               >
-                {STAGE_MESSAGES[stageIndex]}{dots}
+                {copy.results.notReadyBody}
+              </Typography>
+              <Typography
+                variant="small"
+                family="sans"
+                color={colors.textSecondary}
+                style={styles.leaveNote}
+              >
+                You can leave — your portrait will be here when you return.
               </Typography>
               {isTakingLong ? (
                 <>
@@ -251,15 +261,27 @@ export default function ResultsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Eyebrow + honesty badge */}
+        <Typography variant="caption" family="sans" style={styles.eyebrow}>
+          Your vocational articulation
+        </Typography>
+        {results.confidence ? (
+          <View style={styles.confidencePill}>
+            <Typography variant="caption" family="sans" style={styles.confidenceText}>
+              {results.confidence}
+            </Typography>
+          </View>
+        ) : null}
+
         {/* Opening Synthesis */}
-        <Typography variant="bodyLarge" style={styles.section}>
+        <Typography variant="bodyLarge" style={styles.lead}>
           {results.opening_synthesis}
         </Typography>
 
         <View style={styles.divider} />
 
         {/* Vocational Orientation */}
-        <Typography variant="heading" style={styles.sectionHeading}>
+        <Typography variant="caption" family="sans" style={styles.eyebrow}>
           {copy.results.headings.vocationalOrientation}
         </Typography>
         <Typography variant="body" style={styles.section}>
@@ -269,7 +291,7 @@ export default function ResultsScreen() {
         {/* Meta badges */}
         <View style={styles.metaRow}>
           <View style={styles.metaBadge}>
-            <Typography variant="caption" family="sans" color={colors.accent}>
+            <Typography variant="caption" family="sans" color={colors.textSecondary}>
               {copy.results.headings.primaryDomain}
             </Typography>
             <Typography variant="body" style={styles.metaValue}>
@@ -277,7 +299,7 @@ export default function ResultsScreen() {
             </Typography>
           </View>
           <View style={styles.metaBadge}>
-            <Typography variant="caption" family="sans" color={colors.accent}>
+            <Typography variant="caption" family="sans" color={colors.textSecondary}>
               {copy.results.headings.modeOfWork}
             </Typography>
             <Typography variant="body" style={styles.metaValue}>
@@ -288,7 +310,7 @@ export default function ResultsScreen() {
         {results.secondary_orientation ? (
           <View style={styles.metaRow}>
             <View style={styles.metaBadge}>
-              <Typography variant="caption" family="sans" color={colors.accent}>
+              <Typography variant="caption" family="sans" color={colors.textSecondary}>
                 {copy.results.headings.secondaryOrientation}
               </Typography>
               <Typography variant="body" style={styles.metaValue}>
@@ -303,12 +325,12 @@ export default function ResultsScreen() {
         {/* Primary Pathways */}
         {results.primary_pathways && results.primary_pathways.length > 0 ? (
           <>
-            <Typography variant="heading" style={styles.sectionHeading}>
+            <Typography variant="caption" family="sans" style={styles.eyebrow}>
               {copy.results.headings.primaryPathways}
             </Typography>
             {results.primary_pathways.map((pathway, i) => (
-              <View key={i} style={styles.pathwayCard}>
-                <Typography variant="body">{pathway}</Typography>
+              <View key={i} style={styles.quoteBlock}>
+                <Typography variant="bodyLarge">{pathway}</Typography>
               </View>
             ))}
             <View style={styles.divider} />
@@ -318,15 +340,15 @@ export default function ResultsScreen() {
         {/* Matched Pathway Blurbs */}
         {results.matched_pathway_blurbs && results.matched_pathway_blurbs.length > 0 ? (
           <>
-            <Typography variant="heading" style={styles.sectionHeading}>
+            <Typography variant="caption" family="sans" style={styles.eyebrow}>
               {copy.results.headings.vocationalPathways}
             </Typography>
             {results.matched_pathway_blurbs.map((blurb, i) => (
               <View key={i} style={styles.blurbCard}>
                 <Typography
-                  variant="small"
+                  variant="caption"
                   family="sans"
-                  color={colors.accent}
+                  color={colors.textSecondary}
                   style={styles.blurbName}
                 >
                   {blurb.name}
@@ -350,7 +372,7 @@ export default function ResultsScreen() {
         {/* Specific Considerations */}
         {results.specific_considerations ? (
           <>
-            <Typography variant="heading" style={styles.sectionHeading}>
+            <Typography variant="caption" family="sans" style={styles.eyebrow}>
               {copy.results.headings.specificConsiderations}
             </Typography>
             <Typography variant="body" style={styles.section}>
@@ -363,21 +385,11 @@ export default function ResultsScreen() {
         {/* Next Steps */}
         {results.next_steps && results.next_steps.length > 0 ? (
           <>
-            <Typography variant="heading" style={styles.sectionHeading}>
+            <Typography variant="caption" family="sans" style={styles.eyebrow}>
               {copy.results.headings.nextSteps}
             </Typography>
             {results.next_steps.map((step, i) => (
               <View key={i} style={styles.stepRow}>
-                <View style={styles.stepNumber}>
-                  <Typography
-                    variant="small"
-                    family="sans"
-                    color={colors.background}
-                    style={styles.stepNumberText}
-                  >
-                    {String(i + 1)}
-                  </Typography>
-                </View>
                 <Typography variant="body" style={styles.stepText}>
                   {step}
                 </Typography>
@@ -390,7 +402,7 @@ export default function ResultsScreen() {
         {/* Ministry Integration */}
         {results.ministry_integration ? (
           <>
-            <Typography variant="heading" style={styles.sectionHeading}>
+            <Typography variant="caption" family="sans" style={styles.eyebrow}>
               {copy.results.headings.ministryIntegration}
             </Typography>
             <Typography variant="body" style={styles.section}>
@@ -412,7 +424,7 @@ export default function ResultsScreen() {
         {/* Save results — account creation for guests, email for logged-in users */}
         {!isLoggedIn ? (
           <>
-            <Typography variant="heading" style={styles.sectionHeading}>
+            <Typography variant="caption" family="sans" style={styles.eyebrow}>
               Save your portrait
             </Typography>
             <Typography
@@ -424,7 +436,7 @@ export default function ResultsScreen() {
             </Typography>
 
             {accountCreated ? (
-              <Typography variant="body" color="#16a34a">
+              <Typography variant="body">
                 Account created! Your portrait is saved.
               </Typography>
             ) : (
@@ -465,7 +477,7 @@ export default function ResultsScreen() {
             </Typography>
 
             {emailSent ? (
-              <Typography variant="body" color={colors.accent}>
+              <Typography variant="body" color={colors.textSecondary}>
                 {copy.results.emailSent}
               </Typography>
             ) : (
@@ -501,7 +513,7 @@ export default function ResultsScreen() {
         {/* AI Disclaimer */}
         <Typography
           variant="caption"
-          color={colors.accent}
+          color={colors.textSecondary}
           style={styles.disclaimer}
         >
           {copy.results.disclaimer}
@@ -517,8 +529,8 @@ const getStyles = (
     divider: string;
     accent: string;
     text: string;
-  },
-  isDark: boolean
+    textSecondary: string;
+  }
 ) =>
   StyleSheet.create({
     container: {
@@ -553,6 +565,29 @@ const getStyles = (
     sectionHeading: {
       marginBottom: spacing.lg,
     },
+    eyebrow: {
+      textTransform: 'uppercase',
+      letterSpacing: 1.5,
+      color: colors.textSecondary,
+      marginBottom: spacing.md,
+    },
+    lead: {
+      marginBottom: spacing.md,
+    },
+    confidencePill: {
+      alignSelf: 'flex-start',
+      borderWidth: 1,
+      borderColor: colors.divider,
+      borderRadius: 9999,
+      paddingVertical: 4,
+      paddingHorizontal: 12,
+      marginBottom: spacing.xl,
+    },
+    confidenceText: {
+      textTransform: 'uppercase',
+      letterSpacing: 1.5,
+      color: colors.textSecondary,
+    },
     divider: {
       height: 1,
       backgroundColor: colors.divider,
@@ -570,13 +605,12 @@ const getStyles = (
     metaValue: {
       marginTop: 4,
     },
-    pathwayCard: {
-      backgroundColor: isDark ? 'rgba(24, 31, 43, 0.72)' : '#F5F5F0',
-      borderLeftWidth: 3,
+    quoteBlock: {
+      borderLeftWidth: 2,
       borderLeftColor: colors.accent,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      marginBottom: spacing.sm,
+      paddingLeft: spacing.lg,
+      paddingVertical: 4,
+      marginBottom: spacing.xl,
     },
     blurbCard: {
       borderWidth: 1,
@@ -597,22 +631,10 @@ const getStyles = (
       fontStyle: 'italic',
     },
     stepRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      marginBottom: spacing.md,
-    },
-    stepNumber: {
-      width: 24,
-      height: 24,
-      borderRadius: 12,
-      backgroundColor: colors.text,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginRight: spacing.md,
-      marginTop: 3,
-    },
-    stepNumberText: {
-      textAlign: 'center',
+      borderBottomWidth: 1,
+      borderBottomColor: colors.divider,
+      paddingVertical: spacing.md,
+      marginBottom: spacing.sm,
     },
     stepText: {
       flex: 1,
@@ -632,20 +654,35 @@ const getStyles = (
     emailStack: {
       gap: spacing.md,
     },
-    pulseOrb: {
-      width: 64,
-      height: 64,
-      borderRadius: 32,
-      backgroundColor: isDark ? 'rgba(148,163,184,0.12)' : 'rgba(168,162,158,0.18)',
+    orbWrap: {
+      width: 72,
+      height: 72,
       alignItems: 'center',
       justifyContent: 'center',
       alignSelf: 'center',
       marginBottom: spacing.xl,
     },
-    pulseOrbInner: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
+    orbRing: {
+      position: 'absolute',
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      borderWidth: 1,
+      borderColor: colors.divider,
+    },
+    orbCore: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+    },
+    timer: {
+      textAlign: 'center',
+      letterSpacing: 1,
+      marginTop: spacing.md,
+    },
+    leaveNote: {
+      textAlign: 'center',
+      marginTop: spacing.xl,
     },
     actions: {
       gap: spacing.md,
