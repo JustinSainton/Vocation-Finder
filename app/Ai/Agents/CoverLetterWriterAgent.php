@@ -10,7 +10,7 @@ use Laravel\Ai\Promptable;
 use Stringable;
 
 #[Provider('anthropic')]
-#[Model('claude-sonnet-4-20250514')]
+#[Model('claude-sonnet-4-6')]
 #[Timeout(60)]
 class CoverLetterWriterAgent implements Agent
 {

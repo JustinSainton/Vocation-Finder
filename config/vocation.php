@@ -8,7 +8,7 @@ return [
     */
     'ai' => [
         'provider' => env('AI_PROVIDER', 'anthropic'),
-        'model' => env('AI_MODEL', 'claude-sonnet-4-20250514'),
+        'model' => env('AI_MODEL', 'claude-sonnet-4-6'),
         'model_lite' => env('AI_MODEL_LITE', 'claude-haiku-4-5-20251001'),
         'analysis_timeout' => env('AI_ANALYSIS_TIMEOUT', 120),
         'conversation_experiment' => [
