@@ -38,11 +38,7 @@ export default function OrientationScreen() {
     prefetch();
   }, [locale]);
 
-  const handleSpeak = () => {
-    router.push('/(assessment)/before?mode=conversation');
-  };
-
-  const handleWrite = () => {
+  const handleContinue = () => {
     router.push('/(assessment)/before?mode=written');
   };
 
@@ -107,18 +103,10 @@ export default function OrientationScreen() {
 
         <View style={styles.actions}>
           <Button
-            title={copy.orientation.speak}
-            onPress={handleSpeak}
+            title="Continue"
+            onPress={handleContinue}
             disabled={!canProceed}
           />
-          <View style={styles.actionGap}>
-            <Button
-              title={copy.orientation.write}
-              onPress={handleWrite}
-              variant="secondary"
-              disabled={!canProceed}
-            />
-          </View>
         </View>
         </View>
       </ScrollView>
@@ -191,8 +179,5 @@ const getStyles = (colors: {
     },
     actions: {
       marginTop: spacing.xxl,
-    },
-    actionGap: {
-      marginTop: spacing.md,
     },
   });
