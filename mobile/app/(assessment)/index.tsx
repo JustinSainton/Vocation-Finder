@@ -54,6 +54,7 @@ export default function AssessmentLandingScreen() {
           <Button
             title="Begin discernment"
             onPress={handleBegin}
+            hapticStyle="medium"
           />
         </View>
       </View>

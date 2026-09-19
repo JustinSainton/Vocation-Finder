@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { getAssessmentCopy } from '../../constants/assessmentLocale';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
@@ -19,6 +20,11 @@ export default function AfterSurveyScreen() {
 
   const [standing, setStanding] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const choose = (value: string) => {
+    setStanding(value);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
 
   const handleSubmit = async () => {
     if (!standing || submitting) return;
@@ -66,7 +72,7 @@ export default function AfterSurveyScreen() {
           {copy.afterSurvey.options.map((option) => (
             <Pressable
               key={option.value}
-              onPress={() => setStanding(option.value)}
+              onPress={() => choose(option.value)}
               style={[
                 styles.option,
                 standing === option.value && styles.optionSelected,

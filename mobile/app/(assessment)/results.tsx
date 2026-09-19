@@ -164,8 +164,12 @@ export default function ResultsScreen() {
     const timer = setInterval(() => {
       setElapsed((s) => s + 1);
     }, 1000);
+    const hapticTimer = setInterval(() => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }, 3000);
     return () => {
       clearInterval(timer);
+      clearInterval(hapticTimer);
     };
   }, [results, resultsError, breathe]);
 
