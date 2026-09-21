@@ -8,7 +8,29 @@ interface Question {
     id: string;
     question_text: string;
     category_name: string;
+    category_slug: string | null;
     sort_order: number;
+}
+
+/*
+ | Where the student is in the arc, not a countdown. The six movements
+ | follow the category order in QuestionSeeder — what moves you, what
+ | frustrates you, what absorbs you, what you choose, what has shaped
+ | you, where you are headed. No numbers reach the student.
+ */
+const MOVEMENTS: Record<string, string> = {
+    'service-orientation': 'I · What moves you',
+    'problem-solving-draw': 'II · What frustrates you',
+    'energy-engagement': 'III · What absorbs you',
+    'values-under-pressure': 'IV · What you choose',
+    'suffering-limitation': 'V · What has shaped you',
+    'legacy-impact': 'VI · Where you are headed',
+    'context-direction': 'VI · Where you are headed',
+};
+
+function movementFor(question: Question | undefined): string {
+    if (!question) return '';
+    return MOVEMENTS[question.category_slug ?? ''] ?? question.category_name ?? '';
 }
 
 interface Props {
@@ -226,7 +248,7 @@ export default function Written({ questions, assessment_id, guest_token }: Props
             {/* Bottom area */}
             <div className="mt-12">
                 <p className="mb-6 font-sans text-xs text-[var(--color-muted)]">
-                    Question {currentIndex + 1} of {questions.length}
+                    {movementFor(question)}
                 </p>
 
                 <button
