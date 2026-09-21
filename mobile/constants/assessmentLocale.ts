@@ -83,11 +83,13 @@ type AssessmentCopy = {
   };
   orientation: {
     title: string;
+    eyebrow: string;
     introOne: string;
     introTwo: string;
     timeNote: string;
     promise: string;
     checkbox: string;
+    beginCta: string;
     speak: string;
     write: string;
     languageLabel: string;
@@ -180,14 +182,15 @@ const COPY: Record<AssessmentLocale, AssessmentCopy> = {
       back: 'Back',
     },
     orientation: {
-      title: 'Before we begin',
+      title: 'Most people are taught\nto choose a career.\nVery few are taught\nto discern a calling.',
+      eyebrow: 'A threshold, not a test',
       introOne:
-        'This is not a test. There are no right answers, no scores, and no judgment. The questions ahead are invitations to think honestly about what moves you, what frustrates you, and what you find yourself returning to again and again.',
-      introTwo:
-        'Set aside roughly 30-45 minutes. This is best done in a quiet place, without distractions, when you can give your full attention to the process.',
-      timeNote: '~30-45 minutes',
+        'This is a space for honest reflection — not a personality quiz, not a career test. What follows is a guided process designed to surface what you may already sense but haven\'t yet articulated.',
+      introTwo: 'It requires your time and your honesty. Nothing less will do.',
+      timeNote: 'About 20 questions · 30–45 minutes · Your words stay yours',
       promise: 'Your own words are kept as you wrote them.',
       checkbox: "I'm willing to answer honestly, not impressively.",
+      beginCta: 'Begin discernment',
       speak: 'Speak your answers',
       write: 'Write your answers',
       languageLabel: 'Choose your language',
@@ -307,14 +310,15 @@ const COPY: Record<AssessmentLocale, AssessmentCopy> = {
       back: 'Atrás',
     },
     orientation: {
-      title: 'Antes de comenzar',
+      title: 'A la mayoría se le enseña\na elegir una carrera.\nMuy pocos aprenden\na discernir un llamado.',
+      eyebrow: 'Un umbral, no una prueba',
       introOne:
-        'Esto no es una prueba. No hay respuestas correctas, puntajes ni juicio. Las preguntas que siguen son una invitación a pensar con honestidad en lo que te mueve, lo que te frustra y aquello a lo que vuelves una y otra vez.',
-      introTwo:
-        'Reserva aproximadamente entre 30 y 45 minutos. Lo ideal es hacerlo en un lugar tranquilo, sin distracciones, cuando puedas prestar toda tu atención al proceso.',
-      timeNote: '~30-45 minutos',
+        'Este es un espacio para la reflexión honesta — no un test de personalidad, no una prueba vocacional. Lo que sigue es un proceso guiado para sacar a la luz lo que quizá ya sientes pero aún no has articulado.',
+      introTwo: 'Requiere tu tiempo y tu honestidad. Nada menos sirve.',
+      timeNote: 'Unas 20 preguntas · 30–45 minutos · Tus palabras se quedan tuyas',
       promise: 'Tus palabras se conservan tal como las escribiste.',
       checkbox: 'Estoy dispuesto(a) a responder con honestidad, no para impresionar.',
+      beginCta: 'Comenzar el discernimiento',
       speak: 'Responder con voz',
       write: 'Responder por escrito',
       languageLabel: 'Elige tu idioma',
@@ -435,14 +439,15 @@ const COPY: Record<AssessmentLocale, AssessmentCopy> = {
       back: 'Voltar',
     },
     orientation: {
-      title: 'Antes de começarmos',
+      title: 'A maioria das pessoas aprende\na escolher uma carreira.\nMuito poucas aprendem\na discernir um chamado.',
+      eyebrow: 'Um limiar, não um teste',
       introOne:
-        'Isto não é um teste. Não há respostas certas, pontuações nem julgamento. As perguntas a seguir são um convite para pensar com honestidade sobre o que te move, o que te frustra e aquilo ao qual você volta repetidamente.',
-      introTwo:
-        'Separe cerca de 30 a 45 minutos. O ideal é fazer isso em um lugar tranquilo, sem distrações, quando você puder dar atenção total ao processo.',
-      timeNote: '~30-45 minutos',
+        'Este é um espaço para reflexão honesta — não um teste de personalidade, não uma prova vocacional. O que segue é um processo guiado para trazer à tona o que você talvez já sinta, mas ainda não articulou.',
+      introTwo: 'Exige o seu tempo e a sua honestidade. Nada menos serve.',
+      timeNote: 'Cerca de 20 perguntas · 30–45 minutos · Suas palavras continuam suas',
       promise: 'Suas palavras são mantidas como você as escreveu.',
       checkbox: 'Estou disposto(a) a responder com honestidade, não para impressionar.',
+      beginCta: 'Começar o discernimento',
       speak: 'Responder falando',
       write: 'Responder escrevendo',
       languageLabel: 'Escolha seu idioma',

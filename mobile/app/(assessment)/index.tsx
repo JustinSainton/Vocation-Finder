@@ -41,74 +41,75 @@ export default function AssessmentLandingScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        <View style={styles.content}>
-          <View style={styles.body}>
-            <Typography variant="headingLarge" style={styles.headline}>
-              {copy.orientation.title === 'Before we begin' ? 'Most people are taught\nto choose a career.\nVery few are taught\nto discern a calling.' : copy.orientation.title}
-            </Typography>
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Typography
+          variant="caption"
+          family="sans"
+          color={colors.textSecondary}
+          style={styles.eyebrow}
+        >
+          {copy.orientation.eyebrow}
+        </Typography>
 
-            <Typography variant="body" style={styles.paragraph}>
-              {copy.orientation.introOne}
-            </Typography>
+        <Typography variant="heading" style={styles.headline}>
+          {copy.orientation.title}
+        </Typography>
 
-            <Typography variant="body" style={styles.paragraph}>
-              {copy.orientation.introTwo}
-            </Typography>
+        <Typography variant="body" style={styles.paragraph}>
+          {copy.orientation.introOne}
+        </Typography>
 
-            <Typography
-              variant="small"
-              family="sans"
-              color={colors.textSecondary}
-              style={styles.timeNote}
-            >
-              {copy.orientation.timeNote}
-            </Typography>
-
-            <Typography
-              variant="small"
-              family="sans"
-              color={colors.textSecondary}
-              style={styles.promise}
-            >
-              {copy.orientation.promise}
-            </Typography>
-
-            <View style={styles.divider} />
-
-            <Pressable
-              onPress={toggleCheck}
-              style={styles.checkboxRow}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <View
-                style={[
-                  styles.checkbox,
-                  checked && styles.checkboxChecked,
-                ]}
-              >
-                {checked && (
-                  <View style={styles.checkmark} />
-                )}
-              </View>
-              <Typography
-                variant="body"
-                style={styles.checkboxLabel}
-              >
-                {copy.orientation.checkbox}
-              </Typography>
-            </Pressable>
-          </View>
-
-          <View style={styles.actions}>
-            <Button
-              title="Continue"
-              onPress={handleContinue}
-              disabled={!canProceed}
-            />
-          </View>
-        </View>
+        <Typography variant="body" style={styles.paragraph}>
+          {copy.orientation.introTwo}
+        </Typography>
       </ScrollView>
+
+      <View style={styles.footer}>
+        <Typography
+          variant="small"
+          family="sans"
+          color={colors.textSecondary}
+          style={styles.timeNote}
+        >
+          {copy.orientation.timeNote}
+        </Typography>
+
+        <View style={styles.divider} />
+
+        <Pressable
+          onPress={toggleCheck}
+          style={styles.checkboxRow}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <View
+            style={[
+              styles.checkbox,
+              checked && styles.checkboxChecked,
+            ]}
+          >
+            {checked && (
+              <View style={styles.checkmark} />
+            )}
+          </View>
+          <Typography
+            variant="body"
+            style={styles.checkboxLabel}
+          >
+            {copy.orientation.checkbox}
+          </Typography>
+        </Pressable>
+
+        <Button
+          title={copy.orientation.beginCta}
+          onPress={handleContinue}
+          disabled={!canProceed}
+        />
+      </View>
     </SafeAreaView>
   );
 }
@@ -123,29 +124,32 @@ const getStyles = (colors: {
       flex: 1,
       backgroundColor: colors.background,
     },
-    scrollContent: {
-      flexGrow: 1,
-    },
-    content: {
+    flex: {
       flex: 1,
-      paddingHorizontal: spacing.lg,
-      justifyContent: 'space-between',
-      paddingTop: spacing.section,
-      paddingBottom: spacing.xxl,
     },
-    body: {},
+    scrollContent: {
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.xl,
+    },
+    footer: {
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.lg,
+      backgroundColor: colors.background,
+    },
+    eyebrow: {
+      marginBottom: spacing.md,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+    },
     headline: {
-      marginBottom: spacing.xl,
+      marginBottom: spacing.lg,
     },
     paragraph: {
       marginBottom: spacing.md,
     },
     timeNote: {
-      marginTop: spacing.sm,
-    },
-    promise: {
-      marginTop: spacing.xs,
-      marginBottom: spacing.lg,
+      marginBottom: spacing.sm,
     },
     divider: {
       height: 1,
@@ -178,8 +182,5 @@ const getStyles = (colors: {
     },
     checkboxLabel: {
       flex: 1,
-    },
-    actions: {
-      marginTop: spacing.xxl,
     },
   });
