@@ -86,6 +86,7 @@ type AssessmentCopy = {
     introOne: string;
     introTwo: string;
     timeNote: string;
+    promise: string;
     checkbox: string;
     speak: string;
     write: string;
@@ -97,7 +98,7 @@ type AssessmentCopy = {
     placeholder: string;
     finish: string;
     continueLabel: string;
-    progress: (currentQuestion: number, totalQuestions: number) => string;
+    movements: Record<string, string>;
   };
   conversation: {
     title: string;
@@ -185,6 +186,7 @@ const COPY: Record<AssessmentLocale, AssessmentCopy> = {
       introTwo:
         'Set aside roughly 30-45 minutes. This is best done in a quiet place, without distractions, when you can give your full attention to the process.',
       timeNote: '~30-45 minutes',
+      promise: 'Your own words are kept as you wrote them.',
       checkbox: "I'm willing to answer honestly, not impressively.",
       speak: 'Speak your answers',
       write: 'Write your answers',
@@ -196,8 +198,15 @@ const COPY: Record<AssessmentLocale, AssessmentCopy> = {
       placeholder: 'Take your time. Write freely.',
       finish: 'Finish assessment',
       continueLabel: 'Continue',
-      progress: (currentQuestion, totalQuestions) =>
-        `Question ${currentQuestion + 1} of ${totalQuestions}`,
+      movements: {
+        'service-orientation': 'I · What moves you',
+        'problem-solving-draw': 'II · What frustrates you',
+        'energy-engagement': 'III · What absorbs you',
+        'values-under-pressure': 'IV · What you choose',
+        'suffering-limitation': 'V · What has shaped you',
+        'legacy-impact': 'VI · Where you are headed',
+        'context-direction': 'VI · Where you are headed',
+      },
     },
     conversation: {
       title: 'Voice Discernment',
@@ -304,6 +313,7 @@ const COPY: Record<AssessmentLocale, AssessmentCopy> = {
       introTwo:
         'Reserva aproximadamente entre 30 y 45 minutos. Lo ideal es hacerlo en un lugar tranquilo, sin distracciones, cuando puedas prestar toda tu atención al proceso.',
       timeNote: '~30-45 minutos',
+      promise: 'Tus palabras se conservan tal como las escribiste.',
       checkbox: 'Estoy dispuesto(a) a responder con honestidad, no para impresionar.',
       speak: 'Responder con voz',
       write: 'Responder por escrito',
@@ -315,8 +325,15 @@ const COPY: Record<AssessmentLocale, AssessmentCopy> = {
       placeholder: 'Tómate tu tiempo. Escribe con libertad.',
       finish: 'Terminar evaluación',
       continueLabel: 'Continuar',
-      progress: (currentQuestion, totalQuestions) =>
-        `Pregunta ${currentQuestion + 1} de ${totalQuestions}`,
+      movements: {
+        'service-orientation': 'I · Lo que te mueve',
+        'problem-solving-draw': 'II · Lo que te frustra',
+        'energy-engagement': 'III · Lo que te absorbe',
+        'values-under-pressure': 'IV · Lo que eliges',
+        'suffering-limitation': 'V · Lo que te ha formado',
+        'legacy-impact': 'VI · Hacia dónde vas',
+        'context-direction': 'VI · Hacia dónde vas',
+      },
     },
     conversation: {
       title: 'Discernimiento por voz',
@@ -424,6 +441,7 @@ const COPY: Record<AssessmentLocale, AssessmentCopy> = {
       introTwo:
         'Separe cerca de 30 a 45 minutos. O ideal é fazer isso em um lugar tranquilo, sem distrações, quando você puder dar atenção total ao processo.',
       timeNote: '~30-45 minutos',
+      promise: 'Suas palavras são mantidas como você as escreveu.',
       checkbox: 'Estou disposto(a) a responder com honestidade, não para impressionar.',
       speak: 'Responder falando',
       write: 'Responder escrevendo',
@@ -435,8 +453,15 @@ const COPY: Record<AssessmentLocale, AssessmentCopy> = {
       placeholder: 'Leve o tempo que precisar. Escreva com liberdade.',
       finish: 'Concluir avaliação',
       continueLabel: 'Continuar',
-      progress: (currentQuestion, totalQuestions) =>
-        `Pergunta ${currentQuestion + 1} de ${totalQuestions}`,
+      movements: {
+        'service-orientation': 'I · O que te move',
+        'problem-solving-draw': 'II · O que te frustra',
+        'energy-engagement': 'III · O que te absorve',
+        'values-under-pressure': 'IV · O que você escolhe',
+        'suffering-limitation': 'V · O que te moldou',
+        'legacy-impact': 'VI · Para onde você vai',
+        'context-direction': 'VI · Para onde você vai',
+      },
     },
     conversation: {
       title: 'Discernimento por voz',
@@ -559,6 +584,19 @@ export function getLocaleOption(locale?: string | null): LocaleOption {
 
 export function getAssessmentCopy(locale?: string | null): AssessmentCopy {
   return COPY[normalizeAssessmentLocale(locale)];
+}
+
+export function getMovementLabel(
+  locale?: string | null,
+  categorySlug?: string | null,
+  fallback?: string | null
+): string {
+  const copy = getAssessmentCopy(locale);
+  if (categorySlug) {
+    const movement = copy.written.movements[categorySlug];
+    if (movement) return movement;
+  }
+  return fallback ?? '';
 }
 
 export function getExpoSpeechLanguage(locale?: string | null): string {
