@@ -35,6 +35,10 @@ mobile/expo-env.d.ts
 /.claude/worktrees
 /tmp
 mobile/build/
+/.omo
+
+# Laravel Cloud CLI local config (org/app ids, not secrets)
+/.cloud
 
 # Bundled on-device model binaries live on disk only (too large for git)
 mobile/assets/models/

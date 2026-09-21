@@ -8,12 +8,16 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
+     *
+     * `uuidMorphs`, not Sanctum's stock `morphs`: every model that can hold a
+     * token here keys on a UUID, and an unsigned big integer cannot store one.
+     * See 2026_09_21_120000_repair_personal_access_tokens_tokenable_id_type.
      */
     public function up(): void
     {
         Schema::create('personal_access_tokens', function (Blueprint $table) {
             $table->id();
-            $table->morphs('tokenable');
+            $table->uuidMorphs('tokenable');
             $table->text('name');
             $table->string('token', 64)->unique();
             $table->text('abilities')->nullable();
