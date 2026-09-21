@@ -29,9 +29,11 @@ class WebAssessmentTest extends TestCase
 
     public function test_orientation_page_loads(): void
     {
+        // Threshold and orientation are one arrival screen now: /assessment
+        // sends the student home, where the honesty commitment lives.
         $response = $this->get('/assessment');
 
-        $response->assertOk();
+        $response->assertRedirect('/');
     }
 
     public function test_written_page_creates_assessment_and_loads_questions(): void

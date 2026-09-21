@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Assessment;
 use App\Models\Question;
 use App\Support\AssessmentAccess;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -13,9 +14,9 @@ use Inertia\Response;
 
 class AssessmentController extends Controller
 {
-    public function orientation(): Response
+    public function orientation(): RedirectResponse
     {
-        return Inertia::render('Assessment/Orientation');
+        return redirect('/');
     }
 
     public function written(Request $request): Response
@@ -30,6 +31,7 @@ class AssessmentController extends Controller
                 'id' => $q->id,
                 'question_text' => $q->question_text,
                 'category_name' => $q->category?->name,
+                'category_slug' => $q->category?->slug,
                 'sort_order' => $q->sort_order,
             ]);
 

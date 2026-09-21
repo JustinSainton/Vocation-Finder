@@ -182,7 +182,7 @@ class StudentPlacesTest extends TestCase
     #[Test]
     public function a_signed_out_visitor_is_offered_no_places(): void
     {
-        $response = $this->get('/assessment');
+        $response = $this->get('/');
         $response->assertOk();
 
         $this->assertSame([], $response->viewData('page')['props']['places'] ?? []);

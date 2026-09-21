@@ -1,7 +1,10 @@
-import AppLayout from '../Layouts/AppLayout';
+import { useState } from 'react';
 import { router } from '@inertiajs/react';
+import AppLayout from '../Layouts/AppLayout';
 
 export default function Welcome() {
+    const [checked, setChecked] = useState(false);
+
     return (
         <AppLayout title="Home">
             <div className="flex min-h-[70vh] flex-col justify-between">
@@ -20,18 +23,46 @@ export default function Welcome() {
                     <p className="mt-8 text-lg leading-relaxed text-[var(--color-text-secondary)]">
                         This is a space for honest reflection — not a personality quiz, not
                         a career test. What follows is a guided process designed to surface
-                        what you may already sense but haven't yet articulated.
+                        what you may already sense but haven&apos;t yet articulated.
                     </p>
 
                     <p className="mt-4 text-lg leading-relaxed text-[var(--color-text-secondary)]">
                         It requires your time and your honesty. Nothing less will do.
                     </p>
+
+                    <p className="type-meta mt-6">
+                        About 20 questions · 30–45 minutes · Your words stay yours
+                    </p>
+
+                    <div className="my-8 h-px bg-[var(--color-divider)]" />
+
+                    <label className="flex cursor-pointer items-start gap-4">
+                        <span
+                            className={`mt-1 flex h-5 w-5 shrink-0 items-center justify-center border transition-colors ${
+                                checked
+                                    ? 'border-[var(--color-text)] bg-[var(--color-text)]'
+                                    : 'border-[var(--color-text)] bg-transparent'
+                            }`}
+                            onClick={() => setChecked(!checked)}
+                        >
+                            {checked && (
+                                <span className="block h-2.5 w-2.5 bg-[var(--color-background)]" />
+                            )}
+                        </span>
+                        <span
+                            className="text-lg leading-relaxed text-[var(--color-text)]"
+                            onClick={() => setChecked(!checked)}
+                        >
+                            I&apos;m willing to answer honestly, not impressively.
+                        </span>
+                    </label>
                 </div>
 
                 <div className="mt-16">
                     <button
-                        onClick={() => router.visit('/assessment')}
-                        className="w-full bg-[var(--color-text)] py-4 font-sans text-sm tracking-wide text-[var(--color-background)] transition-colors hover:bg-[var(--color-stone-800)]"
+                        onClick={() => router.visit('/assessment/written')}
+                        disabled={!checked}
+                        className="w-full bg-[var(--color-text)] py-4 font-sans text-sm tracking-wide text-[var(--color-background)] transition-colors hover:bg-[var(--color-stone-800)] disabled:cursor-not-allowed disabled:opacity-30"
                     >
                         Begin discernment &rarr;
                     </button>
