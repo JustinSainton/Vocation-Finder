@@ -126,7 +126,7 @@ export default function Dashboard({ assessments, pathway }: Props) {
                                 href={
                                     assessment.status === 'completed'
                                         ? `/assessment/${assessment.id}/results`
-                                        : `/assessment`
+                                        : `/assessment/written`
                                 }
                                 className="block border border-[var(--color-divider)] p-5 transition-colors hover:border-[var(--color-text)]"
                             >
@@ -159,7 +159,7 @@ export default function Dashboard({ assessments, pathway }: Props) {
 
                 <div className="mt-10">
                     <Link
-                        href="/assessment"
+                        href="/assessment/written"
                         className="block w-full bg-[var(--color-text)] py-4 text-center font-sans text-sm tracking-wide text-[var(--color-background)] transition-colors hover:bg-[var(--color-stone-800)]"
                     >
                         Start new assessment &rarr;

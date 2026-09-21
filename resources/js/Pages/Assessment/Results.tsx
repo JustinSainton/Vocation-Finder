@@ -318,7 +318,7 @@ export default function Results({
                     Return home
                 </a>
                 <a
-                    href="/assessment"
+                    href="/assessment/written"
                     className="action-secondary"
                 >
                     Take assessment again

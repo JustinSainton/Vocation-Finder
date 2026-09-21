@@ -15,7 +15,7 @@ interface FirstRun {
  * they can actually take, so that is what the page says.
  */
 const destinations: Record<string, { href: string; label: string } | null> = {
-    assessment: { href: '/assessment', label: 'Start the questions' },
+    assessment: { href: '/assessment/written', label: 'Start the questions' },
     account: { href: '/register', label: 'Save your answers' },
     results: null,
     portrait: { href: '/dashboard', label: 'Read your portrait' },
