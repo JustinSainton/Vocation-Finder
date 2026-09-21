@@ -6,7 +6,7 @@ import * as Haptics from 'expo-haptics';
 import { Typography } from '../../components/ui/Typography';
 import { AudioOrb } from '../../components/AudioOrb';
 import { useConversationFlow } from '../../hooks/useConversationFlow';
-import { getAssessmentCopy } from '../../constants/assessmentLocale';
+import { getAssessmentCopy, getMovementLabel } from '../../constants/assessmentLocale';
 import { spacing } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { useAssessmentStore } from '../../stores/assessmentStore';
@@ -17,6 +17,7 @@ export default function ConversationScreen() {
   const styles = getStyles(colors, isDark);
   const locale = useAssessmentStore((state) => state.locale);
   const copy = getAssessmentCopy(locale);
+  const conversationQuestions = useAssessmentStore((state) => state.questions);
   const {
     startRecording,
     stopRecording,
@@ -157,7 +158,11 @@ export default function ConversationScreen() {
               style={styles.indicator}
             >
               {totalQuestions > 0
-                ? copy.conversation.progress(currentQuestion, totalQuestions)
+                ? getMovementLabel(
+                    locale,
+                    conversationQuestions[currentQuestion]?.category_slug,
+                    copy.conversation.starting
+                  )
                 : copy.conversation.starting}
             </Typography>
           </View>

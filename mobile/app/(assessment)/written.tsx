@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   getAssessmentCopy,
+  getMovementLabel,
   translateQuestionCategory,
 } from '../../constants/assessmentLocale';
 import { Typography } from '../../components/ui/Typography';
@@ -192,7 +193,7 @@ export default function WrittenAssessmentScreen() {
             color={colors.textSecondary}
             style={styles.indicator}
           >
-            {copy.written.progress(currentQuestion, totalQuestions)}
+            {getMovementLabel(locale, question?.category_slug, localizedCategory)}
           </Typography>
 
           <Button
