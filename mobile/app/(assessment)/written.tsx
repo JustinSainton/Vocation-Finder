@@ -6,7 +6,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  TextInput as RNTextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,7 +26,6 @@ export default function WrittenAssessmentScreen() {
   const { colors } = useTheme();
   const styles = getStyles(colors);
   const scrollRef = useRef<ScrollView>(null);
-  const inputRef = useRef<RNTextInput>(null);
 
   const {
     currentQuestion,
@@ -59,14 +57,9 @@ export default function WrittenAssessmentScreen() {
     init();
   }, []);
 
-  // Scroll to top and focus input when question changes
+  // Scroll only. Focusing here would raise the keyboard over an unread question.
   useEffect(() => {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
-    // Small delay to let the layout settle before focusing
-    const timer = setTimeout(() => {
-      inputRef.current?.focus();
-    }, 100);
-    return () => clearTimeout(timer);
   }, [currentQuestion]);
 
   const currentAnswer = answers[currentQuestion] ?? '';
@@ -175,7 +168,6 @@ export default function WrittenAssessmentScreen() {
 
           {/* Text input -- using defaultValue to avoid JS-to-native flicker */}
           <TextInput
-            ref={inputRef}
             key={`question-${currentQuestion}`}
             defaultValue={currentAnswer}
             onChangeText={handleTextChange}

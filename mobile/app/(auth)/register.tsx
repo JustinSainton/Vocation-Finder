@@ -38,6 +38,7 @@ export default function RegisterScreen() {
   };
 
   const isValid = name && email && password && passwordConfirmation;
+  const emailTaken = !!error && /already been taken|already registered|already exists/i.test(error);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -58,14 +59,22 @@ export default function RegisterScreen() {
           </View>
 
           {error ? (
-            <Typography
-              variant="small"
-              family="sans"
-              color="#B91C1C"
-              style={styles.error}
-            >
-              {error}
-            </Typography>
+            <View style={styles.errorBlock}>
+              <Typography
+                variant="small"
+                family="sans"
+                color={colors.error}
+              >
+                {error}
+              </Typography>
+              {emailTaken ? (
+                <Link href="/(auth)/login" style={styles.errorAction}>
+                  <Typography variant="small" family="sans" color={colors.accent}>
+                    Sign in instead
+                  </Typography>
+                </Link>
+              ) : null}
+            </View>
           ) : null}
 
           <View style={styles.form}>
@@ -170,7 +179,11 @@ export default function RegisterScreen() {
   );
 }
 
-const getStyles = (colors: { background: string }) =>
+const getStyles = (colors: {
+  background: string;
+  accent: string;
+  error: string;
+}) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -183,29 +196,33 @@ const getStyles = (colors: { background: string }) =>
       flex: 1,
       paddingHorizontal: spacing.lg,
       justifyContent: 'center',
-      paddingVertical: spacing.xxl,
+      paddingVertical: spacing.xl,
     },
     header: {
-      marginBottom: spacing.xl,
-    },
-    subtitle: {
-      marginTop: spacing.sm,
-    },
-    error: {
-      marginBottom: spacing.md,
-    },
-    form: {
-      marginBottom: spacing.xl,
-    },
-    field: {
       marginBottom: spacing.lg,
     },
+    subtitle: {
+      marginTop: spacing.xs,
+    },
+    errorBlock: {
+      marginBottom: spacing.md,
+      gap: spacing.xs,
+    },
+    errorAction: {
+      alignSelf: 'flex-start',
+    },
+    form: {
+      marginBottom: spacing.lg,
+    },
+    field: {
+      marginBottom: spacing.md,
+    },
     actions: {
-      gap: spacing.md,
+      gap: spacing.sm,
     },
     linkRow: {
       flexDirection: 'row',
       justifyContent: 'center',
-      marginTop: spacing.md,
+      marginTop: spacing.sm,
     },
   });

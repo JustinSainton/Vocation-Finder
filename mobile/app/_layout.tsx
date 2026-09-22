@@ -28,6 +28,9 @@ export default function RootLayout() {
     'Satoshi-Regular': require('../assets/fonts/Satoshi-Regular.ttf'),
     'Satoshi-Medium': require('../assets/fonts/Satoshi-Medium.ttf'),
     'Satoshi-Bold': require('../assets/fonts/Satoshi-Bold.ttf'),
+    // DESIGN.md's label face; the eyebrow had been silently rendering in Satoshi.
+    'IBMPlexMono-Regular': require('../assets/fonts/IBMPlexMono-Regular.ttf'),
+    'IBMPlexMono-Medium': require('../assets/fonts/IBMPlexMono-Medium.ttf'),
   });
 
   // Check persisted token on mount

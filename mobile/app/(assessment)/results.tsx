@@ -1,15 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { AudioOrb } from '../../components/AudioOrb';
 import { getAssessmentCopy } from '../../constants/assessmentLocale';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
@@ -18,8 +12,10 @@ import { useAssessmentStore } from '../../stores/assessmentStore';
 import { useAuthStore } from '../../stores/authStore';
 import { assessmentApi } from '../../services/api';
 import { authApi } from '../../services/auth';
-import { spacing } from '../../constants/theme';
+import { spacing, radius, layout, palettes } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
+
+type ThemeColors = (typeof palettes)['light'];
 
 const POLL_INTERVAL = 5000;
 const POLL_TIMEOUT_MS = 120000;
@@ -56,6 +52,7 @@ export default function ResultsScreen() {
   const [emailSent, setEmailSent] = useState(false);
   const [creatingAccount, setCreatingAccount] = useState(false);
   const [accountCreated, setAccountCreated] = useState(false);
+  const [accountError, setAccountError] = useState<string | null>(null);
   const [isTakingLong, setIsTakingLong] = useState(false);
 
   const isLoggedIn = !!useAuthStore((s) => s.token);
@@ -120,6 +117,7 @@ export default function ResultsScreen() {
   const handleCreateAccount = useCallback(async () => {
     if (!emailValue.trim() || passwordValue.length < 6) return;
     setCreatingAccount(true);
+    setAccountError(null);
     try {
       const data = await authApi.register(
         guestName ?? 'User',
@@ -132,7 +130,14 @@ export default function ResultsScreen() {
       setAccountCreated(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (err: any) {
-      Alert.alert('Could not create account', err?.message ?? 'Please try again.');
+      const message: string = err?.message ?? '';
+      if (message.toLowerCase().includes('already been taken')) {
+        // Email belongs to an existing account — offer the sign-in path
+        // inline instead of a dead-end alert.
+        setAccountError(message);
+      } else {
+        Alert.alert('Could not create account', err?.message ?? 'Please try again.');
+      }
     } finally {
       setCreatingAccount(false);
     }
@@ -148,19 +153,13 @@ export default function ResultsScreen() {
     router.replace('/(assessment)');
   };
 
-  // Breathing rings + elapsed timer while waiting. No spinners, no
-  // staged progress theatre, no haptics: the wait is honest and quiet.
+  // Elapsed timer + quiet haptic pulse while waiting. The AudioOrb carries
+  // the motion; the wait itself stays honest and quiet.
   const [elapsed, setElapsed] = useState(0);
-  const breathe = useSharedValue(1);
 
   useEffect(() => {
     if (results || resultsError) return;
     setElapsed(0);
-    breathe.value = withRepeat(
-      withTiming(1.15, { duration: 2400, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true
-    );
     const timer = setInterval(() => {
       setElapsed((s) => s + 1);
     }, 1000);
@@ -171,12 +170,7 @@ export default function ResultsScreen() {
       clearInterval(timer);
       clearInterval(hapticTimer);
     };
-  }, [results, resultsError, breathe]);
-
-  const ringStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: breathe.value }],
-    opacity: 1.15 - (breathe.value - 1) * 2,
-  }));
+  }, [results, resultsError]);
 
   // Waiting for results
   if (!results) {
@@ -206,17 +200,15 @@ export default function ResultsScreen() {
             </>
           ) : (
             <>
-              <View style={styles.orbWrap}>
-                <Animated.View style={[styles.orbRing, ringStyle]} />
-                <View style={[styles.orbCore, { backgroundColor: colors.text }]} />
+              <View style={styles.orbSlot}>
+                <AudioOrb agentState="thinking" />
               </View>
 
               <Typography variant="bodyLarge" style={styles.waitingText}>
                 {copy.results.notReadyTitle}
               </Typography>
               <Typography
-                variant="caption"
-                family="sans"
+                variant="meta"
                 color={colors.textSecondary}
                 style={styles.timer}
               >
@@ -265,71 +257,69 @@ export default function ResultsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Eyebrow + honesty badge */}
-        <Typography variant="caption" family="sans" style={styles.eyebrow}>
+        {/* Document head: mono eyebrow + confidence badge + opening lead */}
+        <Typography variant="eyebrow" color={colors.accent} style={styles.eyebrowGap}>
           Your vocational articulation
         </Typography>
         {results.confidence ? (
           <View style={styles.confidencePill}>
-            <Typography variant="caption" family="sans" style={styles.confidenceText}>
+            <Typography variant="eyebrow" color={colors.muted}>
               {results.confidence}
             </Typography>
           </View>
         ) : null}
-
-        {/* Opening Synthesis */}
         <Typography variant="bodyLarge" style={styles.lead}>
           {results.opening_synthesis}
         </Typography>
 
         <View style={styles.divider} />
 
-        {/* Vocational Orientation */}
-        <Typography variant="caption" family="sans" style={styles.eyebrow}>
-          {copy.results.headings.vocationalOrientation}
-        </Typography>
-        <Typography variant="body" style={styles.section}>
-          {results.vocational_orientation}
-        </Typography>
+        {/* Vocational Orientation — editorial card */}
+        <View style={styles.card}>
+          <Typography variant="eyebrow" color={colors.accent} style={styles.eyebrowGap}>
+            {copy.results.headings.vocationalOrientation}
+          </Typography>
+          <Typography variant="body">{results.vocational_orientation}</Typography>
+        </View>
 
-        {/* Meta badges */}
-        <View style={styles.metaRow}>
-          <View style={styles.metaBadge}>
-            <Typography variant="caption" family="sans" color={colors.textSecondary}>
+        {/* Domain / mode / secondary — full-width stacked meta, hairline rules */}
+        <View style={styles.card}>
+          <View style={styles.metaBlock}>
+            <Typography variant="eyebrow" color={colors.muted}>
               {copy.results.headings.primaryDomain}
             </Typography>
             <Typography variant="body" style={styles.metaValue}>
               {results.primary_domain}
             </Typography>
           </View>
-          <View style={styles.metaBadge}>
-            <Typography variant="caption" family="sans" color={colors.textSecondary}>
+          <View style={styles.metaRule} />
+          <View style={styles.metaBlock}>
+            <Typography variant="eyebrow" color={colors.muted}>
               {copy.results.headings.modeOfWork}
             </Typography>
             <Typography variant="body" style={styles.metaValue}>
               {results.mode_of_work}
             </Typography>
           </View>
+          {results.secondary_orientation ? (
+            <>
+              <View style={styles.metaRule} />
+              <View style={styles.metaBlock}>
+                <Typography variant="eyebrow" color={colors.muted}>
+                  {copy.results.headings.secondaryOrientation}
+                </Typography>
+                <Typography variant="body" style={styles.metaValue}>
+                  {results.secondary_orientation}
+                </Typography>
+              </View>
+            </>
+          ) : null}
         </View>
-        {results.secondary_orientation ? (
-          <View style={styles.metaRow}>
-            <View style={styles.metaBadge}>
-              <Typography variant="caption" family="sans" color={colors.textSecondary}>
-                {copy.results.headings.secondaryOrientation}
-              </Typography>
-              <Typography variant="body" style={styles.metaValue}>
-                {results.secondary_orientation}
-              </Typography>
-            </View>
-          </View>
-        ) : null}
 
-        <View style={styles.divider} />
-
-        {/* Primary Pathways */}
+        {/* Primary Pathways — accent quote rules */}
         {results.primary_pathways && results.primary_pathways.length > 0 ? (
-          <>
-            <Typography variant="caption" family="sans" style={styles.eyebrow}>
+          <View style={styles.sectionBlock}>
+            <Typography variant="eyebrow" color={colors.accent} style={styles.eyebrowGap}>
               {copy.results.headings.primaryPathways}
             </Typography>
             {results.primary_pathways.map((pathway, i) => (
@@ -337,22 +327,20 @@ export default function ResultsScreen() {
                 <Typography variant="bodyLarge">{pathway}</Typography>
               </View>
             ))}
-            <View style={styles.divider} />
-          </>
+          </View>
         ) : null}
 
-        {/* Matched Pathway Blurbs */}
+        {/* Matched Pathway Blurbs — editorial cards */}
         {results.matched_pathway_blurbs && results.matched_pathway_blurbs.length > 0 ? (
-          <>
-            <Typography variant="caption" family="sans" style={styles.eyebrow}>
+          <View style={styles.sectionBlock}>
+            <Typography variant="eyebrow" color={colors.accent} style={styles.eyebrowGap}>
               {copy.results.headings.vocationalPathways}
             </Typography>
             {results.matched_pathway_blurbs.map((blurb, i) => (
               <View key={i} style={styles.blurbCard}>
                 <Typography
-                  variant="caption"
-                  family="sans"
-                  color={colors.textSecondary}
+                  variant="eyebrow"
+                  color={colors.muted}
                   style={styles.blurbName}
                 >
                   {blurb.name}
@@ -360,66 +348,52 @@ export default function ResultsScreen() {
                 <Typography variant="body" style={styles.blurbDesc}>
                   {blurb.description}
                 </Typography>
-                <Typography
-                  variant="small"
-                  color={colors.textSecondary}
-                  style={styles.blurbMinistry}
-                >
+                <Typography variant="small" color={colors.textSecondary} style={styles.blurbMinistry}>
                   {blurb.ministry_connection}
                 </Typography>
               </View>
             ))}
-            <View style={styles.divider} />
-          </>
+          </View>
         ) : null}
 
         {/* Specific Considerations */}
         {results.specific_considerations ? (
-          <>
-            <Typography variant="caption" family="sans" style={styles.eyebrow}>
+          <View style={styles.sectionBlock}>
+            <Typography variant="eyebrow" color={colors.accent} style={styles.eyebrowGap}>
               {copy.results.headings.specificConsiderations}
             </Typography>
-            <Typography variant="body" style={styles.section}>
-              {results.specific_considerations}
-            </Typography>
-            <View style={styles.divider} />
-          </>
+            <Typography variant="body">{results.specific_considerations}</Typography>
+          </View>
         ) : null}
 
-        {/* Next Steps */}
+        {/* Next Steps — hairline-separated rows */}
         {results.next_steps && results.next_steps.length > 0 ? (
-          <>
-            <Typography variant="caption" family="sans" style={styles.eyebrow}>
+          <View style={styles.sectionBlock}>
+            <Typography variant="eyebrow" color={colors.accent} style={styles.eyebrowGap}>
               {copy.results.headings.nextSteps}
             </Typography>
             {results.next_steps.map((step, i) => (
               <View key={i} style={styles.stepRow}>
-                <Typography variant="body" style={styles.stepText}>
-                  {step}
-                </Typography>
+                <Typography variant="body">{step}</Typography>
               </View>
             ))}
-            <View style={styles.divider} />
-          </>
+          </View>
         ) : null}
 
         {/* Ministry Integration */}
         {results.ministry_integration ? (
-          <>
-            <Typography variant="caption" family="sans" style={styles.eyebrow}>
+          <View style={styles.sectionBlock}>
+            <Typography variant="eyebrow" color={colors.accent} style={styles.eyebrowGap}>
               {copy.results.headings.ministryIntegration}
             </Typography>
-            <Typography variant="body" style={styles.section}>
-              {results.ministry_integration}
-            </Typography>
-            <View style={styles.divider} />
-          </>
+            <Typography variant="body">{results.ministry_integration}</Typography>
+          </View>
         ) : null}
 
-        {/* Upgrade prompt for free tier */}
+        {/* Upgrade prompt for free tier — policy callout */}
         {tier === 'free' && upgradeMessage ? (
-          <View style={styles.upgradeCard}>
-            <Typography variant="body" style={styles.upgradeText}>
+          <View style={styles.policyCallout}>
+            <Typography variant="body" italic>
               {upgradeMessage}
             </Typography>
           </View>
@@ -427,14 +401,14 @@ export default function ResultsScreen() {
 
         {/* Save results — account creation for guests, email for logged-in users */}
         {!isLoggedIn ? (
-          <>
-            <Typography variant="caption" family="sans" style={styles.eyebrow}>
+          <View style={styles.sectionBlock}>
+            <Typography variant="eyebrow" color={colors.accent} style={styles.eyebrowGap}>
               Save your portrait
             </Typography>
             <Typography
               variant="body"
               color={colors.textSecondary}
-              style={styles.emailBody}
+              style={styles.formIntro}
             >
               Create an account to access your vocational portrait anytime and track your journey.
             </Typography>
@@ -444,38 +418,62 @@ export default function ResultsScreen() {
                 Account created! Your portrait is saved.
               </Typography>
             ) : (
-              <View style={styles.emailStack}>
+              <View style={styles.formStack}>
                 <TextInput
                   placeholder="Email address"
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  minHeight={layout.touchTarget}
                   value={emailValue}
-                  onChangeText={setEmailValue}
+                  onChangeText={(text) => {
+                    setEmailValue(text);
+                    setAccountError(null);
+                  }}
                 />
                 <TextInput
                   placeholder="Choose a password"
                   secureTextEntry
+                  minHeight={layout.touchTarget}
                   value={passwordValue}
                   onChangeText={setPasswordValue}
                 />
+                {accountError ? (
+                  <View style={styles.accountError}>
+                    <Typography variant="small" color={colors.textSecondary}>
+                      {accountError}
+                    </Typography>
+                    <Pressable
+                      onPress={() => router.push('/(auth)/login')}
+                      hitSlop={8}
+                    >
+                      <Typography
+                        variant="small"
+                        color={colors.accent}
+                        style={styles.signInLink}
+                      >
+                        Sign in instead
+                      </Typography>
+                    </Pressable>
+                  </View>
+                ) : null}
                 <Button
                   title={creatingAccount ? 'Creating account...' : 'Create account'}
                   onPress={handleCreateAccount}
                   disabled={creatingAccount || !emailValue.trim() || passwordValue.length < 6}
+                  style={styles.formButton}
                 />
               </View>
             )}
-            <View style={styles.divider} />
-          </>
+          </View>
         ) : (
-          <>
-            <Typography variant="heading" style={styles.sectionHeading}>
+          <View style={styles.sectionBlock}>
+            <Typography variant="eyebrow" color={colors.accent} style={styles.eyebrowGap}>
               {copy.results.headings.saveResults}
             </Typography>
             <Typography
               variant="body"
               color={colors.textSecondary}
-              style={styles.emailBody}
+              style={styles.formIntro}
             >
               {copy.results.emailPrompt}
             </Typography>
@@ -485,11 +483,12 @@ export default function ResultsScreen() {
                 {copy.results.emailSent}
               </Typography>
             ) : (
-              <View style={styles.emailStack}>
+              <View style={styles.formStack}>
                 <TextInput
                   placeholder={copy.results.emailPlaceholder}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  minHeight={layout.touchTarget}
                   value={emailValue}
                   onChangeText={setEmailValue}
                 />
@@ -497,11 +496,11 @@ export default function ResultsScreen() {
                   title={emailSending ? copy.results.emailSending : copy.results.emailSend}
                   onPress={handleEmailResults}
                   disabled={emailSending || !emailValue.trim()}
+                  style={styles.formButton}
                 />
               </View>
             )}
-            <View style={styles.divider} />
-          </>
+          </View>
         )}
 
         {/* Actions */}
@@ -514,28 +513,18 @@ export default function ResultsScreen() {
           />
         </View>
 
-        {/* AI Disclaimer */}
-        <Typography
-          variant="caption"
-          color={colors.textSecondary}
-          style={styles.disclaimer}
-        >
-          {copy.results.disclaimer}
-        </Typography>
+        {/* AI Disclaimer — policy callout */}
+        <View style={[styles.policyCallout, styles.disclaimerCallout]}>
+          <Typography variant="small" color={colors.textSecondary}>
+            {copy.results.disclaimer}
+          </Typography>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const getStyles = (
-  colors: {
-    background: string;
-    divider: string;
-    accent: string;
-    text: string;
-    textSecondary: string;
-  }
-) =>
+const getStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -545,6 +534,10 @@ const getStyles = (
       flex: 1,
       justifyContent: 'center',
       paddingHorizontal: spacing.xl,
+    },
+    orbSlot: {
+      alignSelf: 'center',
+      marginBottom: spacing.lg,
     },
     waitingText: {
       textAlign: 'center',
@@ -558,74 +551,74 @@ const getStyles = (
       gap: spacing.md,
       marginTop: spacing.lg,
     },
+    timer: {
+      textAlign: 'center',
+      marginTop: spacing.md,
+      marginBottom: spacing.md,
+    },
+    leaveNote: {
+      textAlign: 'center',
+      marginTop: spacing.xl,
+    },
     scrollContent: {
       paddingHorizontal: spacing.xl,
       paddingTop: spacing.xxl,
       paddingBottom: spacing.section,
     },
-    section: {
-      marginBottom: spacing.md,
-    },
-    sectionHeading: {
-      marginBottom: spacing.lg,
-    },
-    eyebrow: {
-      textTransform: 'uppercase',
-      letterSpacing: 1.5,
-      color: colors.textSecondary,
+    eyebrowGap: {
       marginBottom: spacing.md,
     },
     lead: {
-      marginBottom: spacing.md,
+      marginBottom: spacing.xs,
     },
     confidencePill: {
       alignSelf: 'flex-start',
       borderWidth: 1,
       borderColor: colors.divider,
-      borderRadius: 9999,
-      paddingVertical: 4,
-      paddingHorizontal: 12,
-      marginBottom: spacing.xl,
-    },
-    confidenceText: {
-      textTransform: 'uppercase',
-      letterSpacing: 1.5,
-      color: colors.textSecondary,
+      borderRadius: radius.pill,
+      paddingVertical: spacing.xxs,
+      paddingHorizontal: spacing.sm,
+      marginBottom: spacing.lg,
     },
     divider: {
       height: 1,
       backgroundColor: colors.divider,
       marginVertical: spacing.xl,
     },
-    metaRow: {
-      flexDirection: 'row',
-      marginTop: spacing.lg,
-      gap: spacing.lg,
+    card: {
+      backgroundColor: colors.surfaceCard,
+      borderRadius: radius.md,
+      padding: spacing.xl,
+      marginBottom: spacing.xl,
     },
-    metaBadge: {
-      flex: 1,
+    metaBlock: {
+      width: '100%',
       paddingVertical: spacing.sm,
     },
     metaValue: {
-      marginTop: 4,
+      marginTop: spacing.xs,
+    },
+    metaRule: {
+      height: 1,
+      backgroundColor: colors.dividerSoft,
+    },
+    sectionBlock: {
+      marginBottom: spacing.xl,
     },
     quoteBlock: {
       borderLeftWidth: 2,
       borderLeftColor: colors.accent,
       paddingLeft: spacing.lg,
-      paddingVertical: 4,
-      marginBottom: spacing.xl,
+      paddingVertical: spacing.xxs,
+      marginBottom: spacing.lg,
     },
     blurbCard: {
-      borderWidth: 1,
-      borderColor: colors.divider,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.lg,
+      backgroundColor: colors.surfaceCard,
+      borderRadius: radius.md,
+      padding: spacing.lg,
       marginBottom: spacing.md,
     },
     blurbName: {
-      letterSpacing: 1,
-      textTransform: 'uppercase',
       marginBottom: spacing.sm,
     },
     blurbDesc: {
@@ -636,64 +629,37 @@ const getStyles = (
     },
     stepRow: {
       borderBottomWidth: 1,
-      borderBottomColor: colors.divider,
+      borderBottomColor: colors.dividerSoft,
       paddingVertical: spacing.md,
-      marginBottom: spacing.sm,
     },
-    stepText: {
-      flex: 1,
-    },
-    upgradeCard: {
-      borderWidth: 1,
+    policyCallout: {
+      backgroundColor: colors.accentWash,
+      borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.divider,
+      borderRadius: radius.sm,
       padding: spacing.lg,
       marginBottom: spacing.xl,
     },
-    upgradeText: {
-      fontStyle: 'italic',
+    disclaimerCallout: {
+      marginBottom: 0,
     },
-    emailBody: {
+    formIntro: {
       marginBottom: spacing.md,
     },
-    emailStack: {
-      gap: spacing.md,
+    formStack: {
+      gap: spacing.sm,
     },
-    orbWrap: {
-      width: 72,
-      height: 72,
-      alignItems: 'center',
-      justifyContent: 'center',
-      alignSelf: 'center',
-      marginBottom: spacing.xl,
+    formButton: {
+      marginTop: spacing.xs,
     },
-    orbRing: {
-      position: 'absolute',
-      width: 72,
-      height: 72,
-      borderRadius: 36,
-      borderWidth: 1,
-      borderColor: colors.divider,
+    accountError: {
+      gap: spacing.xxs,
     },
-    orbCore: {
-      width: 22,
-      height: 22,
-      borderRadius: 11,
-    },
-    timer: {
-      textAlign: 'center',
-      letterSpacing: 1,
-      marginTop: spacing.md,
-    },
-    leaveNote: {
-      textAlign: 'center',
-      marginTop: spacing.xl,
+    signInLink: {
+      textDecorationLine: 'underline',
     },
     actions: {
       gap: spacing.md,
       marginBottom: spacing.xl,
-    },
-    disclaimer: {
-      textAlign: 'center',
-      lineHeight: 18,
     },
   });

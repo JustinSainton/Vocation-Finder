@@ -455,12 +455,49 @@ Two container widths, chosen by content type:
 - **Working width — 1120px.** Dashboards, the plan, cohort/admin views, marketing pages. Grids and side-by-side comparison.
 
 Do not run body prose at 1120px. The 640px measure is load-bearing for a product whose core output is paragraphs a teenager has to actually read.
-
 ### Whitespace Philosophy
-Whitespace is the primary expressive tool. Where Clay spends its budget on saturated color, this system spends it on air. If a screen feels empty, that is usually correct — reduce elements before reducing space.
+Whitespace is the primary expressive tool. Where Clay spends its budget on
+saturated color, this system spends it on air. If a screen feels empty, that is
+usually correct — reduce elements before reducing space.
+
+## Density: A Section Is Not a Paragraph
+
+The paragraph above is the sentence most likely to be misread, and it has been.
+"Reduce elements before reducing space" is an instruction about *which* elements,
+not a licence to remove all of them. Whitespace applied to undifferentiated prose
+does not produce a designed page; it produces a wall of text with air around it.
+
+**A section is a unit of design, not a paragraph with a label above it.**
+
+Every section carries at least one designed element beyond its eyebrow and its
+body copy, drawn from the components already specified in this document:
+`{component.editorial-card}`, `{component.quote-block}`, `{component.policy-callout}`,
+`{component.confidence-badge}`, a hairline rule, a display-weight lead, or a
+full-bleed image band. A section that is an eyebrow, a paragraph, and a divider
+is **incomplete**, not restrained.
+
+In practice:
+
+- **Prose sits in a container**, not directly on the canvas. An
+  `{component.editorial-card}` or a `{component.quote-block}` — the container is
+  the designed element.
+- **Two short facts do not become two columns.** Side-by-side comparison belongs
+  to the 1120px working width. At the 640px reading measure, and on mobile, long
+  values stack. A ragged two-column block of wrapped text is a layout bug, not a
+  comparison.
+- **A document opens at display size.** `{typography.display-lg}` for a page
+  lead, `{typography.display-md}` for a card lead. Body copy is not a lead.
+- **No fourth consecutive paragraph without a visual break** — a rule, a quote,
+  a callout. The reader is a teenager reading about themselves; they need the
+  page to tell them where they are.
+- **Emphasis in engine-generated prose arrives as Markdown** (`*word*`,
+  `**word**`). Clients render it in `{typography.display-sm}` italics or the
+  serif bold face. They neither print the asterisks nor strip the emphasis.
+
+Restraint governs *how much* a page says. It has never governed *whether* the
+page is composed.
 
 ## Elevation & Depth
-
 | Level | Treatment | Use |
 |---|---|---|
 | Flat | No shadow, no border | Body sections, nav, hero |
@@ -601,18 +638,26 @@ No bounce, no spring, no parallax, no scroll-triggered reveals on content. Respe
 
 Closed since this document was written:
 
-- ~~IBM Plex Mono is not yet in the font stack.~~ Shipped, via `.type-eyebrow`.
+- ~~IBM Plex Mono is not yet in the font stack.~~ Shipped on web, via
+  `.type-eyebrow`. Shipped on mobile 2026-09-21: the face was never bundled
+  there, so every eyebrow — the system's signature move — was silently
+  rendering in Satoshi. `Typography`'s `eyebrow` and `meta` variants now
+  resolve to `IBMPlexMono-Regular` and cannot be spelled any other way.
 - ~~No dark surfaces exist in the app today.~~ Shipped; the coach and brain
   use them, and `DesignSystemTest` asserts the dark room is inhabited.
 - ~~The accent indigo is new.~~ Adopted; the warm stone it replaced is gone.
-- ~~Mobile (Expo) token parity is not addressed here.~~ Reconciled 2026-09-16.
-  It had drifted exactly as predicted, and not cosmetically: light `accent`
-  was still the warm stone this document says indigo replaced, the dark canvas
-  was `#0F1216` — a cool blue-black ruled out above — and dark `accent` was
-  `#94A3B8`, **a second accent hue**. `DesignSystemTest` now parses this
-  document and asserts `mobile/constants/theme.ts` against it, so the gap
-  cannot reopen silently. A gap named in prose drifts; a gap named in a test
-  cannot.
+- ~~Mobile (Expo) token parity is not addressed here.~~ Reconciled 2026-09-16,
+  and completed 2026-09-21. It had drifted exactly as predicted, and not
+  cosmetically: light `accent` was still the warm stone this document says
+  indigo replaced, the dark canvas was `#0F1216` — a cool blue-black ruled out
+  above — and dark `accent` was `#94A3B8`, **a second accent hue**.
+  `DesignSystemTest` now parses this document and asserts
+  `mobile/constants/theme.ts` against it: the full light and dark palette, the
+  spacing scale, and the single-accent rule. The spacing half mattered as much
+  as the colour half and was caught later — mobile's `section` was 64 where this
+  document says 96, and `xxs` and `hero` did not exist. Colour was the only
+  thing anyone thought to assert, which is why the scale drifted. A gap named in
+  prose drifts; a gap named in a test cannot.
 
 Still open, and deliberately:
 
