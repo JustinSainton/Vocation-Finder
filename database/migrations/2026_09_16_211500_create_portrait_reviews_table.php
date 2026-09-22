@@ -18,6 +18,29 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (! Schema::hasTable('portrait_reviews')) {
+            $this->createTable();
+
+            return;
+        }
+
+        /*
+         | Self-heal for a partial deploy: the first attempt to create this
+         | table on prod hit MySQL's 64-character index-name limit (the
+         | auto-generated unique name was 67 chars), so the table was
+         | committed with its foreign keys but never with the index — and the
+         | migration was never recorded. Add the missing index in place rather
+         | than dropping any rows.
+         */
+        if (! Schema::hasIndex('portrait_reviews', 'portrait_reviews_vp_reviewer_dimension_unique')) {
+            Schema::table('portrait_reviews', function (Blueprint $table) {
+                $table->unique(['vocational_profile_id', 'reviewer_id', 'dimension'], 'portrait_reviews_vp_reviewer_dimension_unique');
+            });
+        }
+    }
+
+    private function createTable(): void
+    {
         Schema::create('portrait_reviews', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('vocational_profile_id')->constrained()->cascadeOnDelete();
@@ -37,7 +60,7 @@ return new class extends Migration
 
             $table->timestamp('created_at')->nullable();
 
-            $table->unique(['vocational_profile_id', 'reviewer_id', 'dimension']);
+            $table->unique(['vocational_profile_id', 'reviewer_id', 'dimension'], 'portrait_reviews_vp_reviewer_dimension_unique');
         });
     }
 
