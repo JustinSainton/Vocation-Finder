@@ -38,12 +38,19 @@ class AssessmentController extends Controller
                 'demo_answer' => DemoMode::answerFor($request->user(), $q),
             ]);
 
-        // Create a guest assessment for web users
+        /*
+         | Every web assessment carries a token, signed in or not. The page
+         | saves answers through the stateless API, which cannot see the web
+         | session, so without one a signed-in student's saves are refused and
+         | the assessment can never complete. The token cannot move an owned
+         | assessment to another account: GuestUpgradeService only claims
+         | assessments that have no owner.
+         */
         $assessment = Assessment::create([
             'user_id' => $request->user()?->id,
             'mode' => 'written',
             'status' => 'in_progress',
-            'guest_token' => $request->user() ? null : Str::random(64),
+            'guest_token' => Str::random(64),
             'started_at' => now(),
         ]);
 
