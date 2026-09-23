@@ -3,6 +3,8 @@
 namespace App\Support;
 
 use App\Ai\Agents\PathwayCoachAgent;
+use App\Data\Coach\CoachActionData;
+use App\Data\Coach\CoachSettledData;
 use App\Models\User;
 use Closure;
 use Illuminate\Support\Facades\Log;
@@ -97,22 +99,20 @@ class CoachStream
             $after();
         }
 
-        $this->emit(['type' => 'done'] + static::settled($user));
+        $this->emit(['type' => 'done'] + static::settled($user)->toArray());
     }
 
     /**
      * What every client needs after a turn: the thread as stored, the one
      * step in progress, and what to offer next.
-     *
-     * @return array{items: list<array<string, mixed>>, current_action: ?array<string, mixed>, starters: list<string>}
      */
-    public static function settled(User $user): array
+    public static function settled(User $user): CoachSettledData
     {
-        return [
-            'items' => (new CoachThread)->items($user),
-            'current_action' => (new ActionQueue)->current($user)?->only(['id', 'title', 'rationale']),
-            'starters' => (new CoachStarters)->for($user),
-        ];
+        return new CoachSettledData(
+            items: (new CoachThread)->items($user),
+            current_action: CoachActionData::optional((new ActionQueue)->current($user)),
+            starters: (new CoachStarters)->for($user),
+        );
     }
 
     /**

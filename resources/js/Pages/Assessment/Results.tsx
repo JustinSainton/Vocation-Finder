@@ -3,6 +3,7 @@ import { Link } from '@inertiajs/react';
 import AppLayout from '../../Layouts/AppLayout';
 import ClarityCheck from '../../Components/ClarityCheck';
 import ResultFeedback from '../../Components/ResultFeedback';
+import type { CoachHandoffData } from '@/types/generated';
 
 interface VocationalProfile {
     id: string;
@@ -22,16 +23,6 @@ interface PathwayRef {
     status: 'generating' | 'ready' | 'failed';
 }
 
-interface CoachHandoff {
-    state: 'open' | 'account' | 'consent' | 'checkout' | 'later';
-    eyebrow: string;
-    headline: string;
-    body: string;
-    href: string | null;
-    cta: string | null;
-    starters: string[];
-}
-
 interface Props {
     assessment_id: string;
     guest_token: string | null;
@@ -40,7 +31,7 @@ interface Props {
     tier?: string;
     upgrade_message?: string;
     pathway?: PathwayRef | null;
-    coach?: CoachHandoff | null;
+    coach?: CoachHandoffData | null;
 }
 
 export default function Results({
@@ -368,7 +359,7 @@ export default function Results({
  * starters are ways in drawn from this portrait; choosing one carries it into
  * the coach's composer, where it waits until the coach has spoken first.
  */
-function CoachDoor({ coach }: { coach: CoachHandoff }) {
+function CoachDoor({ coach }: { coach: CoachHandoffData }) {
     const withStarter = (starter: string) =>
         coach.href ? `${coach.href}${coach.href.includes('?') ? '&' : '?'}say=${encodeURIComponent(starter)}` : '#';
 

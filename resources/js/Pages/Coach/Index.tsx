@@ -4,51 +4,17 @@ import CoachThread from '@/Components/Coach/CoachThread';
 import type { CoachAction, Opening, Settled, ThreadItem } from '@/Components/Coach/types';
 import { useCoachStream } from '@/Components/Coach/useCoachStream';
 import SupportBlock, { type Support } from '@/Components/SupportBlock';
+import type { BrainstormInvitationData, HabitData, ReadinessData } from '@/types/generated';
 import { router, usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AppLayout from '../../Layouts/AppLayout';
 
-interface ReadinessFactor {
-    label: string;
-    standing: string;
-    move: string;
-}
-
-interface Readiness {
-    level_label: string;
-    level_description: string;
-    what_moves_it: string;
-    factors: Record<string, ReadinessFactor>;
-    history: { on: string; level: string; because?: string }[];
-}
-
-interface Habit {
-    id: string;
-    title: string;
-    why: string | null;
-    cadence: string;
-    standing: string;
-    meaning: string;
-    next_move: string;
-    answered_today: boolean;
-}
-
-interface Invitation {
-    opens_with: {
-        term: string;
-        entry_count: number;
-        first_said_on: string;
-        in_their_words: { said_on: string; content: string }[];
-    } | null;
-    prompt: string;
-}
-
 interface Props {
     firstRun: { step: string; prompt: string; is_terminal: boolean };
     currentAction: CoachAction | null;
-    readiness: Readiness;
-    habits: Habit[];
-    invitation: Invitation | null;
+    readiness: ReadinessData;
+    habits: HabitData[];
+    invitation: BrainstormInvitationData | null;
     thread: ThreadItem[];
     starters: string[];
     opening: Opening;
@@ -170,7 +136,7 @@ export default function CoachIndex() {
         }
     };
 
-    const checkIn = (habit: Habit, happened: boolean) => {
+    const checkIn = (habit: HabitData, happened: boolean) => {
         router.post(`/habits/${habit.id}/check-in`, { happened }, { preserveScroll: true, preserveState: true });
     };
 

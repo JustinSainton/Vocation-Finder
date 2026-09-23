@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Data\Coach\CoachActionData;
 use App\Http\Controllers\Controller;
 use App\Models\Action;
 use App\Support\ActionQueue;
@@ -21,7 +22,7 @@ class ActionController extends Controller
         (new ActionQueue)->complete($action, $validated['reflection'] ?? null);
 
         return response()->json([
-            'current_action' => (new ActionQueue)->current($request->user())?->only(['id', 'title', 'rationale']),
+            'current_action' => CoachActionData::optional((new ActionQueue)->current($request->user())),
         ]);
     }
 
@@ -36,7 +37,7 @@ class ActionController extends Controller
         (new ActionQueue)->skip($action, $validated['reason'] ?? null);
 
         return response()->json([
-            'current_action' => (new ActionQueue)->current($request->user())?->only(['id', 'title', 'rationale']),
+            'current_action' => CoachActionData::optional((new ActionQueue)->current($request->user())),
         ]);
     }
 }
