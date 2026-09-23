@@ -54,6 +54,14 @@ export default function CoachScreen() {
   // scrolling up to reread something must not be yanked back down.
   const [isPinned, setIsPinned] = useState(true);
   const flatListRef = useRef<FlatList<CoachRow>>(null);
+  // A programmatic scroll reports intermediate offsets on its way down; those
+  // must not read as the student scrolling away.
+  const ignoreScrollUntil = useRef(0);
+
+  const followToEnd = useCallback(() => {
+    ignoreScrollUntil.current = Date.now() + 600;
+    flatListRef.current?.scrollToEnd({ animated: true });
+  }, []);
 
   useEffect(() => {
     const previous = useThemeStore.getState().preference;
@@ -64,19 +72,20 @@ export default function CoachScreen() {
   // Follow the conversation: new turns, the thinking row, and a failed send.
   useEffect(() => {
     if (!isPinned) return;
-    const timer = setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
+    const timer = setTimeout(followToEnd, 50);
     return () => clearTimeout(timer);
-  }, [isPinned, coach.thinking, coach.pending, coach.failed, coach.items.length]);
+  }, [isPinned, followToEnd, coach.thinking, coach.pending, coach.failed, coach.items.length]);
 
   const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (Date.now() < ignoreScrollUntil.current) return;
     const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent;
     setIsPinned(contentSize.height - (contentOffset.y + layoutMeasurement.height) < 60);
   }, []);
 
   const jumpToLatest = useCallback(() => {
-    flatListRef.current?.scrollToEnd({ animated: true });
     setIsPinned(true);
-  }, []);
+    followToEnd();
+  }, [followToEnd]);
 
   if (!enabled) return null;
 
@@ -132,183 +141,184 @@ export default function CoachScreen() {
             <Typography variant="body" style={styles.centeredText}>{blocked}</Typography>
           </View>
         ) : (
-          <FlatList
-            ref={flatListRef}
-            data={coach.rows}
-            keyExtractor={(item) => `${item.type}-${item.id}`}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-            onContentSizeChange={() => {
-              if (isPinned) flatListRef.current?.scrollToEnd({ animated: true });
-            }}
-            contentContainerStyle={styles.listContent}
-            ListHeaderComponent={
-              <View>
-                {showReadiness && readiness ? (
-                  <View style={styles.section}>
-                    <Eyebrow>Where you are</Eyebrow>
-                    <Typography variant="body" color={colors.textSecondary}>
-                      {readiness.level_description}
-                    </Typography>
-                    <View style={styles.moveBlock}>
-                      <Eyebrow>What moves it</Eyebrow>
-                      <Typography variant="body">{readiness.what_moves_it}</Typography>
-                    </View>
-                  </View>
-                ) : null}
-
-                {action ? (
-                  <View style={[styles.actionCard, { borderColor: colors.accent, backgroundColor: colors.surfaceStrong }]}>
-                    <Eyebrow>Your one step</Eyebrow>
-                    <Typography variant="bodyLarge" family="sans" style={styles.actionTitle}>
-                      {action.title}
-                    </Typography>
-                    {action.rationale ? (
-                      <Typography variant="body" color={colors.textSecondary} style={styles.actionRationale}>
-                        {action.rationale}
+          <View style={styles.threadArea}>
+            <FlatList
+              ref={flatListRef}
+              data={coach.rows}
+              keyExtractor={(item) => `${item.type}-${item.id}`}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+              onContentSizeChange={() => {
+                if (isPinned) followToEnd();
+              }}
+              contentContainerStyle={styles.listContent}
+              ListHeaderComponent={
+                <View>
+                  {showReadiness && readiness ? (
+                    <View style={styles.section}>
+                      <Eyebrow>Where you are</Eyebrow>
+                      <Typography variant="body" color={colors.textSecondary}>
+                        {readiness.level_description}
                       </Typography>
-                    ) : null}
-                    <View style={styles.actionRow}>
-                      <View style={styles.actionBtn}>
-                        <Button
-                          title={coach.settlingAction ? '…' : 'I did this'}
-                          onPress={() => coach.settleAction('complete')}
-                          disabled={coach.settlingAction}
-                        />
-                      </View>
-                      <View style={styles.actionBtn}>
-                        <Button
-                          title="Set it down"
-                          onPress={() => coach.settleAction('skip')}
-                          disabled={coach.settlingAction}
-                          variant="secondary"
-                        />
+                      <View style={styles.moveBlock}>
+                        <Eyebrow>What moves it</Eyebrow>
+                        <Typography variant="body">{readiness.what_moves_it}</Typography>
                       </View>
                     </View>
-                  </View>
-                ) : null}
+                  ) : null}
 
-                {habits.length > 0 ? (
-                  <View style={styles.section}>
-                    <Eyebrow>What you keep doing</Eyebrow>
-                    {habits.map((habit) => (
-                      <View key={habit.id} style={[styles.habitRow, { borderColor: colors.divider }]}>
-                        <Typography variant="body" style={styles.habitTitle}>
-                          {habit.title}
+                  {action ? (
+                    <View style={[styles.actionCard, { borderColor: colors.accent, backgroundColor: colors.surfaceStrong }]}>
+                      <Eyebrow>Your one step</Eyebrow>
+                      <Typography variant="bodyLarge" family="sans" style={styles.actionTitle}>
+                        {action.title}
+                      </Typography>
+                      {action.rationale ? (
+                        <Typography variant="body" color={colors.textSecondary} style={styles.actionRationale}>
+                          {action.rationale}
                         </Typography>
-                        <Typography variant="small" family="sans" color={colors.textSecondary}>
-                          {habit.standing} · {habit.cadence}
-                        </Typography>
-                        {habit.next_move ? (
-                          <Typography variant="small" color={colors.textSecondary} style={styles.habitMove}>
-                            {habit.next_move}
+                      ) : null}
+                      <View style={styles.actionRow}>
+                        <View style={styles.actionBtn}>
+                          <Button
+                            title={coach.settlingAction ? '…' : 'I did this'}
+                            onPress={() => coach.settleAction('complete')}
+                            disabled={coach.settlingAction}
+                          />
+                        </View>
+                        <View style={styles.actionBtn}>
+                          <Button
+                            title="Set it down"
+                            onPress={() => coach.settleAction('skip')}
+                            disabled={coach.settlingAction}
+                            variant="secondary"
+                          />
+                        </View>
+                      </View>
+                    </View>
+                  ) : null}
+
+                  {habits.length > 0 ? (
+                    <View style={styles.section}>
+                      <Eyebrow>What you keep doing</Eyebrow>
+                      {habits.map((habit) => (
+                        <View key={habit.id} style={[styles.habitRow, { borderColor: colors.divider }]}>
+                          <Typography variant="body" style={styles.habitTitle}>
+                            {habit.title}
                           </Typography>
-                        ) : null}
-                        {!habit.answered_today ? (
-                          <View style={styles.habitButtons}>
-                            <View style={styles.habitBtn}>
-                              <Button
-                                title="I did this"
-                                onPress={() => coach.checkIn(habit.id, true)}
-                                disabled={coach.checkingHabit === habit.id}
-                                variant="secondary"
-                              />
-                            </View>
-                            <View style={styles.habitBtn}>
-                              <Button
-                                title="Not today"
-                                onPress={() => coach.checkIn(habit.id, false)}
-                                disabled={coach.checkingHabit === habit.id}
-                                variant="secondary"
-                              />
-                            </View>
-                          </View>
-                        ) : null}
-                      </View>
-                    ))}
-                  </View>
-                ) : null}
-
-                {state?.invitation?.prompt ? (
-                  <View style={[styles.invitation, { borderLeftColor: colors.accent }]}>
-                    <Eyebrow>Something you keep coming back to</Eyebrow>
-                    <Typography variant="body">{state.invitation.prompt}</Typography>
-                  </View>
-                ) : null}
-
-                {support ? (
-                  <View style={[styles.supportCard, { borderLeftColor: colors.accent }]}>
-                    <Typography variant="bodyLarge" style={styles.supportHeading}>
-                      {support.heading}
-                    </Typography>
-                    {support.body.map((paragraph, i) => (
-                      <Typography key={i} variant="body" color={colors.textSecondary} style={styles.supportBody}>
-                        {paragraph}
-                      </Typography>
-                    ))}
-                    {support.resources.map((resource, i) => (
-                      <View key={i} style={styles.supportResource}>
-                        <Typography variant="body">{resource.name}</Typography>
-                        <Typography variant="small" family="sans" color={colors.textSecondary}>
-                          {resource.contact}
-                        </Typography>
-                        {resource.note ? (
-                          <Typography variant="small" color={colors.textSecondary}>
-                            {resource.note}
+                          <Typography variant="small" family="sans" color={colors.textSecondary}>
+                            {habit.standing} · {habit.cadence}
                           </Typography>
-                        ) : null}
-                      </View>
-                    ))}
-                  </View>
-                ) : null}
-              </View>
-            }
-            renderItem={({ item, index }) => {
-              if (item.type === 'step') return <CoachStepMarker item={item} />;
-              if (item.type === 'pending') return <CoachBubble role="user" content={item.content} />;
-              if (item.type === 'failed') {
-                return (
-                  <View>
-                    <CoachBubble role="user" content={item.content} />
-                    <View style={styles.failedRow}>
-                      <Typography variant="small" family="sans" color={colors.error} style={styles.failedText}>
-                        That did not go through. Your words are kept — want to try again?
-                      </Typography>
-                      <Pressable
-                        accessibilityRole="button"
-                        onPress={retry}
-                        disabled={!!coach.thinking}
-                        style={[styles.retryBtn, { borderColor: colors.divider }]}
-                      >
-                        <Typography variant="small" family="sans" color={colors.text}>Try again</Typography>
-                      </Pressable>
+                          {habit.next_move ? (
+                            <Typography variant="small" color={colors.textSecondary} style={styles.habitMove}>
+                              {habit.next_move}
+                            </Typography>
+                          ) : null}
+                          {!habit.answered_today ? (
+                            <View style={styles.habitButtons}>
+                              <View style={styles.habitBtn}>
+                                <Button
+                                  title="I did this"
+                                  onPress={() => coach.checkIn(habit.id, true)}
+                                  disabled={coach.checkingHabit === habit.id}
+                                  variant="secondary"
+                                />
+                              </View>
+                              <View style={styles.habitBtn}>
+                                <Button
+                                  title="Not today"
+                                  onPress={() => coach.checkIn(habit.id, false)}
+                                  disabled={coach.checkingHabit === habit.id}
+                                  variant="secondary"
+                                />
+                              </View>
+                            </View>
+                          ) : null}
+                        </View>
+                      ))}
                     </View>
-                  </View>
-                );
+                  ) : null}
+
+                  {state?.invitation?.prompt ? (
+                    <View style={[styles.invitation, { borderLeftColor: colors.accent }]}>
+                      <Eyebrow>Something you keep coming back to</Eyebrow>
+                      <Typography variant="body">{state.invitation.prompt}</Typography>
+                    </View>
+                  ) : null}
+
+                  {support ? (
+                    <View style={[styles.supportCard, { borderLeftColor: colors.accent }]}>
+                      <Typography variant="bodyLarge" style={styles.supportHeading}>
+                        {support.heading}
+                      </Typography>
+                      {support.body.map((paragraph, i) => (
+                        <Typography key={i} variant="body" color={colors.textSecondary} style={styles.supportBody}>
+                          {paragraph}
+                        </Typography>
+                      ))}
+                      {support.resources.map((resource, i) => (
+                        <View key={i} style={styles.supportResource}>
+                          <Typography variant="body">{resource.name}</Typography>
+                          <Typography variant="small" family="sans" color={colors.textSecondary}>
+                            {resource.contact}
+                          </Typography>
+                          {resource.note ? (
+                            <Typography variant="small" color={colors.textSecondary}>
+                              {resource.note}
+                            </Typography>
+                          ) : null}
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
               }
-              const previous = coach.rows[index - 1];
-              const showLabel = !previous || previous.type !== 'message' || previous.role !== item.role;
-              return <CoachBubble role={item.role} content={item.content} at={item.at} showLabel={showLabel} />;
-            }}
-            // The typing indicator. CoachThinking takes an optional label and
-            // renders with none, so any other indicator can replace it here.
-            ListFooterComponent={coach.thinking ? <CoachThinking label={coach.thinking} /> : null}
-          />
+              renderItem={({ item, index }) => {
+                if (item.type === 'step') return <CoachStepMarker item={item} />;
+                if (item.type === 'pending') return <CoachBubble role="user" content={item.content} />;
+                if (item.type === 'failed') {
+                  return (
+                    <View>
+                      <CoachBubble role="user" content={item.content} />
+                      <View style={styles.failedRow}>
+                        <Typography variant="small" family="sans" color={colors.error} style={styles.failedText}>
+                          That did not go through. Your words are kept — want to try again?
+                        </Typography>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={retry}
+                          disabled={!!coach.thinking}
+                          style={[styles.retryBtn, { borderColor: colors.divider }]}
+                        >
+                          <Typography variant="small" family="sans" color={colors.text}>Try again</Typography>
+                        </Pressable>
+                      </View>
+                    </View>
+                  );
+                }
+                const previous = coach.rows[index - 1];
+                const showLabel = !previous || previous.type !== 'message' || previous.role !== item.role;
+                return <CoachBubble role={item.role} content={item.content} at={item.at} showLabel={showLabel} />;
+              }}
+              // The typing indicator. CoachThinking takes an optional label and
+              // renders with none, so any other indicator can replace it here.
+              ListFooterComponent={coach.thinking ? <CoachThinking label={coach.thinking} /> : null}
+            />
+            {!isPinned && coach.rows.length > 0 ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={jumpToLatest}
+                style={[styles.jumpPill, { backgroundColor: colors.buttonBg }]}
+              >
+                <Typography variant="small" family="sans" color={colors.buttonText}>
+                  Jump to latest ↓
+                </Typography>
+              </Pressable>
+            ) : null}
+          </View>
         )}
-
-        {!isPinned && coach.rows.length > 0 ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={jumpToLatest}
-            style={[styles.jumpPill, { backgroundColor: colors.buttonBg }]}
-          >
-            <Typography variant="small" family="sans" color={colors.buttonText}>
-              Jump to latest ↓
-            </Typography>
-          </Pressable>
-        ) : null}
 
         {!blocked ? (
           <CoachComposer
@@ -365,10 +375,11 @@ const styles = StyleSheet.create({
   failedRow: { alignItems: 'flex-end', gap: spacing.xs, marginTop: -spacing.xs, marginBottom: spacing.md },
   failedText: { lineHeight: 18, textAlign: 'right' },
   retryBtn: { borderWidth: 1, paddingHorizontal: spacing.sm, paddingVertical: spacing.xxs + 2, minHeight: 32, justifyContent: 'center' },
+  threadArea: { flex: 1 },
   jumpPill: {
     position: 'absolute',
     right: GUTTER,
-    bottom: 132,
+    bottom: spacing.sm,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     zIndex: 10,
