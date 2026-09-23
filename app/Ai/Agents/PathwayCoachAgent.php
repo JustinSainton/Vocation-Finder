@@ -230,10 +230,19 @@ class PathwayCoachAgent implements Agent, Conversational, HasProviderOptions, Ha
         return self::INTERNAL_PREFIX.' You used that turn on tools and said nothing to them. Answer them now, in words, using what you just found. Do not call any more tools.';
     }
 
+    /**
+     * How an opener's stored prompt begins, so the thread can tell "the coach
+     * spoke first" apart from other internal rows like the silence recovery.
+     */
+    public static function openingMarker(string $kind): string
+    {
+        return self::INTERNAL_PREFIX.' opening:'.$kind;
+    }
+
     protected function openingInstruction(string $kind): string
     {
         if ($kind === CoachOpening::RETURNING) {
-            return self::INTERNAL_PREFIX.' '.<<<'TEXT'
+            return static::openingMarker($kind)."\n".<<<'TEXT'
             The student has just come back to the app after some time away. They
             have not written anything yet — you speak first. Call
             GetCurrentActionTool. If they have a step in progress, open by asking
@@ -245,7 +254,7 @@ class PathwayCoachAgent implements Agent, Conversational, HasProviderOptions, Ha
             TEXT;
         }
 
-        return self::INTERNAL_PREFIX.' '.<<<'TEXT'
+        return static::openingMarker($kind)."\n".<<<'TEXT'
         The student has just finished their assessment and opened the coach for
         the first time. They have not written anything yet — you speak first.
 

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Ai\Agents\PathwayCoachAgent;
 use App\Enums\ConfidenceLevel;
 use App\Models\Assessment;
+use App\Models\FeatureFlag;
 use App\Models\ParentConsent;
 use App\Models\User;
 use App\Services\FeatureFlagService;
@@ -12,6 +13,7 @@ use App\Support\ActionQueue;
 use App\Support\CoachOpening;
 use App\Support\CoachThread;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
@@ -30,9 +32,21 @@ class CoachThreadTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * The coach ships dark; every case here is about what happens once an
+     * operator has switched it on.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        FeatureFlag::updateOrCreate(['key' => 'pathway_coach'], ['name' => 'Pathway Coach', 'is_enabled' => true]);
+        Cache::forget('feature_flag:pathway_coach');
+    }
+
     protected function student(): User
     {
-        $student = User::factory()->create([
+        $student = User::factory()->paying()->create([
             'grade_level' => 11,
             'birthdate' => now()->subYears(16)->toDateString(),
         ]);
@@ -240,6 +254,29 @@ class CoachThreadTest extends TestCase
 
         $this->actingAs($student)->post('/coach/message', ['message' => 'I am a junior.']);
         $this->travel(13)->hours();
+        $this->assertSame(CoachOpening::RETURNING, (new CoachOpening)->due($student));
+    }
+
+    /**
+     * Morning and evening in the same day is one greeting, not two.
+     */
+    #[Test]
+    public function the_coach_greets_a_returning_student_at_most_once_a_day(): void
+    {
+        PathwayCoachAgent::fake(['What year are you in?', 'Noted.', 'Noted.']);
+        $student = $this->student();
+        $this->completedAssessment($student);
+
+        $this->actingAs($student)->post('/coach/open')->streamedContent();
+        $this->actingAs($student)->post('/coach/message', ['message' => 'I am a junior.']);
+
+        $this->travel(7)->hours();
+        $this->assertNull((new CoachOpening)->due($student), 'Seven hours is not a real absence.');
+
+        $this->travel(3)->hours();
+        $this->assertNull((new CoachOpening)->due($student), 'Away long enough, but already greeted today.');
+
+        $this->travel(11)->hours();
         $this->assertSame(CoachOpening::RETURNING, (new CoachOpening)->due($student));
     }
 

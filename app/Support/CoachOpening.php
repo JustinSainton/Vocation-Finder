@@ -18,6 +18,16 @@ use Laravel\Ai\Contracts\ConversationStore;
  * assessment, and coming back after a real gap. An opener is never stacked
  * on an opener the student has not answered — two unprompted messages in a
  * row is a nag, not a coach.
+ *
+ * "Coming back" is at most once a day, the same rhythm as the habit
+ * check-in the vision puts right after it ("the coach opens the
+ * conversation → action queue → habits check in"). Two numbers, because one
+ * cannot express it: a real absence ({@see RETURN_AFTER_HOURS}, roughly a
+ * night away) and a daily ceiling ({@see OPENER_CEILING_HOURS}), so a
+ * student who checks in morning and evening is greeted once, not twice.
+ * Measured in elapsed hours rather than calendar days because the app does
+ * not know the student's timezone, and a UTC midnight falls mid-evening for
+ * most of them.
  */
 class CoachOpening
 {
@@ -25,7 +35,9 @@ class CoachOpening
 
     public const RETURNING = 'returning';
 
-    public const RETURN_AFTER_HOURS = 12;
+    public const RETURN_AFTER_HOURS = 8;
+
+    public const OPENER_CEILING_HOURS = 20;
 
     public function __construct(
         private CoachThread $thread = new CoachThread,
@@ -47,8 +59,14 @@ class CoachOpening
             return null;
         }
 
-        if ($rhythm['last_internal'] !== null && $rhythm['last_internal']->gt($rhythm['last_student'])) {
-            return null;
+        if ($rhythm['last_opener'] !== null) {
+            if ($rhythm['last_opener']->gt($rhythm['last_student'])) {
+                return null;
+            }
+
+            if ($rhythm['last_opener']->gt(now()->subHours(self::OPENER_CEILING_HOURS))) {
+                return null;
+            }
         }
 
         return self::RETURNING;
@@ -102,7 +120,7 @@ class CoachOpening
             ?? $store->storeConversation($user->id, 'Your coach');
 
         foreach ([
-            ['user', PathwayCoachAgent::INTERNAL_PREFIX.' opening:'.$kind],
+            ['user', PathwayCoachAgent::openingMarker($kind)],
             ['assistant', $text],
         ] as [$role, $content]) {
             DB::table('agent_conversation_messages')->insert([

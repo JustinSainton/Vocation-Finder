@@ -91,17 +91,17 @@ class CoachThread
     }
 
     /**
-     * When the system last spoke to the model on the student's behalf, and
-     * when the student last spoke for themselves.
+     * When the coach last opened a conversation, when the student last spoke
+     * for themselves, and when anything last happened.
      *
-     * @return array{last_internal: ?CarbonImmutable, last_student: ?CarbonImmutable, last_any: ?CarbonImmutable}
+     * @return array{last_opener: ?CarbonImmutable, last_student: ?CarbonImmutable, last_any: ?CarbonImmutable}
      */
     public function rhythm(User $user): array
     {
         $conversationId = $this->conversationId($user);
 
         if (! $conversationId) {
-            return ['last_internal' => null, 'last_student' => null, 'last_any' => null];
+            return ['last_opener' => null, 'last_student' => null, 'last_any' => null];
         }
 
         $rows = DB::table('agent_conversation_messages')
@@ -117,7 +117,7 @@ class CoachThread
             ->max('created_at');
 
         return [
-            'last_internal' => $at($rows->first(fn ($row) => static::isInternal('user', $row->content))),
+            'last_opener' => $at($rows->first(fn ($row) => str_starts_with((string) $row->content, PathwayCoachAgent::INTERNAL_PREFIX.' opening:'))),
             'last_student' => $at($rows->first(fn ($row) => ! static::isInternal('user', $row->content))),
             'last_any' => $lastAny ? CarbonImmutable::parse($lastAny) : null,
         ];
