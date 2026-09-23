@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\DemoMode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -68,7 +69,7 @@ class AdminUserController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', "unique:users,email,{$user->id}"],
-            'role' => ['required', 'in:individual,admin,org_admin'],
+            'role' => ['required', 'in:individual,admin,org_admin,'.DemoMode::ROLE],
         ]);
 
         $user->update([

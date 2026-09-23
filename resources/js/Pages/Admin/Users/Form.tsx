@@ -65,6 +65,7 @@ export default function UserForm({ user }: Props) {
                         <option value="individual">Individual</option>
                         <option value="admin">Admin</option>
                         <option value="org_admin">Org Admin</option>
+                        <option value="demo">Demo (pre-filled assessment)</option>
                     </select>
                     {errors.role && <p className="mt-1 text-xs text-red-600">{errors.role}</p>}
                 </div>

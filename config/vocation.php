@@ -119,6 +119,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Demo Mode
+    |--------------------------------------------------------------------------
+    |
+    | Pre-fills every assessment question with one coherent student persona so
+    | the whole product can be shown without typing an assessment live. Two
+    | locks, both required: this switch for the environment, and a signed-in
+    | account whose role is "demo" (see `php artisan demo:user`). Students
+    | never hold that role, so turning the switch on does not reach them.
+    |
+    */
+    'demo' => [
+        'enabled' => env('VOCATION_DEMO_MODE', false),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Free Tier Limits
     |--------------------------------------------------------------------------
     */

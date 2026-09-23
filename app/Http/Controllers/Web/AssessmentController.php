@@ -7,6 +7,7 @@ use App\Models\Assessment;
 use App\Models\Question;
 use App\Support\AssessmentAccess;
 use App\Support\CoachHandoff;
+use App\Support\DemoMode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -34,6 +35,7 @@ class AssessmentController extends Controller
                 'category_name' => $q->category?->name,
                 'category_slug' => $q->category?->slug,
                 'sort_order' => $q->sort_order,
+                'demo_answer' => DemoMode::answerFor($request->user(), $q),
             ]);
 
         // Create a guest assessment for web users
