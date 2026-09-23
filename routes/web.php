@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\ActionController;
 use App\Http\Controllers\Web\Admin\AdminAssessmentController;
 use App\Http\Controllers\Web\Admin\AdminCourseController;
 use App\Http\Controllers\Web\Admin\AdminCourseMediaController;
@@ -205,6 +206,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/coach/message', [PathwayCoachController::class, 'message'])->name('coach.message');
         Route::post('/coach/stream', [PathwayCoachController::class, 'stream'])->middleware('throttle:30,1')->name('coach.stream');
         Route::post('/coach/open', [PathwayCoachController::class, 'open'])->middleware('throttle:10,1')->name('coach.open');
+
+        // Settling the one step from the coach page, on the session guard.
+        // Same controller and ownership check as the mobile API.
+        Route::post('/coach/actions/{action}/complete', [ActionController::class, 'complete'])->name('coach.actions.complete');
+        Route::post('/coach/actions/{action}/skip', [ActionController::class, 'skip'])->name('coach.actions.skip');
 
         /*
          | Checking in is the student's act and nobody else's. There is

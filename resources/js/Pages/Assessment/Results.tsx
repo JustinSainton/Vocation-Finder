@@ -22,6 +22,16 @@ interface PathwayRef {
     status: 'generating' | 'ready' | 'failed';
 }
 
+interface CoachHandoff {
+    state: 'open' | 'account' | 'consent' | 'later';
+    eyebrow: string;
+    headline: string;
+    body: string;
+    href: string | null;
+    cta: string | null;
+    starters: string[];
+}
+
 interface Props {
     assessment_id: string;
     guest_token: string | null;
@@ -30,6 +40,7 @@ interface Props {
     tier?: string;
     upgrade_message?: string;
     pathway?: PathwayRef | null;
+    coach?: CoachHandoff | null;
 }
 
 export default function Results({
@@ -40,6 +51,7 @@ export default function Results({
     tier,
     upgrade_message,
     pathway,
+    coach,
 }: Props) {
     const [profile, setProfile] = useState<VocationalProfile | null>(initialProfile);
     const [polling, setPolling] = useState(initialStatus === 'analyzing');
@@ -132,6 +144,19 @@ export default function Results({
             <h1 className="mb-8 font-serif text-3xl tracking-tight text-[var(--color-text)]">
                 Vocational Portrait
             </h1>
+
+            {coach?.href && (
+                <a
+                    href="#coach"
+                    className="mb-8 flex items-center justify-between gap-4 border-y border-[var(--color-divider)] py-3 font-sans text-sm text-[var(--color-text)] transition-colors duration-150 hover:text-[var(--color-accent)]"
+                >
+                    <span>
+                        <span className="type-eyebrow mr-3">{coach.eyebrow}</span>
+                        Read this, then it picks up from here.
+                    </span>
+                    <span aria-hidden="true">&darr;</span>
+                </a>
+            )}
 
             <div className="my-8 h-px bg-[var(--color-divider)]" />
 
@@ -226,6 +251,8 @@ export default function Results({
                 </>
             )}
 
+            {coach && <CoachDoor coach={coach} />}
+
             {/* Upgrade prompt */}
             {tier === 'free' && upgrade_message && (
                 <div className="my-8 border border-[var(--color-divider)] p-6">
@@ -277,7 +304,7 @@ export default function Results({
                 <>
                     <Link
                         href={`/pathway/${pathway.id}`}
-                        className="action-primary"
+                        className={coach?.href ? 'action-secondary' : 'action-primary'}
                     >
                         View your learning path &rarr;
                     </Link>
@@ -311,6 +338,11 @@ export default function Results({
 
             {/* Actions */}
             <div className="mt-8 space-y-3">
+                {coach?.href && coach.cta && (
+                    <a href={coach.href} className="action-secondary">
+                        {coach.cta}
+                    </a>
+                )}
                 <a
                     href="/"
                     className="action-secondary"
@@ -325,6 +357,69 @@ export default function Results({
                 </a>
             </div>
         </AppLayout>
+    );
+}
+
+/**
+ * The portrait's last word is the coach, not a list.
+ *
+ * "Not a tool that hands the student a portrait and walks away." This is the
+ * one filled button on the page, so the next move is unambiguous. The
+ * starters are ways in drawn from this portrait; choosing one carries it into
+ * the coach's composer, where it waits until the coach has spoken first.
+ */
+function CoachDoor({ coach }: { coach: CoachHandoff }) {
+    const withStarter = (starter: string) =>
+        coach.href ? `${coach.href}${coach.href.includes('?') ? '&' : '?'}say=${encodeURIComponent(starter)}` : '#';
+
+    return (
+        <section id="coach" aria-labelledby="coach-heading" className="my-12 scroll-mt-8 border-t-2 border-[var(--color-text)] pt-10">
+            <p className="type-eyebrow">{coach.eyebrow}</p>
+            <h2
+                id="coach-heading"
+                className="mt-3 font-serif text-[36px] leading-[1.15] tracking-[-0.5px] text-[var(--color-text)]"
+            >
+                {coach.headline}
+            </h2>
+            <p className="mt-4 text-lg leading-relaxed text-[var(--color-text-secondary)]">{coach.body}</p>
+
+            {coach.state === 'open' && (
+                <ol className="mt-8 grid grid-cols-3 gap-4 border-y border-[var(--color-divider)] py-5">
+                    {['It speaks first', 'It asks what the questions could not', 'You leave with one step'].map(
+                        (line, index) => (
+                            <li key={line}>
+                                <p className="type-meta">0{index + 1}</p>
+                                <p className="mt-1 font-sans text-sm leading-snug text-[var(--color-text)]">{line}</p>
+                            </li>
+                        ),
+                    )}
+                </ol>
+            )}
+
+            {coach.href && coach.cta && (
+                <a href={coach.href} className="action-primary mt-8">
+                    {coach.cta} &rarr;
+                </a>
+            )}
+
+            {coach.starters.length > 0 && (
+                <div className="mt-6">
+                    <p className="type-meta mb-3">Or walk in with a question</p>
+                    <ul className="flex flex-wrap gap-2">
+                        {coach.starters.map((starter) => (
+                            <li key={starter}>
+                                <a
+                                    href={withStarter(starter)}
+                                    className="inline-block rounded-xs border border-[var(--color-divider)] px-3 py-2 font-sans text-sm text-[var(--color-text)] transition-colors duration-150 hover:border-[var(--color-text)]"
+                                >
+                                    {starter}
+                                </a>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+        </section>
     );
 }
 
