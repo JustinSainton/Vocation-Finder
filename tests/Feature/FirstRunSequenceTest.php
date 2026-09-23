@@ -9,6 +9,7 @@ use App\Models\ParentConsent;
 use App\Models\User;
 use App\Models\VocationalProfile;
 use App\Notifications\ParentConsentNotification;
+use App\Services\FeatureFlagService;
 use App\Support\ActionQueue;
 use App\Support\BrainCapture;
 use App\Support\FirstRunSequence;
@@ -261,10 +262,11 @@ class FirstRunSequenceTest extends TestCase
             ->assertSessionHas('error');
     }
 
-    public function test_the_coach_route_does_not_exist_until_the_flag_is_on(): void
+    public function test_the_coach_route_does_not_exist_while_the_flag_is_off(): void
     {
         $student = $this->junior();
         $this->consentFor($student);
+        app(FeatureFlagService::class)->toggle('pathway_coach', false);
 
         $this->actingAs($student->fresh())->get('/coach')->assertNotFound();
     }

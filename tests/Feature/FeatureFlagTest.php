@@ -29,13 +29,24 @@ class FeatureFlagTest extends TestCase
         ]);
     }
 
-    public function test_all_flags_default_to_disabled(): void
+    /**
+     * Every flag starts off except the student coach, which the results page
+     * hands off to and so has to be there by default. It stays a flag so it
+     * can still be switched off.
+     */
+    public function test_all_flags_default_to_disabled_except_the_student_coach(): void
     {
         $response = $this->getJson('/api/v1/features');
 
         $response->assertOk();
         $data = $response->json();
         foreach ($data as $key => $enabled) {
+            if ($key === 'pathway_coach') {
+                $this->assertTrue($enabled, 'The student coach should default to on.');
+
+                continue;
+            }
+
             $this->assertFalse($enabled, "Flag {$key} should default to false");
         }
     }

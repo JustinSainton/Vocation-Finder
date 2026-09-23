@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\FeatureFlag;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Arr;
 
 class FeatureFlagSeeder extends Seeder
 {
@@ -58,15 +59,24 @@ class FeatureFlagSeeder extends Seeder
             [
                 'key' => 'pathway_coach',
                 'name' => 'Pathway Coach (students)',
-                'description' => 'The student-facing coach and vocational brain. Separate from career_coach, which is the adult product — the two must be able to ship independently.',
+                'description' => 'The student-facing coach and vocational brain. Separate from career_coach, which is the adult product — the two must be able to ship independently. On by default: it is where the assessment hands off. Kept as a kill switch for the one surface that calls a model on every turn.',
+                'enabled_by_default' => true,
             ],
         ];
 
-        foreach ($flags as $flag) {
-            FeatureFlag::updateOrCreate(
-                ['key' => $flag['key']],
-                $flag
+        foreach ($flags as $definition) {
+            $flag = FeatureFlag::updateOrCreate(
+                ['key' => $definition['key']],
+                Arr::except($definition, 'enabled_by_default'),
             );
+
+            /*
+             * Only when the row is new. Re-seeding must never overrule an
+             * operator who switched a flag off on purpose.
+             */
+            if ($flag->wasRecentlyCreated && ($definition['enabled_by_default'] ?? false)) {
+                $flag->update(['is_enabled' => true]);
+            }
         }
     }
 }
