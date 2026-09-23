@@ -203,6 +203,8 @@ Route::middleware('auth')->group(function () {
     Route::middleware('feature:pathway_coach')->group(function () {
         Route::get('/coach', [PathwayCoachController::class, 'index'])->name('coach');
         Route::post('/coach/message', [PathwayCoachController::class, 'message'])->name('coach.message');
+        Route::post('/coach/stream', [PathwayCoachController::class, 'stream'])->middleware('throttle:30,1')->name('coach.stream');
+        Route::post('/coach/open', [PathwayCoachController::class, 'open'])->middleware('throttle:10,1')->name('coach.open');
 
         /*
          | Checking in is the student's act and nobody else's. There is

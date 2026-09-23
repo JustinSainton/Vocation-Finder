@@ -21,6 +21,8 @@ use App\Models\User;
 use App\Support\AccessPolicy;
 use App\Support\ActionQueue;
 use App\Support\BrainCapture;
+use App\Support\CoachOpening;
+use App\Support\CoachThread;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Attributes\MaxSteps;
@@ -33,6 +35,7 @@ use Laravel\Ai\Contracts\Conversational;
 use Laravel\Ai\Contracts\HasProviderOptions;
 use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Promptable;
+use Laravel\Ai\Responses\StreamableAgentResponse;
 use RuntimeException;
 use Stringable;
 
@@ -68,6 +71,16 @@ use Stringable;
 class PathwayCoachAgent implements Agent, Conversational, HasProviderOptions, HasTools
 {
     use Promptable, RemembersConversations, RunsOnTheConfiguredEngine;
+
+    /**
+     * Marks a prompt the system wrote rather than the student.
+     *
+     * The SDK stores every prompt as a `user` row, so the opening instruction
+     * and the tools-only recovery would otherwise be shown in the thread as
+     * things the student said, and counted as exchanges they took part in.
+     * {@see CoachThread} and {@see exchangeNumber()} both drop these rows.
+     */
+    public const INTERNAL_PREFIX = '[coach-internal]';
 
     /**
      * Refuses to exist for a student who is not entitled to a coach.
@@ -170,6 +183,87 @@ class PathwayCoachAgent implements Agent, Conversational, HasProviderOptions, Ha
     }
 
     /**
+     * The same turn as {@see respondTo()}, streamed.
+     *
+     * Capture still happens before the model is called. The caller iterates
+     * the returned stream; the SDK persists both sides of the turn when the
+     * stream completes, exactly as it does for `prompt()`.
+     */
+    public function streamReplyTo(string $message): StreamableAgentResponse
+    {
+        $this->studentMessage = $message;
+
+        (new BrainCapture)->captureCoachTurn($this->user, role: 'user', content: $message);
+
+        return $this->continueLastConversation($this->user)->stream($message);
+    }
+
+    /**
+     * The coach speaks first.
+     *
+     * "Open the app. The coach opens the conversation." The instruction is
+     * stored as an internal row, never captured to the brain — none of it is
+     * the student's words.
+     */
+    public function openingStream(string $kind): StreamableAgentResponse
+    {
+        return $this->continueLastConversation($this->user)->stream($this->openingInstruction($kind));
+    }
+
+    public function open(string $kind): mixed
+    {
+        return $this->ensureTheCoachActuallySpoke(
+            $this->continueLastConversation($this->user)->prompt($this->openingInstruction($kind)),
+        );
+    }
+
+    /**
+     * Recovery for a streamed turn that produced only tool calls.
+     */
+    public function speakAfterSilence(): mixed
+    {
+        return $this->continueLastConversation($this->user)->prompt(static::silenceRecovery());
+    }
+
+    public static function silenceRecovery(): string
+    {
+        return self::INTERNAL_PREFIX.' You used that turn on tools and said nothing to them. Answer them now, in words, using what you just found. Do not call any more tools.';
+    }
+
+    protected function openingInstruction(string $kind): string
+    {
+        if ($kind === CoachOpening::RETURNING) {
+            return self::INTERNAL_PREFIX.' '.<<<'TEXT'
+            The student has just come back to the app after some time away. They
+            have not written anything yet — you speak first. Call
+            GetCurrentActionTool. If they have a step in progress, open by asking
+            how it went, naming the step in plain words. If they have none,
+            remind them in one sentence of the end they are building toward and
+            ask the one question that would reveal their next step. Two short
+            paragraphs at most. Do not greet generically and do not mention that
+            you were asked to open.
+            TEXT;
+        }
+
+        return self::INTERNAL_PREFIX.' '.<<<'TEXT'
+        The student has just finished their assessment and opened the coach for
+        the first time. They have not written anything yet — you speak first.
+
+        Call GetPathwayProfileTool, then GetStudentSignalsTool. Then open in no
+        more than three short paragraphs:
+
+        1. One specific thing you noticed in their assessment, quoting their
+           own words only from the signals tool, and framed at exactly the
+           confidence the profile allows.
+        2. Plainly, what the assessment could not see yet.
+        3. Exactly one question that starts filling that in.
+
+        Do not assign an action yet, do not list options, do not greet
+        generically, and do not mention that you were asked to open.
+        TEXT;
+    }
+
+    /**
      * A turn that produced only tool calls has said nothing to the student.
      *
      * A blank reply is worse than a bad one: the student sent a message into
@@ -194,9 +288,7 @@ class PathwayCoachAgent implements Agent, Conversational, HasProviderOptions, Ha
             'conversation_id' => $response->conversationId,
         ]);
 
-        return $this->continueLastConversation($this->user)->prompt(
-            'You used that turn on tools and said nothing to them. Answer them now, in words, using what you just found. Do not call any more tools.'
-        );
+        return $this->speakAfterSilence();
     }
 
     public function maxConversationMessages(): int
@@ -318,6 +410,7 @@ class PathwayCoachAgent implements Agent, Conversational, HasProviderOptions, Ha
         return DB::table('agent_conversation_messages')
             ->where('conversation_id', $conversationId)
             ->where('role', 'user')
+            ->where('content', 'not like', self::INTERNAL_PREFIX.'%')
             ->count() + 1;
     }
 

@@ -199,6 +199,7 @@ Route::prefix('v1')->group(function () {
             Route::get('coach/state', [PathwayCoachController::class, 'state']);
             Route::get('coach/history', [PathwayCoachController::class, 'history']);
             Route::post('coach/message', [PathwayCoachController::class, 'message']);
+            Route::post('coach/open', [PathwayCoachController::class, 'open'])->middleware('throttle:10,1');
             Route::post('actions/{action}/complete', [ActionController::class, 'complete']);
             Route::post('actions/{action}/skip', [ActionController::class, 'skip']);
             Route::post('habits/{habit}/check-in', [HabitCheckInController::class, 'store']);
