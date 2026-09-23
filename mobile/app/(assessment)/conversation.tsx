@@ -114,7 +114,7 @@ export default function ConversationScreen() {
             <DemoConversationAnswer
               key={`demo-${currentQuestion}`}
               answer={demoAnswer}
-              disabled={conversationState === 'processing' || conversationState === 'speaking'}
+              disabled={conversationState === 'processing'}
               onSubmit={submitTypedAnswer}
             />
           ) : null}

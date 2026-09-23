@@ -549,8 +549,12 @@ export function useConversationFlow() {
   const submitTypedAnswer = useCallback(
     async (text: string) => {
       const transcript = text.trim();
-      if (!transcript || conversationState === 'processing' || conversationState === 'speaking') {
+      if (!transcript || conversationState === 'processing') {
         return;
+      }
+
+      if (conversationState === 'speaking') {
+        stopSpeaking();
       }
 
       if (!useAssessmentStore.getState().sessionId) {
@@ -573,6 +577,7 @@ export function useConversationFlow() {
       normalizedSpeechLocale,
       speakResponse,
       startConversationSession,
+      stopSpeaking,
     ]
   );
 
