@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Typography } from '../ui/Typography';
 import { useTheme } from '../../hooks/useTheme';
@@ -25,7 +25,12 @@ export function CoachStarterChips({ starters, disabled, onPick }: Props) {
       <Typography variant="caption" family="sans" color={colors.textSecondary} style={styles.label}>
         START WITH
       </Typography>
-      <View style={styles.chips}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.chips}
+      >
         {starters.map((starter) => (
           <Pressable
             key={starter}
@@ -45,7 +50,7 @@ export function CoachStarterChips({ starters, disabled, onPick }: Props) {
             </Typography>
           </Pressable>
         ))}
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -53,7 +58,7 @@ export function CoachStarterChips({ starters, disabled, onPick }: Props) {
 const styles = StyleSheet.create({
   container: { paddingTop: spacing.sm + 4 },
   label: { letterSpacing: 1.5, marginBottom: spacing.sm },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  chips: { flexDirection: 'row', gap: spacing.sm, paddingRight: spacing.lg },
   chip: {
     borderWidth: 1,
     borderRadius: 2,

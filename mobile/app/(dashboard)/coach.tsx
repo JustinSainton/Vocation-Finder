@@ -137,6 +137,11 @@ export default function CoachScreen() {
     }
   }, [isEnabled, load]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
+    return () => clearTimeout(timer);
+  }, [thinking, pending, failed, items.length]);
+
   const send = useCallback(async (raw: string) => {
     const text = raw.trim();
     if (!text || thinking) return;
