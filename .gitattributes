@@ -6,6 +6,8 @@
 *.md diff=markdown
 *.php diff=php
 
+/resources/js/types/generated.ts linguist-generated=true
+
 /.github export-ignore
 CHANGELOG.md export-ignore
 .styleci.yml export-ignore
