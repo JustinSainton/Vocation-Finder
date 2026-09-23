@@ -25,8 +25,9 @@ export default function DemoBadge() {
             role="status"
             className="type-eyebrow mb-8 inline-flex items-center gap-2 rounded-full border border-[var(--color-divider)] px-3 py-1 text-[var(--color-muted)]"
         >
-            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
-            Demo mode · answers pre-filled as {demo.persona}
+            <span className="text-[var(--color-accent)]">Demo mode</span>
+            <span aria-hidden>·</span>
+            answers pre-filled as {demo.persona}
         </p>
     );
 }
