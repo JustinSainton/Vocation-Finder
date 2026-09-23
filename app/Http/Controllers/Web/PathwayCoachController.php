@@ -3,6 +3,11 @@
 namespace App\Http\Controllers\Web;
 
 use App\Ai\Agents\PathwayCoachAgent;
+use App\Data\Coach\BrainstormInvitationData;
+use App\Data\Coach\CoachActionData;
+use App\Data\Coach\HabitData;
+use App\Data\Coach\ReadinessData;
+use App\Data\CrisisSupportData;
 use App\Http\Controllers\Controller;
 use App\Support\AccessPolicy;
 use App\Support\ActionQueue;
@@ -48,7 +53,7 @@ class PathwayCoachController extends Controller
 
         return Inertia::render('Coach/Index', [
             'firstRun' => FirstRunSequence::toArray($user),
-            'currentAction' => (new ActionQueue)->current($user)?->only(['id', 'title', 'rationale']),
+            'currentAction' => CoachActionData::optional((new ActionQueue)->current($user)),
             /**
              * Readiness is shown here rather than being a step in
              * {@see FirstRunSequence}. The vision lists it between refinement
@@ -56,13 +61,13 @@ class PathwayCoachController extends Controller
              * something they *complete* — making it a step would put a screen
              * with no action on it between them and the one thing that matters.
              */
-            'readiness' => (new ReadinessCalculator)->explain($user),
+            'readiness' => ReadinessData::from((new ReadinessCalculator)->explain($user)),
             /**
              * Words and a move, never the counts. The coach gets the counts
              * so it can tell that a habit is the wrong size; handing them to
              * a sixteen-year-old turns their week into a score.
              */
-            'habits' => (new HabitTracker)->forStudent($user),
+            'habits' => HabitData::collect((new HabitTracker)->forStudent($user)),
             /**
              * Roadmap 2.4. Null most of the time, and that is the point — the
              * return loop is voluntary, so the cadence is a ceiling on
@@ -70,7 +75,7 @@ class PathwayCoachController extends Controller
              * opens with something the student has said repeatedly, in their
              * own words, because an invitation with nothing in it is a nag.
              */
-            'invitation' => (new BrainstormSchedule)->invitation($user),
+            'invitation' => BrainstormInvitationData::optional((new BrainstormSchedule)->invitation($user)),
             /*
              * The conversation itself, read from the same rows the model is
              * given, so reloading the page is never how a reply is lost.
@@ -145,9 +150,9 @@ class PathwayCoachController extends Controller
             (new BrainCapture)->captureCoachTurn($user, role: 'user', content: $validated['message']);
 
             return response()->json([
-                'support' => (new CrisisCheck)->support(
+                'support' => CrisisSupportData::from((new CrisisCheck)->support(
                     ConversationLocale::normalize($user->assessments()->latest()->value('locale')),
-                ),
+                )),
             ]);
         }
 

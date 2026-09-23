@@ -238,7 +238,7 @@ class CoachThreadTest extends TestCase
         $items = (new CoachThread)->items($student);
 
         $this->assertSame(['message', 'message', 'step'], array_column($items, 'type'));
-        $this->assertSame('Ask the school nurse what a shift is actually like', $items[2]['title']);
+        $this->assertSame('Ask the school nurse what a shift is actually like', $items[2]->title);
     }
 
     #[Test]

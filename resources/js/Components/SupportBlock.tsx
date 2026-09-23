@@ -1,3 +1,5 @@
+import type { CrisisSupportData } from '@/types/generated';
+
 /**
  * What the product says instead of coaching.
  *
@@ -9,11 +11,7 @@
  * questions and above the conversation. A support message underneath the thing
  * it is interrupting has not interrupted anything.
  */
-export type Support = {
-    heading: string;
-    body: string[];
-    resources: { name: string; contact: string; note: string }[];
-};
+export type Support = CrisisSupportData;
 
 export default function SupportBlock({ support, surface = 'light' }: { support: Support; surface?: 'light' | 'dark' }) {
     const ink = surface === 'dark' ? 'text-[var(--color-on-dark)]' : 'text-[var(--color-text)]';

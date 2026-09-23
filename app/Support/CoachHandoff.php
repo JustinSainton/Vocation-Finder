@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Data\Coach\CoachHandoffData;
 use App\Enums\AgeTier;
 use App\Models\Assessment;
 use App\Models\User;
@@ -21,10 +22,7 @@ use App\Services\FeatureFlagService;
  */
 class CoachHandoff
 {
-    /**
-     * @return array{state: 'open'|'account'|'consent'|'checkout'|'later', eyebrow: string, headline: string, body: string, href: ?string, cta: ?string, starters: list<string>}|null
-     */
-    public static function for(?User $viewer, Assessment $assessment): ?array
+    public static function for(?User $viewer, Assessment $assessment): ?CoachHandoffData
     {
         if (! app(FeatureFlagService::class)->isEnabled('pathway_coach')) {
             return null;
@@ -35,15 +33,15 @@ class CoachHandoff
         }
 
         if (! $viewer) {
-            return [
-                'state' => 'account',
-                'eyebrow' => 'Your coach',
-                'headline' => 'This portrait is where your coach starts.',
-                'body' => 'Save it to your own account and your coach will open the conversation with what you wrote here — so you leave with one thing to do, not just a description.',
-                'href' => '/register'.($assessment->guest_token ? '?guest_token='.urlencode($assessment->guest_token) : ''),
-                'cta' => 'Save your portrait and meet your coach',
-                'starters' => [],
-            ];
+            return new CoachHandoffData(
+                state: 'account',
+                eyebrow: 'Your coach',
+                headline: 'This portrait is where your coach starts.',
+                body: 'Save it to your own account and your coach will open the conversation with what you wrote here — so you leave with one thing to do, not just a description.',
+                href: '/register'.($assessment->guest_token ? '?guest_token='.urlencode($assessment->guest_token) : ''),
+                cta: 'Save your portrait and meet your coach',
+                starters: [],
+            );
         }
 
         if ($assessment->user_id !== $viewer->id) {
@@ -51,55 +49,55 @@ class CoachHandoff
         }
 
         if (AccessPolicy::canUseCoach($viewer)) {
-            return [
-                'state' => 'open',
-                'eyebrow' => 'Your coach is ready',
-                'headline' => 'Your coach has read this. It will speak first.',
-                'body' => 'It starts from what you just wrote, asks what the questions could not, and ends with one concrete thing for you to do this week.',
-                'href' => '/coach',
-                'cta' => 'Start with your coach',
-                'starters' => (new CoachStarters)->for($viewer),
-            ];
+            return new CoachHandoffData(
+                state: 'open',
+                eyebrow: 'Your coach is ready',
+                headline: 'Your coach has read this. It will speak first.',
+                body: 'It starts from what you just wrote, asks what the questions could not, and ends with one concrete thing for you to do this week.',
+                href: '/coach',
+                cta: 'Start with your coach',
+                starters: (new CoachStarters)->for($viewer),
+            );
         }
 
         if (AccessPolicy::tier($viewer) === AgeTier::FreshmanSophomore) {
-            return [
-                'state' => 'later',
-                'eyebrow' => 'Your coach',
-                'headline' => 'Keep this. Your coach opens in junior year.',
-                'body' => AccessPolicy::coachBlockedReason($viewer) ?? '',
-                'href' => null,
-                'cta' => null,
-                'starters' => [],
-            ];
+            return new CoachHandoffData(
+                state: 'later',
+                eyebrow: 'Your coach',
+                headline: 'Keep this. Your coach opens in junior year.',
+                body: AccessPolicy::coachBlockedReason($viewer) ?? '',
+                href: null,
+                cta: null,
+                starters: [],
+            );
         }
 
         if (AccessPolicy::requiresParentConsent($viewer) && ! AccessPolicy::hasParentConsent($viewer)) {
-            return [
-                'state' => 'consent',
-                'eyebrow' => 'Your coach',
-                'headline' => 'One yes from a parent, and your coach starts here.',
-                'body' => AccessPolicy::coachBlockedReason($viewer) ?? '',
-                'href' => '/next',
-                'cta' => 'Ask a parent or guardian',
-                'starters' => [],
-            ];
+            return new CoachHandoffData(
+                state: 'consent',
+                eyebrow: 'Your coach',
+                headline: 'One yes from a parent, and your coach starts here.',
+                body: AccessPolicy::coachBlockedReason($viewer) ?? '',
+                href: '/next',
+                cta: 'Ask a parent or guardian',
+                starters: [],
+            );
         }
 
         /*
          * Consent before payment, always: a parent who has not said yes is
          * never shown a price for their child's coach.
          */
-        return [
-            'state' => 'checkout',
-            'eyebrow' => 'Your coach',
-            'headline' => 'Your coach and your brain start from this portrait.',
-            'body' => AccessPolicy::requiresParentCheckout($viewer)
+        return new CoachHandoffData(
+            state: 'checkout',
+            eyebrow: 'Your coach',
+            headline: 'Your coach and your brain start from this portrait.',
+            body: AccessPolicy::requiresParentCheckout($viewer)
                 ? 'A parent or guardian starts your plan. Then your coach opens with what you wrote here and ends with one concrete thing to do this week.'
                 : 'Start your plan and your coach opens with what you wrote here, and ends with one concrete thing to do this week.',
-            'href' => '/billing',
-            'cta' => 'Open the coach and the brain',
-            'starters' => [],
-        ];
+            href: '/billing',
+            cta: 'Open the coach and the brain',
+            starters: [],
+        );
     }
 }
