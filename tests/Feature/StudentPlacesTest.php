@@ -48,7 +48,7 @@ class StudentPlacesTest extends TestCase
      */
     protected function entitled(): User
     {
-        return User::factory()->create(['birthdate' => now()->subYears(19)]);
+        return User::factory()->paying()->create(['birthdate' => now()->subYears(19)]);
     }
 
     /**

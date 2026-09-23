@@ -293,16 +293,90 @@ class DesignSystemTest extends TestCase
     {
         return [
             'light background' => ['lightColors.background', 'canvas'],
+            'light surface soft' => ['lightColors.surfaceSoft', 'surface-soft'],
+            'light surface card' => ['lightColors.surfaceCard', 'surface-card'],
+            'light surface strong' => ['lightColors.surfaceStrong', 'surface-strong'],
             'light text' => ['lightColors.text', 'ink'],
+            'light strong text' => ['lightColors.textStrong', 'body-strong'],
             'light secondary text' => ['lightColors.textSecondary', 'body'],
+            'light muted' => ['lightColors.muted', 'muted'],
+            'light muted soft' => ['lightColors.mutedSoft', 'muted-soft'],
             'light accent' => ['lightColors.accent', 'accent'],
+            'light accent strong' => ['lightColors.accentStrong', 'accent-strong'],
+            'light accent wash' => ['lightColors.accentWash', 'accent-wash'],
             'light divider' => ['lightColors.divider', 'hairline'],
+            'light divider soft' => ['lightColors.dividerSoft', 'hairline-soft'],
+            'light error' => ['lightColors.error', 'error'],
             'dark background' => ['darkColors.background', 'canvas-dark'],
+            'dark surface soft' => ['darkColors.surfaceSoft', 'surface-dark'],
+            'dark surface card' => ['darkColors.surfaceCard', 'surface-dark'],
+            'dark surface strong' => ['darkColors.surfaceStrong', 'surface-dark-elevated'],
             'dark text' => ['darkColors.text', 'on-dark'],
+            'dark strong text' => ['darkColors.textStrong', 'on-dark'],
             'dark secondary text' => ['darkColors.textSecondary', 'on-dark-muted'],
+            'dark muted' => ['darkColors.muted', 'on-dark-muted'],
             'dark accent' => ['darkColors.accent', 'accent-on-dark'],
+            'dark accent strong' => ['darkColors.accentStrong', 'accent-on-dark'],
             'dark divider' => ['darkColors.divider', 'hairline-dark'],
+            'dark divider soft' => ['darkColors.dividerSoft', 'hairline-dark'],
         ];
+    }
+
+    /**
+     * The spacing scale, read out of DESIGN.md's `spacing:` block.
+     *
+     * @return array<string, int>
+     */
+    protected function spacingScale(): array
+    {
+        $document = (string) file_get_contents(base_path('DESIGN.md'));
+
+        if (preg_match('/^spacing:\n((?:\s{2}[a-z]+:\s*\d+px\n?)+)/m', $document, $block) !== 1) {
+            return [];
+        }
+
+        preg_match_all('/^\s{2}([a-z]+):\s*(\d+)px$/m', $block[1], $matches, PREG_SET_ORDER);
+
+        return collect($matches)->mapWithKeys(fn (array $m) => [$m[1] => (int) $m[2]])->all();
+    }
+
+    /**
+     * The palette test above guards colour. This guards the other half of the
+     * same claim, and the half that actually drifted: mobile carried its own
+     * spacing scale, so `section` was 64 where the document says 96, and `xxs`
+     * and `hero` did not exist at all. Nothing caught it, because colour was
+     * the only thing anyone thought to assert.
+     */
+    #[Test]
+    public function the_mobile_spacing_scale_agrees_with_the_document(): void
+    {
+        $expected = $this->spacingScale();
+
+        $this->assertGreaterThan(7, count($expected), 'The spacing block in DESIGN.md no longer parses.');
+
+        $theme = (string) file_get_contents(base_path('mobile/constants/theme.ts'));
+
+        $this->assertSame(
+            1,
+            preg_match('/export const spacing = \{(.+?)\};/s', $theme, $block),
+            'mobile/constants/theme.ts no longer exports spacing.',
+        );
+
+        $drifted = [];
+
+        foreach ($expected as $token => $value) {
+            if (preg_match('/\b'.preg_quote($token, '/').':\s*(\d+)/', $block[1], $found) !== 1) {
+                $drifted[$token] = 'missing';
+
+                continue;
+            }
+
+            if ((int) $found[1] !== $value) {
+                $drifted[$token] = "{$found[1]} (DESIGN.md says {$value})";
+            }
+        }
+
+        $this->assertSame([], $drifted, 'The mobile spacing scale has drifted from DESIGN.md.');
     }
 
     #[Test]

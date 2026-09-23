@@ -16,7 +16,7 @@ interface SingleLineInputProps {
   keyboardType?: KeyboardTypeOptions;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   autoFocus?: boolean;
-  returnKeyType?: 'done' | 'next' | 'go';
+  returnKeyType?: 'done' | 'next' | 'go' | 'send';
   onSubmitEditing?: () => void;
 }
 

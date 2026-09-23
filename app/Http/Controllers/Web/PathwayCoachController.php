@@ -8,16 +8,25 @@ use App\Support\AccessPolicy;
 use App\Support\ActionQueue;
 use App\Support\BrainCapture;
 use App\Support\BrainstormSchedule;
+use App\Support\CoachOpening;
+use App\Support\CoachStarters;
+use App\Support\CoachStream;
+use App\Support\CoachThread;
 use App\Support\ConversationLocale;
 use App\Support\CrisisCheck;
 use App\Support\FirstRunSequence;
 use App\Support\HabitTracker;
 use App\Support\ReadinessCalculator;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 /**
  * The coach: the front door, not a feature tab.
@@ -62,7 +71,98 @@ class PathwayCoachController extends Controller
              * own words, because an invitation with nothing in it is a nag.
              */
             'invitation' => (new BrainstormSchedule)->invitation($user),
+            /*
+             * The conversation itself, read from the same rows the model is
+             * given, so reloading the page is never how a reply is lost.
+             */
+            'thread' => (new CoachThread)->items($user),
+            'starters' => (new CoachStarters)->for($user),
+            /*
+             * When set, the page asks the coach to speak before the student
+             * has to. Computed here rather than on the client, so two tabs or
+             * a refresh cannot each decide to open.
+             */
+            'opening' => (new CoachOpening)->due($user),
         ]);
+    }
+
+    /**
+     * The coach speaks first, streamed.
+     *
+     * Idempotent under a per-student lock: whoever loses the race gets the
+     * thread as it stands instead of a second opener. When the model cannot
+     * be reached the opener still happens, built from the portrait alone —
+     * a student who finished the assessment should never land in an empty
+     * room.
+     */
+    public function open(Request $request): StreamedResponse|JsonResponse
+    {
+        $user = $request->user();
+        $opening = new CoachOpening;
+        $kind = $opening->due($user);
+
+        try {
+            $agent = new PathwayCoachAgent($user);
+        } catch (RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 403);
+        }
+
+        $lock = Cache::lock("coach-opening:{$user->id}", 120);
+
+        if ($kind === null || ! $lock->get()) {
+            return response()->json(CoachStream::settled($user));
+        }
+
+        return (new CoachStream)->respond(
+            $user,
+            $agent,
+            start: fn () => $agent->openingStream($kind),
+            recover: function () use ($opening, $user, $kind) {
+                $text = $opening->fallback($user, $kind);
+                $opening->recordFallback($user, $kind, $text);
+
+                return $text;
+            },
+            finally: fn () => $lock->release(),
+            firstStatus: $kind === CoachOpening::FIRST ? 'Reading your portrait' : 'Catching up on where you left off',
+        );
+    }
+
+    /**
+     * One turn, streamed. The same path as {@see message()} — crisis check
+     * first, capture before the model — with the reply arriving as it is
+     * written instead of after a full page round trip.
+     */
+    public function stream(Request $request): StreamedResponse|JsonResponse
+    {
+        $validated = $request->validate([
+            'message' => ['required', 'string', 'max:4000'],
+        ]);
+
+        $user = $request->user();
+
+        if ((new CrisisCheck)->standing($validated['message'])->isEscalation()) {
+            (new BrainCapture)->captureCoachTurn($user, role: 'user', content: $validated['message']);
+
+            return response()->json([
+                'support' => (new CrisisCheck)->support(
+                    ConversationLocale::normalize($user->assessments()->latest()->value('locale')),
+                ),
+            ]);
+        }
+
+        try {
+            $agent = new PathwayCoachAgent($user);
+        } catch (RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 403);
+        }
+
+        return (new CoachStream)->respond(
+            $user,
+            $agent,
+            start: fn () => $agent->streamReplyTo($validated['message']),
+            after: fn () => (new BrainstormSchedule)->attended($user),
+        );
     }
 
     /**
@@ -113,7 +213,13 @@ class PathwayCoachController extends Controller
             return back()->with('status', $exception->getMessage());
         }
 
-        $agent->respondTo($validated['message']);
+        try {
+            $agent->respondTo($validated['message']);
+        } catch (Throwable $exception) {
+            Log::error('pathway coach message failed', ['error' => $exception->getMessage()]);
+
+            return back()->with('status', 'Something went wrong. What you wrote is kept — try again.');
+        }
 
         /*
          * Turning up is what counts as attending, not clicking the

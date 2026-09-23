@@ -4,8 +4,9 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
-import { spacing } from '../../constants/theme';
+import { spacing, radius } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
+import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { useAuthStore } from '../../stores/authStore';
 import { api } from '../../services/api';
 
@@ -40,9 +41,12 @@ interface DashboardData {
   };
 }
 
+type Palette = ReturnType<typeof useTheme>['colors'];
+
 export default function DashboardScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { isEnabled } = useFeatureFlags();
   const styles = getStyles(colors);
   const user = useAuthStore((s) => s.user);
   const [data, setData] = useState<DashboardData | null>(null);
@@ -81,128 +85,138 @@ export default function DashboardScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        <Typography variant="headingLarge">
+        {/* Page meta — the greeting is context, not the headline */}
+        <Typography variant="eyebrow" color={colors.muted} style={styles.pageMeta}>
           {greeting()}{user?.name ? `, ${user.name.split(' ')[0]}` : ''}
         </Typography>
 
-        <View style={styles.divider} />
-
-        {/* Vocational Profile Summary */}
+        {/* Vocational portrait — the centrepiece */}
         {data?.profile_summary ? (
           <View style={styles.section}>
-            <Typography
-              variant="caption"
-              family="sans"
-              color={colors.accent}
-              style={styles.sectionLabel}
-            >
+            <Typography variant="eyebrow" color={colors.accent} style={styles.sectionLabel}>
               Your vocational portrait
             </Typography>
-            <Typography variant="bodyLarge" style={styles.domain}>
-              {data.profile_summary.primary_domain}
-            </Typography>
-            <Typography variant="small" family="sans" color={colors.textSecondary}>
-              {data.profile_summary.mode_of_work}
-            </Typography>
-            {data.profile_summary.primary_pathways?.length > 0 && (
-              <View style={styles.pathwayChips}>
-                {data.profile_summary.primary_pathways.slice(0, 3).map((p, i) => (
-                  <View key={i} style={styles.chip}>
-                    <Typography variant="caption" family="sans" color={colors.text}>
-                      {p}
-                    </Typography>
-                  </View>
-                ))}
-              </View>
-            )}
-            <View style={styles.divider} />
+            <View style={styles.portraitCard}>
+              <Typography variant="displaySm" style={styles.domain}>
+                {data.profile_summary.primary_domain}
+              </Typography>
+              <Typography variant="meta" color={colors.muted} style={styles.modeOfWork}>
+                {data.profile_summary.mode_of_work}
+              </Typography>
+              {data.profile_summary.opening_synthesis ? (
+                <Typography
+                  variant="body"
+                  color={colors.textSecondary}
+                  style={styles.synthesis}
+                >
+                  {data.profile_summary.opening_synthesis}
+                </Typography>
+              ) : null}
+              {data.profile_summary.primary_pathways?.length > 0 && (
+                <View style={styles.pathwayChips}>
+                  {data.profile_summary.primary_pathways.slice(0, 3).map((pathway, index) => (
+                    <View key={index} style={styles.chip}>
+                      <Typography variant="meta" color={colors.textSecondary}>
+                        {pathway}
+                      </Typography>
+                    </View>
+                  ))}
+                </View>
+              )}
+              <Typography variant="meta" color={colors.mutedSoft}>
+                Completed {new Date(data.profile_summary.completed_at).toLocaleDateString()}
+              </Typography>
+            </View>
           </View>
         ) : null}
 
-        {/* In-progress assessment */}
+        {/* Assessment call to action */}
         {data?.in_progress_assessment ? (
           <View style={styles.section}>
-            <Typography
-              variant="caption"
-              family="sans"
-              color={colors.accent}
-              style={styles.sectionLabel}
-            >
-              Continue your assessment
-            </Typography>
-            <Typography variant="body" style={styles.sectionDescription}>
-              You have an assessment in progress.
-            </Typography>
-            <Button
-              title="Continue"
-              onPress={() => router.push('/(assessment)')}
-            />
-            <View style={styles.divider} />
+            <View style={styles.ctaCard}>
+              <Typography variant="eyebrow" color={colors.accent} style={styles.sectionLabel}>
+                Continue your assessment
+              </Typography>
+              <Typography variant="displaySm" style={styles.ctaStatement}>
+                You have an assessment in progress.
+              </Typography>
+              <Button
+                title="Continue"
+                onPress={() => router.push('/(assessment)')}
+              />
+            </View>
           </View>
         ) : (
           <View style={styles.section}>
-            <Typography
-              variant="caption"
-              family="sans"
-              color={colors.accent}
-              style={styles.sectionLabel}
-            >
-              New assessment
-            </Typography>
-            <Typography variant="body" style={styles.sectionDescription}>
-              {data?.profile_summary
-                ? 'Retake your vocational assessment to see how your direction has evolved.'
-                : 'Begin a vocational assessment to discover your deepest professional inclinations.'}
-            </Typography>
-            <Button
-              title="Start assessment"
-              onPress={() => router.push('/(assessment)')}
-            />
-            <View style={styles.divider} />
+            <View style={styles.ctaCard}>
+              <Typography variant="eyebrow" color={colors.accent} style={styles.sectionLabel}>
+                New assessment
+              </Typography>
+              <Typography variant="displaySm" style={styles.ctaStatement}>
+                {data?.profile_summary
+                  ? 'Retake your vocational assessment to see how your direction has evolved.'
+                  : 'Begin a vocational assessment to discover your deepest professional inclinations.'}
+              </Typography>
+              <Button
+                title="Start assessment"
+                onPress={() => router.push('/(assessment)')}
+              />
+            </View>
           </View>
         )}
 
-        {/* Mentor Notes */}
+        {/* Student coach — front door (gated behind pathway_coach flag) */}
+        {isEnabled('pathway_coach') && (
+          <View style={styles.section}>
+            <View style={styles.ctaCard}>
+              <Typography variant="eyebrow" color={colors.accent} style={styles.sectionLabel}>
+                Your coach
+              </Typography>
+              <Typography variant="displaySm" style={styles.ctaStatement}>
+                Walk with a coach through your next step — one action at a time.
+              </Typography>
+              <Button
+                title="Talk to your coach"
+                onPress={() => router.push('/(dashboard)/coach')}
+              />
+            </View>
+          </View>
+        )}
+
+        {/* Mentor notes — quote-block treatment */}
         {data?.mentor_notes && data.mentor_notes.length > 0 ? (
           <View style={styles.section}>
-            <Typography
-              variant="caption"
-              family="sans"
-              color={colors.accent}
-              style={styles.sectionLabel}
-            >
+            <Typography variant="eyebrow" color={colors.accent} style={styles.sectionLabel}>
               From your mentor
             </Typography>
             {data.mentor_notes.map((note) => (
               <View key={note.id} style={styles.noteCard}>
                 <Typography variant="body">{note.content}</Typography>
                 <Typography
-                  variant="caption"
-                  family="sans"
-                  color={colors.textSecondary}
+                  variant="meta"
+                  color={colors.muted}
                   style={styles.noteMeta}
                 >
                   {note.mentor_name} · {new Date(note.created_at).toLocaleDateString()}
                 </Typography>
               </View>
             ))}
-            <View style={styles.divider} />
           </View>
         ) : null}
 
-        {/* Organization */}
+        {/* Organizations */}
         {data?.organizations && data.organizations.length > 0 ? (
           <View style={styles.section}>
-            <Typography
-              variant="caption"
-              family="sans"
-              color={colors.accent}
-              style={styles.sectionLabel}
-            >
+            <Typography variant="eyebrow" color={colors.accent} style={styles.sectionLabel}>
               Your organization{data.organizations.length > 1 ? 's' : ''}
             </Typography>
             {data.organizations.map((org) => (
-              <Typography key={org.id} variant="body" color={colors.textSecondary}>
+              <Typography
+                key={org.id}
+                variant="body"
+                color={colors.textSecondary}
+                style={styles.orgRow}
+              >
                 {org.name} · {org.role}
               </Typography>
             ))}
@@ -213,7 +227,7 @@ export default function DashboardScreen() {
   );
 }
 
-const getStyles = (colors: { background: string; divider: string; text: string; accent: string }) =>
+const getStyles = (colors: Palette) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -222,45 +236,63 @@ const getStyles = (colors: { background: string; divider: string; text: string; 
     scrollContent: {
       flexGrow: 1,
       paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.xl,
+      paddingTop: spacing.xl,
+      paddingBottom: spacing.xxl,
     },
-    divider: {
-      height: 1,
-      backgroundColor: colors.divider,
-      marginVertical: spacing.xl,
+    pageMeta: {
+      marginBottom: spacing.xl,
     },
-    section: {},
+    section: {
+      marginBottom: spacing.xxl,
+    },
     sectionLabel: {
-      textTransform: 'uppercase',
-      letterSpacing: 1,
-      marginBottom: spacing.sm,
+      marginBottom: spacing.md,
     },
-    sectionDescription: {
-      marginBottom: spacing.lg,
+    portraitCard: {
+      backgroundColor: colors.surfaceCard,
+      borderRadius: radius.md,
+      padding: spacing.xl,
     },
     domain: {
-      marginBottom: 4,
+      marginBottom: spacing.xs,
+    },
+    modeOfWork: {
+      marginBottom: spacing.lg,
+    },
+    synthesis: {
+      marginBottom: spacing.lg,
     },
     pathwayChips: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: spacing.sm,
-      marginTop: spacing.md,
+      gap: spacing.xs,
+      marginBottom: spacing.lg,
     },
     chip: {
+      backgroundColor: colors.surfaceStrong,
+      borderRadius: radius.pill,
+      paddingVertical: spacing.xxs,
+      paddingHorizontal: spacing.sm,
+    },
+    ctaCard: {
       borderWidth: 1,
       borderColor: colors.divider,
-      borderRadius: 999,
-      paddingVertical: 6,
-      paddingHorizontal: 12,
+      borderRadius: radius.md,
+      padding: spacing.xl,
+    },
+    ctaStatement: {
+      marginBottom: spacing.lg,
     },
     noteCard: {
-      borderWidth: 1,
-      borderColor: colors.divider,
-      padding: spacing.md,
-      marginBottom: spacing.sm,
+      borderLeftWidth: 2,
+      borderLeftColor: colors.accent,
+      paddingLeft: spacing.lg,
+      marginBottom: spacing.lg,
     },
     noteMeta: {
       marginTop: spacing.sm,
+    },
+    orgRow: {
+      marginBottom: spacing.xs,
     },
   });

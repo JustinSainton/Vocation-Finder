@@ -519,16 +519,41 @@ export interface CoachHabit {
   answered_today: boolean;
 }
 
+export type CoachOpening = 'first' | 'returning' | null;
+
 export interface CoachState {
   current_action: CoachAction | null;
   readiness: CoachReadiness;
   habits: CoachHabit[];
   invitation: { prompt: string; opens_with: unknown } | null;
+  /** One-tap ways in, drawn from the student's own portrait */
+  starters?: string[];
+  /** Set when the coach should speak before the student does */
+  opening?: CoachOpening;
 }
 
 export interface CoachMessage {
+  id?: string;
   role: string;
   content: string;
+  at?: string;
+}
+
+export type CoachThreadItem =
+  | { type: 'message'; id: string; role: 'user' | 'assistant'; content: string; at: string }
+  | { type: 'step'; id: string; title: string; rationale: string | null; status: 'active' | 'completed' | 'skipped'; at: string };
+
+/** What the server returns once a turn is persisted */
+export interface CoachSettled {
+  items: CoachThreadItem[];
+  current_action: CoachAction | null;
+  starters: string[];
+}
+
+export interface CoachSupport {
+  heading: string;
+  body: string[];
+  resources: { name: string; contact: string; note?: string }[];
 }
 
 /** Student pathway coach — the front door, not a feature tab */
@@ -536,12 +561,15 @@ export const coachApi = {
   /** Current action, readiness, habits, and any return invitation */
   state: () => api.get<CoachState>('/coach/state'),
 
-  /** Turns of the ongoing conversation, oldest first */
-  history: () => api.get<{ messages: CoachMessage[] }>('/coach/history'),
+  /** Turns of the ongoing conversation, oldest first, with steps interleaved in `items` */
+  history: () => api.get<{ messages: CoachMessage[]; items?: CoachThreadItem[] }>('/coach/history'),
+
+  /** The coach speaks first. Returns the thread as stored; `message` is null if an opener was already given */
+  open: () => api.post<{ message: string | null } & CoachSettled>('/coach/open'),
 
   /** One turn of the conversation; may return support instead of a reply */
   message: (message: string) =>
-    api.post<{ message?: string; support?: { phone?: string; text?: string } }>('/coach/message', { message }),
+    api.post<{ message?: string; support?: CoachSupport } & Partial<CoachSettled>>('/coach/message', { message }),
 
   /** Settle the current action as done, with an optional reflection */
   completeAction: (actionId: string, reflection?: string) =>

@@ -8,14 +8,20 @@ use App\Support\AccessPolicy;
 use App\Support\ActionQueue;
 use App\Support\BrainCapture;
 use App\Support\BrainstormSchedule;
+use App\Support\CoachOpening;
+use App\Support\CoachStarters;
+use App\Support\CoachStream;
+use App\Support\CoachThread;
 use App\Support\ConversationLocale;
 use App\Support\CrisisCheck;
 use App\Support\HabitTracker;
 use App\Support\ReadinessCalculator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
+use Throwable;
 
 class PathwayCoachController extends Controller
 {
@@ -32,9 +38,18 @@ class PathwayCoachController extends Controller
             'readiness' => (new ReadinessCalculator)->explain($user),
             'habits' => (new HabitTracker)->forStudent($user),
             'invitation' => (new BrainstormSchedule)->invitation($user),
+            'starters' => (new CoachStarters)->for($user),
+            'opening' => (new CoachOpening)->due($user),
         ]);
     }
 
+    /**
+     * The thread as the student should see it: internal prompts and tool-only
+     * rows removed, steps interleaved where they were assigned.
+     *
+     * `messages` keeps its original `{role, content}` shape for clients that
+     * predate `items`.
+     */
     public function history(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -43,21 +58,50 @@ class PathwayCoachController extends Controller
             return response()->json(['message' => AccessPolicy::coachBlockedReason($user)], 403);
         }
 
+        $items = (new CoachThread)->items($user);
+
+        return response()->json([
+            'messages' => array_values(array_map(
+                fn (array $item) => ['id' => $item['id'], 'role' => $item['role'], 'content' => $item['content'], 'at' => $item['at']],
+                array_filter($items, fn (array $item) => $item['type'] === 'message'),
+            )),
+            'items' => $items,
+        ]);
+    }
+
+    /**
+     * The coach speaks first. Not streamed: mobile shows a thinking state and
+     * receives the whole opener, which keeps the client on plain `fetch`.
+     */
+    public function open(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $opening = new CoachOpening;
+        $kind = $opening->due($user);
+
         try {
             $agent = new PathwayCoachAgent($user);
         } catch (RuntimeException $exception) {
             return response()->json(['message' => $exception->getMessage()], 403);
         }
 
-        $messages = [];
-        foreach ($agent->continueLastConversation($user)->messages() as $message) {
-            $messages[] = [
-                'role' => is_array($message) ? ($message['role'] ?? 'assistant') : ($message->role ?? 'assistant'),
-                'content' => is_array($message) ? ($message['content'] ?? '') : (isset($message->content) ? (string) $message->content : (string) $message),
-            ];
+        $lock = Cache::lock("coach-opening:{$user->id}", 120);
+
+        if ($kind === null || ! $lock->get()) {
+            return response()->json(['message' => null] + CoachStream::settled($user));
         }
 
-        return response()->json(['messages' => $messages]);
+        try {
+            $text = (string) $agent->open($kind)->text;
+        } catch (Throwable $exception) {
+            Log::error('pathway coach opening failed', ['user_id' => $user->id, 'error' => $exception->getMessage()]);
+            $text = $opening->fallback($user, $kind);
+            $opening->recordFallback($user, $kind, $text);
+        } finally {
+            $lock->release();
+        }
+
+        return response()->json(['message' => $text] + CoachStream::settled($user));
     }
 
     public function message(Request $request): JsonResponse
@@ -86,7 +130,7 @@ class PathwayCoachController extends Controller
 
         try {
             $response = $agent->respondTo($validated['message']);
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             Log::error('pathway coach message failed', ['error' => $exception->getMessage()]);
 
             return response()->json(['message' => 'Something went wrong. Please try again.'], 503);
@@ -94,6 +138,6 @@ class PathwayCoachController extends Controller
 
         (new BrainstormSchedule)->attended($user);
 
-        return response()->json(['message' => (string) $response->text]);
+        return response()->json(['message' => (string) $response->text] + CoachStream::settled($user));
     }
 }

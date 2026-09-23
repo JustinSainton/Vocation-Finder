@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Assessment;
 use App\Models\Question;
 use App\Support\AssessmentAccess;
+use App\Support\CoachHandoff;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -94,6 +95,7 @@ class AssessmentController extends Controller
             'tier' => $isPaid ? 'paid' : 'free',
             'upgrade_message' => $isPaid ? null : 'Unlock your complete vocational profile — including specific career pathways, personalized considerations, and actionable next steps.',
             'pathway' => $pathwayData,
+            'coach' => CoachHandoff::for($request->user(), $assessment),
         ]);
     }
 }
