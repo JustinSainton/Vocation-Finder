@@ -254,7 +254,7 @@ export default function Results({
             {coach && <CoachDoor coach={coach} />}
 
             {/* Upgrade prompt */}
-            {tier === 'free' && upgrade_message && (
+            {tier === 'free' && upgrade_message && coach?.state !== 'checkout' && (
                 <div className="my-8 border border-[var(--color-divider)] p-6">
                     <p className="italic text-[var(--color-text)]">{upgrade_message}</p>
                 </div>
