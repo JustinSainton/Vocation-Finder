@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Support\AccessPolicy;
 use App\Support\ParentVisibility;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Tests\TestCase;
@@ -196,7 +197,7 @@ class AccessTierTest extends TestCase
     {
         $adult = $this->student(null, '2000-01-01');
         $organization = Organization::create(['name' => 'Grace Church', 'slug' => 'grace-church', 'type' => 'church', 'subscription_status' => 'active']);
-        $organization->users()->attach($adult, ['id' => (string) \Illuminate\Support\Str::uuid(), 'role' => 'member']);
+        $organization->users()->attach($adult, ['id' => (string) Str::uuid(), 'role' => 'member']);
 
         $this->assertTrue(AccessPolicy::hasPaidAccess($adult->fresh()));
         $this->assertTrue(AccessPolicy::canUseCoach($adult->fresh()));
