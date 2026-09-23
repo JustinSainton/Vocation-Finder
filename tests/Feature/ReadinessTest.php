@@ -49,7 +49,7 @@ class ReadinessTest extends TestCase
 
     protected function student(): User
     {
-        $student = User::factory()->create([
+        $student = User::factory()->paying()->create([
             'grade_level' => 11,
             'birthdate' => now()->subYears(16)->toDateString(),
         ]);

@@ -10,7 +10,6 @@ use App\Models\BrainEntry;
 use App\Models\FeatureFlag;
 use App\Models\Gap;
 use App\Models\User;
-use App\Services\FeatureFlagService;
 use App\Support\BrainRetrieval;
 use App\Support\HabitTracker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -49,7 +48,7 @@ class StudentPlacesTest extends TestCase
      */
     protected function entitled(): User
     {
-        return User::factory()->create(['birthdate' => now()->subYears(19)]);
+        return User::factory()->paying()->create(['birthdate' => now()->subYears(19)]);
     }
 
     /**
@@ -199,7 +198,6 @@ class StudentPlacesTest extends TestCase
     public function the_brain_is_readable_with_the_coach_switched_off(): void
     {
         $user = User::factory()->create();
-        app(FeatureFlagService::class)->toggle('pathway_coach', false);
 
         $this->actingAs($user)->get('/brain')->assertOk();
         $this->actingAs($user)->get('/brain/export')->assertOk();

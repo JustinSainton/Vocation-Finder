@@ -42,7 +42,7 @@ class LockerTest extends TestCase
 
     protected function student(): User
     {
-        return User::factory()->create(['birthdate' => now()->subYears(19), 'grade_level' => 12]);
+        return User::factory()->paying()->create(['birthdate' => now()->subYears(19), 'grade_level' => 12]);
     }
 
     /**

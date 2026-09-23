@@ -11,6 +11,7 @@ use App\Enums\ConsentStatus;
 use App\Enums\GapType;
 use App\Models\Action;
 use App\Models\Gap;
+use App\Models\Organization;
 use App\Models\ParentConsent;
 use App\Models\User;
 use App\Support\AccessPolicy;
@@ -43,6 +44,7 @@ class AccessTierTest extends TestCase
     protected function consentedJunior(): User
     {
         $student = $this->student(11, now()->subYears(16)->toDateString());
+        $student->forceFill(['trial_ends_at' => now()->addDays(14)])->save();
         ParentConsent::create([
             'user_id' => $student->id,
             'parent_name' => 'A parent',
@@ -162,7 +164,42 @@ class AccessTierTest extends TestCase
         $this->assertFalse(AccessPolicy::requiresParentConsent($adult));
         $this->assertFalse(AccessPolicy::requiresParentCheckout($adult));
         $this->assertFalse(AccessPolicy::permitsParentReporting($adult));
-        $this->assertTrue(AccessPolicy::canUseCoach($adult));
+
+        $this->assertFalse(AccessPolicy::canUseCoach($adult), 'An adult pays for themselves; no plan, no coach.');
+        $this->assertSame('Your coach opens once your plan is active.', AccessPolicy::coachBlockedReason($adult));
+
+        $adult->forceFill(['trial_ends_at' => now()->addDays(14)])->save();
+        $this->assertTrue(AccessPolicy::canUseCoach($adult->fresh()));
+    }
+
+    /**
+     * "Paywall — generate the coach and the brain." Consent is permission,
+     * not payment, and the two stay separate gates.
+     */
+    public function test_consent_alone_does_not_open_the_coach(): void
+    {
+        $junior = $this->consentedJunior();
+        $junior->forceFill(['trial_ends_at' => null])->save();
+        $junior = $junior->fresh();
+
+        $this->assertFalse(AccessPolicy::canUseCoach($junior));
+        $this->assertTrue(AccessPolicy::brainIsFrozen($junior));
+        $this->assertTrue(AccessPolicy::canExportBrain($junior));
+        $this->assertSame('Your coach opens once a parent or guardian starts your plan.', AccessPolicy::coachBlockedReason($junior));
+    }
+
+    /**
+     * A school or church that bought seats has paid. Sending its students to
+     * a checkout page would be charging twice.
+     */
+    public function test_a_cohort_seat_counts_as_paid(): void
+    {
+        $adult = $this->student(null, '2000-01-01');
+        $organization = Organization::create(['name' => 'Grace Church', 'slug' => 'grace-church', 'type' => 'church', 'subscription_status' => 'active']);
+        $organization->users()->attach($adult, ['id' => (string) \Illuminate\Support\Str::uuid(), 'role' => 'member']);
+
+        $this->assertTrue(AccessPolicy::hasPaidAccess($adult->fresh()));
+        $this->assertTrue(AccessPolicy::canUseCoach($adult->fresh()));
     }
 
     /**

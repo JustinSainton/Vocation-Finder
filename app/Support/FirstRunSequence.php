@@ -105,7 +105,7 @@ class FirstRunSequence
      */
     protected static function hasPaid(User $user): bool
     {
-        return $user->subscribed('default') || $user->onTrial();
+        return AccessPolicy::hasPaidAccess($user);
     }
 
     protected static function latestAssessment(User $user): ?Assessment

@@ -22,7 +22,7 @@ use App\Services\FeatureFlagService;
 class CoachHandoff
 {
     /**
-     * @return array{state: 'open'|'account'|'consent'|'later', eyebrow: string, headline: string, body: string, href: ?string, cta: ?string, starters: list<string>}|null
+     * @return array{state: 'open'|'account'|'consent'|'checkout'|'later', eyebrow: string, headline: string, body: string, href: ?string, cta: ?string, starters: list<string>}|null
      */
     public static function for(?User $viewer, Assessment $assessment): ?array
     {
@@ -74,13 +74,31 @@ class CoachHandoff
             ];
         }
 
+        if (AccessPolicy::requiresParentConsent($viewer) && ! AccessPolicy::hasParentConsent($viewer)) {
+            return [
+                'state' => 'consent',
+                'eyebrow' => 'Your coach',
+                'headline' => 'One yes from a parent, and your coach starts here.',
+                'body' => AccessPolicy::coachBlockedReason($viewer) ?? '',
+                'href' => '/next',
+                'cta' => 'Ask a parent or guardian',
+                'starters' => [],
+            ];
+        }
+
+        /*
+         * Consent before payment, always: a parent who has not said yes is
+         * never shown a price for their child's coach.
+         */
         return [
-            'state' => 'consent',
+            'state' => 'checkout',
             'eyebrow' => 'Your coach',
-            'headline' => 'One yes from a parent, and your coach starts here.',
-            'body' => AccessPolicy::coachBlockedReason($viewer) ?? '',
-            'href' => '/next',
-            'cta' => 'Ask a parent or guardian',
+            'headline' => 'Your coach and your brain start from this portrait.',
+            'body' => AccessPolicy::requiresParentCheckout($viewer)
+                ? 'A parent or guardian starts your plan. Then your coach opens with what you wrote here and ends with one concrete thing to do this week.'
+                : 'Start your plan and your coach opens with what you wrote here, and ends with one concrete thing to do this week.',
+            'href' => '/billing',
+            'cta' => 'Open the coach and the brain',
             'starters' => [],
         ];
     }

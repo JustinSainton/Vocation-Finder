@@ -23,7 +23,7 @@ interface PathwayRef {
 }
 
 interface CoachHandoff {
-    state: 'open' | 'account' | 'consent' | 'later';
+    state: 'open' | 'account' | 'consent' | 'checkout' | 'later';
     eyebrow: string;
     headline: string;
     body: string;

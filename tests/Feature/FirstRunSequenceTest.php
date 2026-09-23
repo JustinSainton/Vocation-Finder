@@ -9,7 +9,6 @@ use App\Models\ParentConsent;
 use App\Models\User;
 use App\Models\VocationalProfile;
 use App\Notifications\ParentConsentNotification;
-use App\Services\FeatureFlagService;
 use App\Support\ActionQueue;
 use App\Support\BrainCapture;
 use App\Support\FirstRunSequence;
@@ -262,11 +261,10 @@ class FirstRunSequenceTest extends TestCase
             ->assertSessionHas('error');
     }
 
-    public function test_the_coach_route_does_not_exist_while_the_flag_is_off(): void
+    public function test_the_coach_route_does_not_exist_until_the_flag_is_on(): void
     {
         $student = $this->junior();
         $this->consentFor($student);
-        app(FeatureFlagService::class)->toggle('pathway_coach', false);
 
         $this->actingAs($student->fresh())->get('/coach')->assertNotFound();
     }
@@ -281,13 +279,26 @@ class FirstRunSequenceTest extends TestCase
             ->assertRedirect(route('first-run'));
     }
 
-    public function test_a_consented_junior_reaches_the_coach(): void
+    public function test_a_consented_and_paid_for_junior_reaches_the_coach(): void
+    {
+        $this->enableCoach();
+        $student = $this->junior();
+        $this->consentFor($student);
+        $student->forceFill(['trial_ends_at' => now()->addDays(14)])->save();
+
+        $this->actingAs($student->fresh())->get('/coach')->assertOk();
+    }
+
+    public function test_a_consented_but_unpaid_junior_is_turned_back_to_checkout(): void
     {
         $this->enableCoach();
         $student = $this->junior();
         $this->consentFor($student);
 
-        $this->actingAs($student->fresh())->get('/coach')->assertOk();
+        $this->actingAs($student->fresh())
+            ->get('/coach')
+            ->assertRedirect(route('first-run'))
+            ->assertSessionHas('status', 'Your coach opens once a parent or guardian starts your plan.');
     }
 
     /**
@@ -344,6 +355,7 @@ class FirstRunSequenceTest extends TestCase
             'parent_name' => 'A parent',
             'parent_email' => 'parent@example.com',
         ]);
+        $student->forceFill(['trial_ends_at' => now()->addDays(14)])->save();
         (new BrainCapture)->captureDirect(
             tap($student, fn ($s) => $consent->grant())->fresh(),
             'i am scared i will pick wrong and waste four years',
@@ -397,6 +409,7 @@ class FirstRunSequenceTest extends TestCase
     {
         $student = $this->junior();
         $consent = $this->consentFor($student);
+        $student->forceFill(['trial_ends_at' => now()->addDays(14)])->save();
         (new BrainCapture)->captureDirect($student->fresh(), 'i want to work somewhere that isnt an office');
 
         $this->delete("/consent/{$consent->token}")->assertRedirect();

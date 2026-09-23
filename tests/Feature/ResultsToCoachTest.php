@@ -4,10 +4,12 @@ namespace Tests\Feature;
 
 use App\Enums\ConfidenceLevel;
 use App\Models\Assessment;
+use App\Models\FeatureFlag;
 use App\Models\ParentConsent;
 use App\Models\User;
 use App\Services\FeatureFlagService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
 use PHPUnit\Framework\Attributes\Test;
@@ -23,6 +25,18 @@ use Tests\TestCase;
 class ResultsToCoachTest extends TestCase
 {
     use RefreshDatabase;
+
+    /**
+     * The coach ships dark; every case here is about what happens once an
+     * operator has switched it on.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        FeatureFlag::updateOrCreate(['key' => 'pathway_coach'], ['name' => 'Pathway Coach', 'is_enabled' => true]);
+        Cache::forget('feature_flag:pathway_coach');
+    }
 
     protected function assessmentFor(?User $user): Assessment
     {
@@ -49,7 +63,7 @@ class ResultsToCoachTest extends TestCase
 
     protected function consentedJunior(): User
     {
-        $student = User::factory()->create([
+        $student = User::factory()->paying()->create([
             'grade_level' => 11,
             'birthdate' => now()->subYears(16)->toDateString(),
         ]);
@@ -108,6 +122,20 @@ class ResultsToCoachTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('coach.state', 'consent')
                 ->where('coach.href', '/next'));
+    }
+
+    #[Test]
+    public function a_consented_junior_nobody_is_paying_for_is_sent_to_checkout(): void
+    {
+        $student = $this->consentedJunior();
+        $student->forceFill(['trial_ends_at' => null])->save();
+        $assessment = $this->assessmentFor($student);
+
+        $this->actingAs($student->fresh())->get("/assessment/{$assessment->id}/results")
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('coach.state', 'checkout')
+                ->where('coach.href', '/billing')
+                ->where('coach.starters', []));
     }
 
     #[Test]
