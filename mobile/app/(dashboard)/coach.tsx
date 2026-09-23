@@ -7,13 +7,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
 import { SingleLineInput } from '../../components/ui/SingleLineInput';
-import { spacing } from '../../constants/theme';
+import { TypingIndicator } from '../../components/ui/TypingIndicator';
+import { radius, spacing } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { useThemeStore } from '../../stores/themeStore';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
@@ -44,6 +47,30 @@ interface SupportCard {
   resources: SupportResource[];
 }
 
+/** Prompts surfaced in the empty thread so a stuck student can begin. */
+const STARTERS = [
+  "I'm not sure what I'm good at",
+  "Something's hard this week",
+  'What should I do next?',
+];
+
+/**
+ * Engine prose arrives as plain text with `*word*` / `**word**` emphasis (see
+ * DESIGN.md). Blank lines separate paragraphs; Typography already renders the
+ * emphasis marks, so each paragraph becomes its own Text with a small gap.
+ */
+function renderProse(content: string) {
+  return content.split(/\n{2,}/).map((paragraph, i, all) => (
+    <Typography
+      key={i}
+      variant="body"
+      style={i < all.length - 1 ? styles.paragraphGap : undefined}
+    >
+      {paragraph}
+    </Typography>
+  ));
+}
+
 function Eyebrow({ children }: { children: React.ReactNode }) {
   const { colors } = useTheme();
   return (
@@ -71,6 +98,8 @@ export default function CoachScreen() {
   const [sending, setSending] = useState(false);
   const [settlingAction, setSettlingAction] = useState(false);
   const [checkingHabit, setCheckingHabit] = useState<string | null>(null);
+  const [isPinned, setIsPinned] = useState(true);
+  const lastFailedRef = useRef<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -110,32 +139,84 @@ export default function CoachScreen() {
     }
   }, [isEnabled, load]);
 
-  const sendMessage = useCallback(async () => {
+  const sendText = useCallback(
+    async (text: string, appendAsUser: boolean) => {
+      if (!text || sending) return;
+      setSupport(null);
+      if (appendAsUser) {
+        setMessages((prev) => [
+          ...prev,
+          { id: `u-${Date.now()}`, role: 'user', content: text },
+        ]);
+      }
+      setSending(true);
+      setIsPinned(true);
+      try {
+        const res = await coachApi.message(text);
+        if (res.support) {
+          setSupport(res.support as SupportCard);
+        } else if (res.message) {
+          setMessages((prev) => [
+            ...prev,
+            { id: `a-${Date.now()}`, role: 'assistant', content: res.message as string },
+          ]);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
+        }
+        lastFailedRef.current = null;
+        const fresh = await coachApi.state();
+        setState(fresh);
+      } catch {
+        lastFailedRef.current = text;
+        setMessages((prev) => [
+          ...prev.filter((m) => m.role !== 'error'),
+          {
+            id: `e-${Date.now()}`,
+            role: 'error',
+            content: 'That did not go through. Your words are kept — want to try again?',
+          },
+        ]);
+      } finally {
+        setSending(false);
+      }
+    },
+    [sending]
+  );
+
+  const sendMessage = useCallback(() => {
     const text = input.trim();
     if (!text || sending) return;
     setInput('');
-    setSupport(null);
-    setMessages((prev) => [...prev, { id: `u-${Date.now()}`, role: 'user', content: text }]);
-    setSending(true);
-    try {
-      const res = await coachApi.message(text);
-      if (res.support) {
-        setSupport(res.support as SupportCard);
-      } else if (res.message) {
-        setMessages((prev) => [...prev, { id: `a-${Date.now()}`, role: 'assistant', content: res.message as string }]);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
-      }
-      const fresh = await coachApi.state();
-      setState(fresh);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        { id: `e-${Date.now()}`, role: 'assistant', content: 'Something went wrong. Could you try again?' },
-      ]);
-    } finally {
-      setSending(false);
-    }
-  }, [input, sending]);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+    sendText(text, true);
+  }, [input, sending, sendText]);
+
+  const retryLast = useCallback(() => {
+    const text = lastFailedRef.current;
+    if (!text || sending) return;
+    setMessages((prev) => prev.filter((m) => m.role !== 'error'));
+    sendText(text, false);
+  }, [sending, sendText]);
+
+  const sendStarter = useCallback(
+    (starter: string) => {
+      if (sending) return;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+      sendText(starter, true);
+    },
+    [sending, sendText]
+  );
+
+  const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent;
+    const distanceFromBottom =
+      contentSize.height - (contentOffset.y + layoutMeasurement.height);
+    setIsPinned(distanceFromBottom < 60);
+  }, []);
+
+  const jumpToLatest = useCallback(() => {
+    flatListRef.current?.scrollToEnd({ animated: true });
+    setIsPinned(true);
+  }, []);
 
   const settleAction = useCallback(async (kind: 'complete' | 'skip') => {
     const action = state?.current_action;
@@ -201,7 +282,12 @@ export default function CoachScreen() {
             data={messages}
             keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
-            onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            onContentSizeChange={() => {
+              if (isPinned) flatListRef.current?.scrollToEnd({ animated: true });
+            }}
+            keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.listContent}
             ListHeaderComponent={
               <View>
@@ -327,6 +413,26 @@ export default function CoachScreen() {
                   </View>
                 ) : null}
 
+                {messages.length === 0 ? (
+                  <View style={styles.starters}>
+                    <Eyebrow>Start here</Eyebrow>
+                    {STARTERS.map((starter) => (
+                      <Pressable
+                        key={starter}
+                        onPress={() => sendStarter(starter)}
+                        disabled={sending}
+                        style={[
+                          styles.starterChip,
+                          { borderColor: colors.divider },
+                          sending ? styles.disabled : null,
+                        ]}
+                      >
+                        <Typography variant="body">{starter}</Typography>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
+
                 {messages.length > 0 ? (
                   <View style={styles.threadLabel}>
                     <Eyebrow>The conversation</Eyebrow>
@@ -334,29 +440,71 @@ export default function CoachScreen() {
                 ) : null}
               </View>
             }
-            renderItem={({ item }) => (
-              <View
-                style={[
-                  styles.bubble,
-                  item.role === 'user'
-                    ? [styles.userBubble, { borderColor: colors.divider }]
-                    : [styles.assistantBubble, { backgroundColor: 'rgba(250,250,247,0.06)' }],
-                ]}
-              >
-                <Typography variant="body" style={styles.bubbleText}>
-                  {item.content}
-                </Typography>
-              </View>
-            )}
+            renderItem={({ item }) => {
+              if (item.role === 'error') {
+                return (
+                  <View style={styles.errorRow}>
+                    <Typography variant="small" color={colors.error} style={styles.errorText}>
+                      {item.content}
+                    </Typography>
+                    <Pressable
+                      onPress={retryLast}
+                      disabled={sending}
+                      style={[
+                        styles.retryBtn,
+                        { borderColor: colors.divider },
+                        sending ? styles.disabled : null,
+                      ]}
+                    >
+                      <Typography variant="small" family="sans" color={colors.text}>
+                        Try again
+                      </Typography>
+                    </Pressable>
+                  </View>
+                );
+              }
+
+              const isUser = item.role === 'user';
+
+              return (
+                <View
+                  style={[
+                    styles.bubble,
+                    isUser
+                      ? [styles.userBubble, { borderColor: colors.divider }]
+                      : [styles.assistantBubble, { backgroundColor: colors.surfaceCard }],
+                  ]}
+                >
+                  {renderProse(item.content)}
+                </View>
+              );
+            }}
             ListFooterComponent={
               sending ? (
-                <View style={[styles.assistantBubble, { backgroundColor: 'rgba(250,250,247,0.06)' }]}>
-                  <ActivityIndicator size="small" color={colors.accent} />
+                <View
+                  style={[
+                    styles.bubble,
+                    styles.assistantBubble,
+                    { backgroundColor: colors.surfaceCard },
+                  ]}
+                >
+                  <TypingIndicator color={colors.accent} />
                 </View>
               ) : null
             }
           />
         )}
+
+        {!isPinned && messages.length > 0 ? (
+          <Pressable
+            onPress={jumpToLatest}
+            style={[styles.jumpPill, { backgroundColor: colors.buttonBg }]}
+          >
+            <Typography variant="small" family="sans" color={colors.buttonText}>
+              Jump to latest ↓
+            </Typography>
+          </Pressable>
+        ) : null}
 
         <View style={[styles.inputRow, { borderTopColor: colors.divider, backgroundColor: colors.background }]}>
           <View style={styles.inputFlex}>
@@ -417,8 +565,33 @@ const styles = StyleSheet.create({
   threadLabel: { marginBottom: 8 },
   bubble: { maxWidth: '85%', paddingHorizontal: 16, paddingVertical: 8, marginBottom: 8 },
   userBubble: { alignSelf: 'flex-end', borderWidth: 1 },
-  assistantBubble: { alignSelf: 'flex-start' },
-  bubbleText: { lineHeight: 20 },
+  assistantBubble: { alignSelf: 'flex-start', borderRadius: radius.md },
+  paragraphGap: { marginBottom: spacing.xs },
+  errorRow: { marginBottom: spacing.md, gap: spacing.xs },
+  errorText: { lineHeight: 18 },
+  retryBtn: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xxs + 2,
+  },
+  starters: { marginBottom: spacing.lg },
+  starterChip: {
+    borderWidth: 1,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    marginBottom: spacing.xs,
+    alignSelf: 'flex-start',
+  },
+  disabled: { opacity: 0.5 },
+  jumpPill: {
+    position: 'absolute',
+    right: 24,
+    bottom: 92,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    zIndex: 10,
+  },
   inputRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 24, paddingVertical: 8, borderTopWidth: 1, alignItems: 'flex-end' },
   inputFlex: { flex: 1 },
   sendBtn: { paddingHorizontal: 16, paddingVertical: 10, justifyContent: 'center' },

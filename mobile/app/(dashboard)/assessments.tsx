@@ -5,7 +5,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../components/ui/Typography';
 import { spacing } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
+import { destinationForAssessmentListItem } from '../../lib/assessmentListDestination';
 import { api } from '../../services/api';
+import { useAssessmentStore } from '../../stores/assessmentStore';
 
 interface AssessmentItem {
   id: string;
@@ -52,6 +54,35 @@ export default function AssessmentsScreen() {
     return colors.textSecondary;
   };
 
+  const openAssessment = (assessment: AssessmentItem) => {
+    const destination = destinationForAssessmentListItem(assessment, {
+      assessmentId: useAssessmentStore.getState().assessmentId,
+    });
+
+    if (destination.kind === 'results') {
+      useAssessmentStore.setState({
+        assessmentId: destination.assessmentId,
+        guestToken: null,
+        mode: assessment.mode === 'conversation' ? 'conversation' : 'written',
+        status: 'completed',
+        results: null,
+        resultsError: null,
+        resultsLoading: false,
+        resultsStatusMessage: null,
+      });
+      router.push('/(assessment)/results');
+      return;
+    }
+
+    if (destination.kind === 'continue') {
+      router.push(destination.route);
+      return;
+    }
+
+    useAssessmentStore.getState().reset();
+    router.push('/(assessment)/before?mode=written');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -72,11 +103,7 @@ export default function AssessmentsScreen() {
             <Pressable
               key={a.id}
               style={styles.card}
-              onPress={() => {
-                if (a.status === 'completed') {
-                  router.push(`/(assessment)/results?id=${a.id}`);
-                }
-              }}
+              onPress={() => openAssessment(a)}
             >
               <View style={styles.cardHeader}>
                 <Typography variant="body">
