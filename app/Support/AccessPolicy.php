@@ -70,11 +70,29 @@ class AccessPolicy
     }
 
     /**
+     * Whether someone is paying for this student: themselves or a parent, a
+     * trial, or a school or church whose cohort they joined.
+     *
+     * "Paywall — generate the coach and the brain." The organisation case is
+     * not optional: a district that bought seats has paid, and sending its
+     * students to a checkout page would be charging twice.
+     */
+    public static function hasPaidAccess(User $user): bool
+    {
+        return $user->onTrial() || $user->hasActiveSubscription();
+    }
+
+    /**
      * Whether this student may use the coach right now.
      *
-     * Ordered deliberately: the tier gate is checked before consent, so a
-     * freshman is refused for being a freshman and not for a missing consent
-     * form that would not have helped them anyway.
+     * Ordered deliberately: the tier gate is checked before consent, and
+     * consent before payment, so a freshman is refused for being a freshman
+     * and a junior is never asked to pay before a parent has said yes.
+     *
+     * Payment is part of the gate, not a step the UI remembers to show:
+     * "an active subscription unlocks capture, search, coaching, and nudges."
+     * Because {@see brainIsFrozen()} is defined from this, a lapse freezes
+     * capture and leaves reading and export untouched — the vision's policy.
      */
     public static function canUseCoach(User $user): bool
     {
@@ -84,7 +102,11 @@ class AccessPolicy
             return false;
         }
 
-        return ! $tier->requiresParentConsent() || static::hasParentConsent($user);
+        if ($tier->requiresParentConsent() && ! static::hasParentConsent($user)) {
+            return false;
+        }
+
+        return static::hasPaidAccess($user);
     }
 
     public static function canUseBrain(User $user): bool
@@ -105,6 +127,12 @@ class AccessPolicy
 
         if ($tier->requiresParentConsent() && ! static::hasParentConsent($user)) {
             return 'We need a parent or guardian to say yes before the coach can start.';
+        }
+
+        if (! static::hasPaidAccess($user)) {
+            return static::requiresParentCheckout($user)
+                ? 'Your coach opens once a parent or guardian starts your plan.'
+                : 'Your coach opens once your plan is active.';
         }
 
         return null;

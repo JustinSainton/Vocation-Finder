@@ -10,7 +10,8 @@ import { Button } from '../../components/ui/Button';
 import { TextInput } from '../../components/ui/TextInput';
 import { useAssessmentStore } from '../../stores/assessmentStore';
 import { useAuthStore } from '../../stores/authStore';
-import { assessmentApi } from '../../services/api';
+import { assessmentApi, coachApi } from '../../services/api';
+import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { authApi } from '../../services/auth';
 import { spacing, radius, layout, palettes } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
@@ -57,6 +58,40 @@ export default function ResultsScreen() {
 
   const isLoggedIn = !!useAuthStore((s) => s.token);
   const guestName = useAssessmentStore((s) => s.guestName);
+  const { isEnabled } = useFeatureFlags();
+  const coachEnabled = isEnabled('pathway_coach');
+
+  /*
+   * The portrait ends at the coach, not at a list. Which door is open is
+   * the server's call — the same predicate the coach enforces — so this
+   * never promises a coach the student cannot have.
+   */
+  const [coachDoor, setCoachDoor] = useState<
+    { state: 'open'; starters: string[] } | { state: 'blocked'; reason: string } | null
+  >(null);
+
+  useEffect(() => {
+    if (!results || !isLoggedIn || !coachEnabled) return;
+    let cancelled = false;
+    coachApi
+      .state()
+      .then((s) => {
+        if (!cancelled) setCoachDoor({ state: 'open', starters: s.starters ?? [] });
+      })
+      .catch((err: { status?: number; message?: string }) => {
+        if (!cancelled && err?.status === 403) {
+          setCoachDoor({ state: 'blocked', reason: err.message ?? '' });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [results, isLoggedIn, coachEnabled, accountCreated]);
+
+  const openCoach = (say?: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
+    router.push(say ? { pathname: '/(dashboard)/coach', params: { say } } : '/(dashboard)/coach');
+  };
 
   // Poll for results until they arrive
   useEffect(() => {
@@ -390,6 +425,53 @@ export default function ResultsScreen() {
           </View>
         ) : null}
 
+        {/* The coach — the portrait's last word, not a list */}
+        {coachEnabled && (coachDoor || !isLoggedIn) ? (
+          <View style={styles.coachDoor}>
+            <Typography variant="eyebrow" color={colors.accent} style={styles.eyebrowGap}>
+              {coachDoor?.state === 'open' ? 'Your coach is ready' : 'Your coach'}
+            </Typography>
+            <Typography variant="displaySm" style={styles.coachHeadline}>
+              {coachDoor?.state === 'open'
+                ? 'Your coach has read this. It will speak first.'
+                : coachDoor?.state === 'blocked'
+                  ? 'Your coach starts from this portrait.'
+                  : 'This portrait is where your coach starts.'}
+            </Typography>
+            <Typography variant="body" color={colors.textSecondary} style={styles.formIntro}>
+              {coachDoor?.state === 'open'
+                ? 'It starts from what you just wrote, asks what the questions could not, and ends with one concrete thing for you to do this week.'
+                : coachDoor?.state === 'blocked'
+                  ? coachDoor.reason
+                  : 'Create your account below and your coach will open the conversation with what you wrote here.'}
+            </Typography>
+            {coachDoor?.state === 'open' ? (
+              <>
+                <Button title="Start with your coach" onPress={() => openCoach()} style={styles.formButton} />
+                {coachDoor.starters.length > 0 ? (
+                  <View style={styles.starterBlock}>
+                    <Typography variant="eyebrow" color={colors.muted} style={styles.eyebrowGap}>
+                      Or walk in with a question
+                    </Typography>
+                    <View style={styles.starterChips}>
+                      {coachDoor.starters.map((starter) => (
+                        <Pressable
+                          key={starter}
+                          accessibilityRole="button"
+                          onPress={() => openCoach(starter)}
+                          style={({ pressed }) => [styles.starterChip, pressed && { borderColor: colors.text }]}
+                        >
+                          <Typography variant="small" family="sans">{starter}</Typography>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
+              </>
+            ) : null}
+          </View>
+        ) : null}
+
         {/* Upgrade prompt for free tier — policy callout */}
         {tier === 'free' && upgradeMessage ? (
           <View style={styles.policyCallout}>
@@ -505,7 +587,11 @@ export default function ResultsScreen() {
 
         {/* Actions */}
         <View style={styles.actions}>
-          <Button title={copy.results.returnHome} onPress={handleReturnHome} />
+          <Button
+            title={copy.results.returnHome}
+            onPress={handleReturnHome}
+            variant={coachDoor?.state === 'open' ? 'secondary' : 'primary'}
+          />
           <Button
             title={copy.results.retake}
             variant="secondary"
@@ -604,6 +690,32 @@ const getStyles = (colors: ThemeColors) =>
     },
     sectionBlock: {
       marginBottom: spacing.xl,
+    },
+    coachDoor: {
+      borderTopWidth: 2,
+      borderTopColor: colors.text,
+      paddingTop: spacing.xl,
+      marginBottom: spacing.xl,
+    },
+    coachHeadline: {
+      marginBottom: spacing.md,
+    },
+    starterBlock: {
+      marginTop: spacing.lg,
+    },
+    starterChips: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+    },
+    starterChip: {
+      borderWidth: 1,
+      borderColor: colors.divider,
+      borderRadius: radius.xs,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      minHeight: layout.touchTarget,
+      justifyContent: 'center',
     },
     quoteBlock: {
       borderLeftWidth: 2,

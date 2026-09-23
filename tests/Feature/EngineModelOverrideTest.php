@@ -64,7 +64,7 @@ class EngineModelOverrideTest extends TestCase
      */
     protected function consentedJunior(): User
     {
-        $student = User::factory()->create([
+        $student = User::factory()->paying()->create([
             'grade_level' => 11,
             'birthdate' => now()->subYears(16)->toDateString(),
         ]);

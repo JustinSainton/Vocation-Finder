@@ -66,7 +66,7 @@ class NudgeChannelTest extends TestCase
          * sign up — inviting somebody to brainstorm on the day they finished
          * the assessment is the product talking rather than listening.
          */
-        $student = User::factory()->create([
+        $student = User::factory()->paying()->create([
             'birthdate' => now()->subYears(19),
             'created_at' => now()->subMonths(4),
         ]);
