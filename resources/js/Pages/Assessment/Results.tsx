@@ -158,7 +158,7 @@ export default function Results({
                 </a>
             )}
 
-            <div className="my-8 h-px bg-[var(--color-divider)]" />
+            {!coach?.href && <div className="my-8 h-px bg-[var(--color-divider)]" />}
 
             {/* Opening Synthesis */}
             <p className="text-xl leading-relaxed text-[var(--color-text)]">

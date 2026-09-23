@@ -264,7 +264,7 @@ class CoachThreadTest extends TestCase
         $this->actingAs($student, 'sanctum')->getJson('/api/v1/coach/state')
             ->assertOk()
             ->assertJsonPath('opening', null)
-            ->assertJsonPath('starters.0', 'What would testing healing & Care look like this month?');
+            ->assertJsonPath('starters.0', 'What would testing Healing & Care look like this month?');
     }
 
     #[Test]

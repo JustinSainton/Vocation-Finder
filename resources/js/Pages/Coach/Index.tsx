@@ -62,8 +62,8 @@ function xsrfToken(): string {
 /**
  * The coach is the front door, not a feature tab.
  *
- * The conversation is the page. The one step the student is working on sits
- * above it, where it cannot be scrolled past, and where they stand, their
+ * The conversation is the page. The one step the student is working on heads
+ * it, as the only elevated card on screen, and where they stand, their
  * habits and anything they keep coming back to are one tap away rather than
  * stacked between them and the person talking to them.
  *

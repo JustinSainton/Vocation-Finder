@@ -75,7 +75,7 @@ class ResultsToCoachTest extends TestCase
                 ->component('Assessment/Results')
                 ->where('coach.state', 'open')
                 ->where('coach.href', '/coach')
-                ->where('coach.starters.0', 'What would testing healing & Care look like this month?'));
+                ->where('coach.starters.0', 'What would testing Healing & Care look like this month?'));
 
         $this->actingAs($student)->get('/coach')
             ->assertOk()

@@ -41,14 +41,14 @@ export default function CoachComposer({ value, onChange, onSend, busy, starters,
             {showStarters && starters.length > 0 && (
                 <div className="mb-4">
                     <p className="type-meta mb-2">Start with</p>
-                    <ul className="flex flex-wrap gap-2">
+                    <ul className="-mx-6 flex gap-2 overflow-x-auto px-6 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
                         {starters.map((starter) => (
-                            <li key={starter}>
+                            <li key={starter} className="shrink-0 sm:shrink">
                                 <button
                                     type="button"
                                     disabled={busy}
                                     onClick={() => onStarter(starter)}
-                                    className="rounded-xs border border-[var(--color-divider-dark)] px-3 py-2 text-left font-sans text-sm text-[var(--color-on-dark)] transition-colors duration-150 hover:border-[var(--color-on-dark)] disabled:opacity-40"
+                                    className="min-h-11 whitespace-nowrap rounded-xs border border-[var(--color-divider-dark)] px-3 py-2 text-left font-sans text-sm text-[var(--color-on-dark)] transition-colors duration-150 hover:border-[var(--color-on-dark)] disabled:opacity-40 sm:whitespace-normal"
                                 >
                                     {starter}
                                 </button>
@@ -81,7 +81,7 @@ export default function CoachComposer({ value, onChange, onSend, busy, starters,
                     Send
                 </button>
             </form>
-            <p className="type-meta mt-2">Enter to send · Shift + Enter for a new line · Your parents never see this conversation.</p>
+            <p className="type-meta mt-2 hidden sm:block">Enter to send · Shift + Enter for a new line · Your parents never see this conversation.</p>
         </div>
     );
 }

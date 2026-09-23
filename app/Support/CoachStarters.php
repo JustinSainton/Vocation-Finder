@@ -3,7 +3,6 @@
 namespace App\Support;
 
 use App\Models\User;
-use Illuminate\Support\Str;
 
 /**
  * Things a student can say to the coach with one tap, drawn from their own
@@ -44,7 +43,7 @@ class CoachStarters
                 ?? (filled($profile->primary_domain) && mb_strlen((string) $profile->primary_domain) <= 40 ? $profile->primary_domain : null);
 
             if ($direction) {
-                $starters[] = 'What would testing '.Str::lcfirst($direction).' look like this month?';
+                $starters[] = "What would testing {$direction} look like this month?";
             }
 
             if (filled($profile->missing_evidence)) {

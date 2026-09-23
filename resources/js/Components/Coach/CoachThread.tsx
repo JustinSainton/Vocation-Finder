@@ -33,7 +33,7 @@ export default function CoachThread({ items, pending, phase, status, draft }: Pr
                     return (
                         <li key={`step-${item.id}`} className="coach-enter flex items-center gap-4 py-1">
                             <span className="h-px flex-1 bg-[var(--color-divider-dark)]" />
-                            <span className="type-meta max-w-[75%] truncate text-center">
+                            <span className="type-meta max-w-[75%] text-balance text-center">
                                 Step set · {item.title} · {stepWord[item.status] ?? item.status}
                             </span>
                             <span className="h-px flex-1 bg-[var(--color-divider-dark)]" />
