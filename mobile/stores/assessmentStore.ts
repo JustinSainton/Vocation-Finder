@@ -76,6 +76,7 @@ interface AssessmentState {
   fetchQuestions: () => Promise<void>;
   createAssessment: (mode: 'written' | 'conversation') => Promise<string>;
   saveAnswerToApi: (questionIndex: number, answer: string) => Promise<void>;
+  flushAnswer: (questionIndex: number, answer: string) => Promise<void>;
   submitClarity: (moment: 'before' | 'after', standing: string) => Promise<void>;
   completeAssessment: () => Promise<void>;
   fetchResults: () => Promise<VocationalProfile | null>;
@@ -232,6 +233,31 @@ export const useAssessmentStore = create<AssessmentState>()(
             // Saved locally, will retry
           }
         }, 500);
+      },
+
+      // Saves now rather than after the debounce, so leaving a question
+      // cannot drop an answer — including a demo answer nobody typed into.
+      flushAnswer: async (questionIndex, answer) => {
+        if (saveTimeout) clearTimeout(saveTimeout);
+        saveTimeout = null;
+        set((state) => ({
+          answers: { ...state.answers, [questionIndex]: answer },
+        }));
+
+        const { assessmentId, questions, guestToken, locale } = get();
+        if (!assessmentId || !questions[questionIndex] || answer.trim().length === 0) return;
+
+        try {
+          await assessmentApi.saveAnswer(
+            assessmentId,
+            questions[questionIndex].id,
+            answer,
+            guestToken ?? undefined,
+            locale
+          );
+        } catch {
+          // Saved locally, will retry
+        }
       },
 
       completeAssessment: async () => {

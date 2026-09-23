@@ -18,6 +18,8 @@ import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
 import { TextInput } from '../../components/ui/TextInput';
 import { useAssessmentStore } from '../../stores/assessmentStore';
+import { DemoBadge } from '../../components/DemoBadge';
+import { demoAnswerFor, useDemoMode } from '../../hooks/useDemoMode';
 import { spacing } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 
@@ -40,8 +42,10 @@ export default function WrittenAssessmentScreen() {
     fetchQuestions,
     createAssessment,
     saveAnswerToApi,
+    flushAnswer,
     setCurrentQuestion,
   } = useAssessmentStore();
+  const demo = useDemoMode();
   const copy = getAssessmentCopy(locale);
 
   // Fetch questions and create assessment on mount
@@ -62,8 +66,10 @@ export default function WrittenAssessmentScreen() {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   }, [currentQuestion]);
 
-  const currentAnswer = answers[currentQuestion] ?? '';
   const question = questions[currentQuestion];
+  const demoAnswer = demoAnswerFor(demo, question);
+  const currentAnswer = answers[currentQuestion] ?? demoAnswer ?? '';
+  const isUntouchedDemoAnswer = demoAnswer !== null && currentAnswer === demoAnswer;
   const localizedCategory = translateQuestionCategory(
     question?.category_slug,
     locale,
@@ -80,13 +86,16 @@ export default function WrittenAssessmentScreen() {
 
   const handleContinue = async () => {
     if (isLastQuestion) {
+      await flushAnswer(currentQuestion, currentAnswer);
       router.push('/(assessment)/synthesis');
     } else {
+      void flushAnswer(currentQuestion, currentAnswer);
       setCurrentQuestion(currentQuestion + 1);
     }
   };
 
   const handleBack = () => {
+    void flushAnswer(currentQuestion, currentAnswer);
     if (currentQuestion > 0) {
       setCurrentQuestion(currentQuestion - 1);
     }
@@ -149,6 +158,8 @@ export default function WrittenAssessmentScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          <DemoBadge />
+
           {/* Category label */}
           {localizedCategory ? (
             <Typography
@@ -174,6 +185,16 @@ export default function WrittenAssessmentScreen() {
             placeholder={copy.written.placeholder}
             minHeight={200}
           />
+          {isUntouchedDemoAnswer ? (
+            <Typography
+              variant="small"
+              family="sans"
+              color={colors.muted}
+              style={styles.demoHint}
+            >
+              Pre-filled for the demo. Edit it freely.
+            </Typography>
+          ) : null}
         </ScrollView>
 
         {/* Pinned footer — the next move is always visible; only the
@@ -246,6 +267,9 @@ const getStyles = (colors: { background: string; divider: string }) =>
     },
     question: {
       marginBottom: spacing.xl,
+    },
+    demoHint: {
+      marginTop: spacing.xs,
     },
     bottomArea: {
       marginTop: spacing.xxl,

@@ -10,6 +10,9 @@ import { getAssessmentCopy, getMovementLabel } from '../../constants/assessmentL
 import { spacing } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { useAssessmentStore } from '../../stores/assessmentStore';
+import { DemoBadge } from '../../components/DemoBadge';
+import { DemoConversationAnswer } from '../../components/DemoConversationAnswer';
+import { demoAnswerFor, useDemoMode } from '../../hooks/useDemoMode';
 
 export default function ConversationScreen() {
   const router = useRouter();
@@ -23,6 +26,7 @@ export default function ConversationScreen() {
     stopRecording,
     playIntroAndFirstQuestion,
     stopSpeaking,
+    submitTypedAnswer,
     introPlayed,
     conversationState,
     conversationError,
@@ -33,6 +37,8 @@ export default function ConversationScreen() {
     currentQuestionText,
     isComplete,
   } = useConversationFlow();
+  const demo = useDemoMode();
+  const demoAnswer = demoAnswerFor(demo, conversationQuestions[currentQuestion]);
 
   // Auto-start: speak intro and first question when ready
   useEffect(() => {
@@ -86,6 +92,7 @@ export default function ConversationScreen() {
 
       <View style={styles.content}>
         <View style={styles.topArea}>
+          <DemoBadge />
           <Typography
             variant="caption"
             family="sans"
@@ -101,6 +108,15 @@ export default function ConversationScreen() {
                 {currentQuestionText}
               </Typography>
             </View>
+          ) : null}
+
+          {demoAnswer ? (
+            <DemoConversationAnswer
+              key={`demo-${currentQuestion}`}
+              answer={demoAnswer}
+              disabled={conversationState === 'processing' || conversationState === 'speaking'}
+              onSubmit={submitTypedAnswer}
+            />
           ) : null}
         </View>
 

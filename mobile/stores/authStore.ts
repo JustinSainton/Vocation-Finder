@@ -10,11 +10,17 @@ interface UserOrganization {
   role: 'admin' | 'mentor' | 'member';
 }
 
+export interface DemoMode {
+  persona: string;
+  clarity: { before: string; after: string };
+}
+
 interface User {
   id: string;
   email: string;
   name?: string;
-  role?: 'individual' | 'admin' | 'org_admin';
+  role?: 'individual' | 'admin' | 'org_admin' | 'demo';
+  demo?: DemoMode | null;
   organizations?: UserOrganization[];
 }
 
