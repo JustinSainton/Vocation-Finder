@@ -130,7 +130,7 @@ return [
     |
     */
     'demo' => [
-        'enabled' => env('VOCATION_DEMO_MODE', false),
+        'enabled' => (bool) env('VOCATION_DEMO_MODE', false),
     ],
 
     /*
