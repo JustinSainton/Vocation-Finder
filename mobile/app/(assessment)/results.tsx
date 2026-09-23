@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -16,7 +16,8 @@ import { Button } from '../../components/ui/Button';
 import { TextInput } from '../../components/ui/TextInput';
 import { useAssessmentStore } from '../../stores/assessmentStore';
 import { useAuthStore } from '../../stores/authStore';
-import { assessmentApi } from '../../services/api';
+import { assessmentApi, coachApi } from '../../services/api';
+import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { authApi } from '../../services/auth';
 import { spacing } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
@@ -60,6 +61,40 @@ export default function ResultsScreen() {
 
   const isLoggedIn = !!useAuthStore((s) => s.token);
   const guestName = useAssessmentStore((s) => s.guestName);
+  const { isEnabled } = useFeatureFlags();
+  const coachEnabled = isEnabled('pathway_coach');
+
+  /*
+   * The portrait ends at the coach, not at a list. Which door is open is
+   * the server's call — the same predicate the coach enforces — so this
+   * never promises a coach the student cannot have.
+   */
+  const [coachDoor, setCoachDoor] = useState<
+    { state: 'open'; starters: string[] } | { state: 'blocked'; reason: string } | null
+  >(null);
+
+  useEffect(() => {
+    if (!results || !isLoggedIn || !coachEnabled) return;
+    let cancelled = false;
+    coachApi
+      .state()
+      .then((s) => {
+        if (!cancelled) setCoachDoor({ state: 'open', starters: s.starters ?? [] });
+      })
+      .catch((err: { status?: number; message?: string }) => {
+        if (!cancelled && err?.status === 403) {
+          setCoachDoor({ state: 'blocked', reason: err.message ?? '' });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [results, isLoggedIn, coachEnabled, accountCreated]);
+
+  const openCoach = (say?: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
+    router.push(say ? { pathname: '/(dashboard)/coach', params: { say } } : '/(dashboard)/coach');
+  };
 
   // Poll for results until they arrive
   useEffect(() => {
@@ -416,6 +451,52 @@ export default function ResultsScreen() {
           </>
         ) : null}
 
+        {coachEnabled && (coachDoor || !isLoggedIn) ? (
+          <View style={styles.coachDoor}>
+            <Typography variant="caption" family="sans" style={styles.eyebrow}>
+              {coachDoor?.state === 'open' ? 'Your coach is ready' : 'Your coach'}
+            </Typography>
+            <Typography variant="heading" style={styles.coachHeadline}>
+              {coachDoor?.state === 'open'
+                ? 'Your coach has read this. It will speak first.'
+                : coachDoor?.state === 'blocked'
+                  ? 'Your coach starts from this portrait.'
+                  : 'This portrait is where your coach starts.'}
+            </Typography>
+            <Typography variant="body" color={colors.textSecondary} style={styles.section}>
+              {coachDoor?.state === 'open'
+                ? 'It starts from what you just wrote, asks what the questions could not, and ends with one concrete thing for you to do this week.'
+                : coachDoor?.state === 'blocked'
+                  ? coachDoor.reason
+                  : 'Create your account below and your coach will open the conversation with what you wrote here.'}
+            </Typography>
+            {coachDoor?.state === 'open' ? (
+              <>
+                <Button title="Start with your coach" onPress={() => openCoach()} />
+                {coachDoor.starters.length > 0 ? (
+                  <View style={styles.starterBlock}>
+                    <Typography variant="caption" family="sans" color={colors.textSecondary} style={styles.starterLabel}>
+                      OR WALK IN WITH A QUESTION
+                    </Typography>
+                    <View style={styles.starterChips}>
+                      {coachDoor.starters.map((starter) => (
+                        <Pressable
+                          key={starter}
+                          accessibilityRole="button"
+                          onPress={() => openCoach(starter)}
+                          style={({ pressed }) => [styles.starterChip, pressed && { borderColor: colors.text }]}
+                        >
+                          <Typography variant="small" family="sans">{starter}</Typography>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
+              </>
+            ) : null}
+          </View>
+        ) : null}
+
         {/* Upgrade prompt for free tier */}
         {tier === 'free' && upgradeMessage ? (
           <View style={styles.upgradeCard}>
@@ -506,7 +587,11 @@ export default function ResultsScreen() {
 
         {/* Actions */}
         <View style={styles.actions}>
-          <Button title={copy.results.returnHome} onPress={handleReturnHome} />
+          <Button
+            title={copy.results.returnHome}
+            onPress={handleReturnHome}
+            variant={coachDoor?.state === 'open' ? 'secondary' : 'primary'}
+          />
           <Button
             title={copy.results.retake}
             variant="secondary"
@@ -695,5 +780,35 @@ const getStyles = (
     disclaimer: {
       textAlign: 'center',
       lineHeight: 18,
+    },
+    coachDoor: {
+      borderTopWidth: 2,
+      borderTopColor: colors.text,
+      paddingTop: spacing.xl,
+      marginBottom: spacing.xl,
+    },
+    coachHeadline: {
+      marginBottom: spacing.md,
+    },
+    starterBlock: {
+      marginTop: spacing.lg,
+    },
+    starterLabel: {
+      letterSpacing: 1.5,
+      marginBottom: spacing.sm,
+    },
+    starterChips: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+    },
+    starterChip: {
+      borderWidth: 1,
+      borderColor: colors.divider,
+      borderRadius: 2,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      minHeight: 44,
+      justifyContent: 'center',
     },
   });

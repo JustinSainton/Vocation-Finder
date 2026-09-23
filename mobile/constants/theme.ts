@@ -21,6 +21,8 @@ export const lightColors = {
   divider: '#D6D3D1',
   buttonBg: '#1C1917',
   buttonText: '#FAFAF7',
+  surface: '#F0EFE9',
+  surfaceElevated: '#EBEAE3',
 };
 
 export const darkColors = {
@@ -31,6 +33,8 @@ export const darkColors = {
   divider: '#3A3530',
   buttonBg: '#FAFAF7',
   buttonText: '#14120F',
+  surface: '#1F1C18',
+  surfaceElevated: '#2A2622',
 };
 
 export const palettes: Record<ThemeName, typeof lightColors> = {

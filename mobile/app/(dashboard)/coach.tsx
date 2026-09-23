@@ -9,10 +9,14 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
 import { SingleLineInput } from '../../components/ui/SingleLineInput';
+import { CoachBubble, CoachStepMarker } from '../../components/coach/CoachBubble';
+import { CoachStarterChips } from '../../components/coach/CoachStarterChips';
+import { CoachThinking } from '../../components/coach/CoachThinking';
 import { spacing } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { useThemeStore } from '../../stores/themeStore';
@@ -21,57 +25,54 @@ import {
   coachApi,
   type CoachAction,
   type CoachHabit,
-  type CoachMessage,
   type CoachReadiness,
+  type CoachSettled,
   type CoachState,
+  type CoachSupport,
+  type CoachThreadItem,
 } from '../../services/api';
 
-interface ThreadMessage {
-  id: string;
-  role: string;
-  content: string;
-}
-
-interface SupportResource {
-  name: string;
-  contact: string;
-  note?: string;
-}
-
-interface SupportCard {
-  heading: string;
-  body: string[];
-  resources: SupportResource[];
-}
+type Row =
+  | CoachThreadItem
+  | { type: 'pending'; id: string; content: string }
+  | { type: 'failed'; id: string; content: string };
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
   const { colors } = useTheme();
   return (
-    <Typography
-      variant="caption"
-      family="sans"
-      color={colors.textSecondary}
-      style={styles.eyebrow}
-    >
+    <Typography variant="caption" family="sans" color={colors.textSecondary} style={styles.eyebrow}>
       {children}
     </Typography>
   );
 }
 
+/**
+ * The coach: the conversation is the screen.
+ *
+ * The coach speaks first when the server says an opener is due — straight
+ * after the assessment, or on coming back after a real gap — so the student
+ * never faces an empty box. The one step they are working on is pinned above
+ * the thread; everything else is one tap away.
+ */
 export default function CoachScreen() {
   const { colors } = useTheme();
   const { isEnabled } = useFeatureFlags();
+  const params = useLocalSearchParams<{ say?: string }>();
   const setPreference = useThemeStore((s) => s.setPreference);
   const [state, setState] = useState<CoachState | null>(null);
-  const [messages, setMessages] = useState<ThreadMessage[]>([]);
-  const [support, setSupport] = useState<SupportCard | null>(null);
+  const [items, setItems] = useState<CoachThreadItem[]>([]);
+  const [starters, setStarters] = useState<string[]>([]);
+  const [pending, setPending] = useState<string | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
+  const [support, setSupport] = useState<CoachSupport | null>(null);
   const [blocked, setBlocked] = useState<string | null>(null);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(typeof params.say === 'string' ? params.say : '');
   const [loading, setLoading] = useState(false);
-  const [sending, setSending] = useState(false);
+  const [thinking, setThinking] = useState<string | null>(null);
+  const [showReadiness, setShowReadiness] = useState(false);
   const [settlingAction, setSettlingAction] = useState(false);
   const [checkingHabit, setCheckingHabit] = useState<string | null>(null);
-  const flatListRef = useRef<FlatList>(null);
+  const flatListRef = useRef<FlatList<Row>>(null);
 
   useEffect(() => {
     const previous = useThemeStore.getState().preference;
@@ -79,22 +80,48 @@ export default function CoachScreen() {
     return () => setPreference(previous);
   }, [setPreference]);
 
+  const applySettled = useCallback((settled: CoachSettled) => {
+    setItems(settled.items);
+    setStarters(settled.starters);
+    setState((prev) => (prev ? { ...prev, current_action: settled.current_action } : prev));
+  }, []);
+
+  const openConversation = useCallback(async (kind: CoachState['opening']) => {
+    setThinking(kind === 'returning' ? 'Catching up on where you left off' : 'Reading your portrait');
+    try {
+      const res = await coachApi.open();
+      applySettled(res);
+      if (res.message) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
+      }
+    } catch {
+      // The thread stays as it was; the student can still speak first.
+    } finally {
+      setThinking(null);
+    }
+  }, [applySettled]);
+
   const load = useCallback(async () => {
     setLoading(true);
     setBlocked(null);
     try {
-      const [coachState, history] = await Promise.all([
-        coachApi.state(),
-        coachApi.history(),
-      ]);
+      const [coachState, history] = await Promise.all([coachApi.state(), coachApi.history()]);
       setState(coachState);
-      setMessages(
-        history.messages.map((m: CoachMessage, i: number) => ({
-          id: `h-${i}`,
-          role: m.role,
-          content: m.content,
-        }))
+      setStarters(coachState.starters ?? []);
+      setItems(
+        history.items ??
+          history.messages.map((m, i) => ({
+            type: 'message' as const,
+            id: m.id ?? `h-${i}`,
+            role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
+            content: m.content,
+            at: m.at ?? new Date().toISOString(),
+          }))
       );
+      setLoading(false);
+      if (coachState.opening) {
+        await openConversation(coachState.opening);
+      }
     } catch (err: any) {
       if (err?.status === 403) {
         setBlocked(err?.message ?? 'The coach is not available right now.');
@@ -102,7 +129,7 @@ export default function CoachScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [openConversation]);
 
   useEffect(() => {
     if (isEnabled('pathway_coach')) {
@@ -110,32 +137,30 @@ export default function CoachScreen() {
     }
   }, [isEnabled, load]);
 
-  const sendMessage = useCallback(async () => {
-    const text = input.trim();
-    if (!text || sending) return;
+  const send = useCallback(async (raw: string) => {
+    const text = raw.trim();
+    if (!text || thinking) return;
     setInput('');
+    setFailed(null);
     setSupport(null);
-    setMessages((prev) => [...prev, { id: `u-${Date.now()}`, role: 'user', content: text }]);
-    setSending(true);
+    setPending(text);
+    setThinking('Thinking it through');
     try {
       const res = await coachApi.message(text);
       if (res.support) {
-        setSupport(res.support as SupportCard);
-      } else if (res.message) {
-        setMessages((prev) => [...prev, { id: `a-${Date.now()}`, role: 'assistant', content: res.message as string }]);
+        setSupport(res.support);
+      } else if (res.items) {
+        applySettled(res as CoachSettled);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
       }
-      const fresh = await coachApi.state();
-      setState(fresh);
+      coachApi.state().then(setState).catch(() => null);
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        { id: `e-${Date.now()}`, role: 'assistant', content: 'Something went wrong. Could you try again?' },
-      ]);
+      setFailed(text);
     } finally {
-      setSending(false);
+      setPending(null);
+      setThinking(null);
     }
-  }, [input, sending]);
+  }, [thinking, applySettled]);
 
   const settleAction = useCallback(async (kind: 'complete' | 'skip') => {
     const action = state?.current_action;
@@ -146,6 +171,13 @@ export default function CoachScreen() {
         ? await coachApi.completeAction(action.id)
         : await coachApi.skipAction(action.id);
       setState((prev) => (prev ? { ...prev, current_action: res.current_action } : prev));
+      setItems((prev) =>
+        prev.map((item) =>
+          item.type === 'step' && item.id === action.id
+            ? { ...item, status: kind === 'complete' ? 'completed' : 'skipped' }
+            : item
+        )
+      );
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
     } catch {
       // The action stays; the student can try again or talk about it.
@@ -175,6 +207,16 @@ export default function CoachScreen() {
   const readiness: CoachReadiness | null = state?.readiness ?? null;
   const habits: CoachHabit[] = state?.habits ?? [];
 
+  const rows: Row[] = [
+    ...items,
+    ...(pending ? [{ type: 'pending' as const, id: 'pending', content: pending }] : []),
+    ...(failed ? [{ type: 'failed' as const, id: 'failed', content: failed }] : []),
+  ];
+
+  const lastMessage = [...items].reverse().find((item) => item.type === 'message');
+  const coachSpokeLast = !lastMessage || (lastMessage.type === 'message' && lastMessage.role === 'assistant');
+  const showStarters = !thinking && !failed && !input && coachSpokeLast;
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <KeyboardAvoidingView
@@ -184,6 +226,19 @@ export default function CoachScreen() {
       >
         <View style={styles.header}>
           <Eyebrow>Your coach</Eyebrow>
+          {readiness ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Where you are"
+              onPress={() => setShowReadiness((v) => !v)}
+              style={styles.readinessToggle}
+              hitSlop={12}
+            >
+              <Typography variant="small" family="sans" color={colors.textSecondary}>
+                {readiness.level_label} {showReadiness ? '–' : '+'}
+              </Typography>
+            </Pressable>
+          ) : null}
         </View>
         <View style={[styles.divider, { backgroundColor: colors.divider }]} />
 
@@ -198,51 +253,17 @@ export default function CoachScreen() {
         ) : (
           <FlatList
             ref={flatListRef}
-            data={messages}
-            keyExtractor={(item) => item.id}
+            data={rows}
+            keyExtractor={(item) => `${item.type}-${item.id}`}
             showsVerticalScrollIndicator={false}
-            onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
+            keyboardShouldPersistTaps="handled"
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
             contentContainerStyle={styles.listContent}
             ListHeaderComponent={
               <View>
-                {action ? (
-                  <View style={[styles.actionCard, { borderColor: colors.accent }]}>
-                    <Eyebrow>What you are doing now</Eyebrow>
-                    <Typography variant="bodyLarge" style={styles.actionTitle}>
-                      {action.title}
-                    </Typography>
-                    {action.rationale ? (
-                      <Typography variant="body" color={colors.textSecondary} style={styles.actionRationale}>
-                        {action.rationale}
-                      </Typography>
-                    ) : null}
-                    <View style={styles.actionRow}>
-                      <View style={styles.actionBtn}>
-                        <Button
-                          title={settlingAction ? '…' : 'Done'}
-                          onPress={() => settleAction('complete')}
-                          disabled={settlingAction}
-                          variant="secondary"
-                        />
-                      </View>
-                      <View style={styles.actionBtn}>
-                        <Button
-                          title="Set down"
-                          onPress={() => settleAction('skip')}
-                          disabled={settlingAction}
-                          variant="secondary"
-                        />
-                      </View>
-                    </View>
-                  </View>
-                ) : null}
-
-                {readiness ? (
+                {showReadiness && readiness ? (
                   <View style={styles.section}>
                     <Eyebrow>Where you are</Eyebrow>
-                    <Typography variant="bodyLarge" style={styles.readinessLevel}>
-                      {readiness.level_label}
-                    </Typography>
                     <Typography variant="body" color={colors.textSecondary}>
                       {readiness.level_description}
                     </Typography>
@@ -253,9 +274,40 @@ export default function CoachScreen() {
                   </View>
                 ) : null}
 
+                {action ? (
+                  <View style={[styles.actionCard, { borderColor: colors.accent, backgroundColor: colors.surfaceElevated }]}>
+                    <Eyebrow>Your one step</Eyebrow>
+                    <Typography variant="bodyLarge" family="sans" style={styles.actionTitle}>
+                      {action.title}
+                    </Typography>
+                    {action.rationale ? (
+                      <Typography variant="body" color={colors.textSecondary} style={styles.actionRationale}>
+                        {action.rationale}
+                      </Typography>
+                    ) : null}
+                    <View style={styles.actionRow}>
+                      <View style={styles.actionBtn}>
+                        <Button
+                          title={settlingAction ? '…' : 'I did this'}
+                          onPress={() => settleAction('complete')}
+                          disabled={settlingAction}
+                        />
+                      </View>
+                      <View style={styles.actionBtn}>
+                        <Button
+                          title="Set it down"
+                          onPress={() => settleAction('skip')}
+                          disabled={settlingAction}
+                          variant="secondary"
+                        />
+                      </View>
+                    </View>
+                  </View>
+                ) : null}
+
                 {habits.length > 0 ? (
                   <View style={styles.section}>
-                    <Eyebrow>Your habits</Eyebrow>
+                    <Eyebrow>What you keep doing</Eyebrow>
                     {habits.map((habit) => (
                       <View key={habit.id} style={[styles.habitRow, { borderColor: colors.divider }]}>
                         <Typography variant="body" style={styles.habitTitle}>
@@ -270,10 +322,10 @@ export default function CoachScreen() {
                           </Typography>
                         ) : null}
                         {!habit.answered_today ? (
-                          <View style={styles.habitRow2}>
+                          <View style={styles.habitButtons}>
                             <View style={styles.habitBtn}>
                               <Button
-                                title="Yes"
+                                title="I did this"
                                 onPress={() => checkIn(habit.id, true)}
                                 disabled={checkingHabit === habit.id}
                                 variant="secondary"
@@ -281,7 +333,7 @@ export default function CoachScreen() {
                             </View>
                             <View style={styles.habitBtn}>
                               <Button
-                                title="No"
+                                title="Not today"
                                 onPress={() => checkIn(habit.id, false)}
                                 disabled={checkingHabit === habit.id}
                                 variant="secondary"
@@ -295,14 +347,14 @@ export default function CoachScreen() {
                 ) : null}
 
                 {state?.invitation?.prompt ? (
-                  <View style={[styles.invitation, { borderColor: colors.divider }]}>
-                    <Eyebrow>An invitation</Eyebrow>
+                  <View style={[styles.invitation, { borderLeftColor: colors.accent }]}>
+                    <Eyebrow>Something you keep coming back to</Eyebrow>
                     <Typography variant="body">{state.invitation.prompt}</Typography>
                   </View>
                 ) : null}
 
                 {support ? (
-                  <View style={[styles.supportCard, { borderColor: colors.accent }]}>
+                  <View style={[styles.supportCard, { borderLeftColor: colors.accent }]}>
                     <Typography variant="bodyLarge" style={styles.supportHeading}>
                       {support.heading}
                     </Typography>
@@ -326,56 +378,58 @@ export default function CoachScreen() {
                     ))}
                   </View>
                 ) : null}
-
-                {messages.length > 0 ? (
-                  <View style={styles.threadLabel}>
-                    <Eyebrow>The conversation</Eyebrow>
+              </View>
+            }
+            renderItem={({ item, index }) => {
+              if (item.type === 'step') return <CoachStepMarker item={item} />;
+              if (item.type === 'pending') return <CoachBubble role="user" content={item.content} />;
+              if (item.type === 'failed') {
+                return (
+                  <View>
+                    <CoachBubble role="user" content={item.content} />
+                    <View style={styles.failedRow}>
+                      <Typography variant="small" family="sans" color={colors.textSecondary}>
+                        That did not reach your coach. What you wrote is kept.
+                      </Typography>
+                      <Pressable accessibilityRole="button" onPress={() => send(item.content)} hitSlop={12}>
+                        <Typography variant="small" family="sans" color={colors.accent}>Try again</Typography>
+                      </Pressable>
+                    </View>
                   </View>
-                ) : null}
-              </View>
-            }
-            renderItem={({ item }) => (
-              <View
-                style={[
-                  styles.bubble,
-                  item.role === 'user'
-                    ? [styles.userBubble, { borderColor: colors.divider }]
-                    : [styles.assistantBubble, { backgroundColor: 'rgba(250,250,247,0.06)' }],
-                ]}
-              >
-                <Typography variant="body" style={styles.bubbleText}>
-                  {item.content}
-                </Typography>
-              </View>
-            )}
-            ListFooterComponent={
-              sending ? (
-                <View style={[styles.assistantBubble, { backgroundColor: 'rgba(250,250,247,0.06)' }]}>
-                  <ActivityIndicator size="small" color={colors.accent} />
-                </View>
-              ) : null
-            }
+                );
+              }
+              const previous = rows[index - 1];
+              const showLabel = !previous || previous.type !== 'message' || previous.role !== item.role;
+              return <CoachBubble role={item.role} content={item.content} at={item.at} showLabel={showLabel} />;
+            }}
+            ListFooterComponent={thinking ? <CoachThinking label={thinking} /> : null}
           />
         )}
 
-        <View style={[styles.inputRow, { borderTopColor: colors.divider, backgroundColor: colors.background }]}>
-          <View style={styles.inputFlex}>
-            <SingleLineInput
-              value={input}
-              onChangeText={setInput}
-              placeholder="Talk to your coach…"
-              autoCapitalize="sentences"
-              returnKeyType="send"
-              onSubmitEditing={sendMessage}
-            />
+        <View style={[styles.composer, { borderTopColor: colors.divider, backgroundColor: colors.background }]}>
+          {showStarters && !blocked ? (
+            <CoachStarterChips starters={starters} disabled={!!thinking} onPick={send} />
+          ) : null}
+          <View style={styles.inputRow}>
+            <View style={styles.inputFlex}>
+              <SingleLineInput
+                value={input}
+                onChangeText={setInput}
+                placeholder="Say what you are actually thinking…"
+                autoCapitalize="sentences"
+                returnKeyType="send"
+                onSubmitEditing={() => send(input)}
+              />
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => send(input)}
+              disabled={!!thinking || !input.trim()}
+              style={[styles.sendBtn, { backgroundColor: colors.text, opacity: thinking || !input.trim() ? 0.4 : 1 }]}
+            >
+              <Typography variant="small" family="sans" color={colors.background}>Send</Typography>
+            </Pressable>
           </View>
-          <Pressable
-            onPress={sendMessage}
-            disabled={sending || !input.trim()}
-            style={[styles.sendBtn, { backgroundColor: colors.text, opacity: sending || !input.trim() ? 0.5 : 1 }]}
-          >
-            <Typography variant="small" family="sans" color={colors.background}>Send</Typography>
-          </Pressable>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -385,7 +439,15 @@ export default function CoachScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   keyboardView: { flex: 1 },
-  header: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 8 },
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  readinessToggle: { minHeight: 32, justifyContent: 'center' },
   divider: { height: 1, marginHorizontal: 24 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
   centeredText: { textAlign: 'center' },
@@ -393,33 +455,29 @@ const styles = StyleSheet.create({
   eyebrow: { textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8 },
   actionCard: {
     borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    marginBottom: 24,
+    borderRadius: 6,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
   },
-  actionTitle: { marginBottom: 8 },
+  actionTitle: { marginBottom: 8, fontSize: 18, lineHeight: 25 },
   actionRationale: { marginBottom: 16 },
   actionRow: { flexDirection: 'row', gap: 8 },
   actionBtn: { flex: 1 },
   section: { marginBottom: 24 },
-  readinessLevel: { marginBottom: 8 },
   moveBlock: { marginTop: 16 },
-  habitRow: { borderWidth: 1, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 8 },
+  habitRow: { borderBottomWidth: 1, paddingVertical: 12 },
   habitTitle: { marginBottom: 4 },
   habitMove: { marginTop: 4 },
-  habitRow2: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  habitButtons: { flexDirection: 'row', gap: 8, marginTop: 12 },
   habitBtn: { flex: 1 },
-  invitation: { borderWidth: 1, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 24 },
-  supportCard: { borderWidth: 1, paddingHorizontal: 16, paddingVertical: 16, marginBottom: 24 },
+  invitation: { borderLeftWidth: 2, paddingLeft: 16, marginBottom: 24 },
+  supportCard: { borderLeftWidth: 2, paddingLeft: 16, marginBottom: 24 },
   supportHeading: { marginBottom: 8 },
   supportBody: { marginBottom: 8 },
   supportResource: { marginTop: 8 },
-  threadLabel: { marginBottom: 8 },
-  bubble: { maxWidth: '85%', paddingHorizontal: 16, paddingVertical: 8, marginBottom: 8 },
-  userBubble: { alignSelf: 'flex-end', borderWidth: 1 },
-  assistantBubble: { alignSelf: 'flex-start' },
-  bubbleText: { lineHeight: 20 },
-  inputRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 24, paddingVertical: 8, borderTopWidth: 1, alignItems: 'flex-end' },
+  failedRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: -8, marginBottom: 16 },
+  composer: { paddingHorizontal: 24, paddingBottom: 8, borderTopWidth: 1 },
+  inputRow: { flexDirection: 'row', gap: 8, paddingTop: 8, alignItems: 'flex-end' },
   inputFlex: { flex: 1 },
-  sendBtn: { paddingHorizontal: 16, paddingVertical: 10, justifyContent: 'center' },
+  sendBtn: { paddingHorizontal: 16, minHeight: 44, justifyContent: 'center' },
 });
