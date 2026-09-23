@@ -9,13 +9,23 @@ interface Props {
   starters: string[];
   disabled?: boolean;
   onPick: (starter: string) => void;
+  /**
+   * The horizontal padding of whatever contains this row. The row bleeds
+   * back out by the same amount so chips scroll all the way to the screen
+   * edge instead of being clipped at the container's padding.
+   */
+  gutter?: number;
 }
 
 /**
  * One-tap ways in, drawn from the student's own portrait. A blank box is the
  * decision friction the product exists to remove.
+ *
+ * One horizontal row so it never takes over the screen; each chip is capped
+ * in width and wraps to two lines, so a long starter is readable in full
+ * rather than running off the edge.
  */
-export function CoachStarterChips({ starters, disabled, onPick }: Props) {
+export function CoachStarterChips({ starters, disabled, onPick, gutter = 0 }: Props) {
   const { colors } = useTheme();
 
   if (starters.length === 0) return null;
@@ -29,12 +39,14 @@ export function CoachStarterChips({ starters, disabled, onPick }: Props) {
         horizontal
         showsHorizontalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.chips}
+        style={{ marginHorizontal: -gutter }}
+        contentContainerStyle={[styles.chips, { paddingHorizontal: gutter }]}
       >
         {starters.map((starter) => (
           <Pressable
             key={starter}
             accessibilityRole="button"
+            accessibilityLabel={starter}
             disabled={disabled}
             onPress={() => {
               Haptics.selectionAsync().catch(() => null);
@@ -45,7 +57,7 @@ export function CoachStarterChips({ starters, disabled, onPick }: Props) {
               { borderColor: pressed ? colors.text : colors.divider, opacity: disabled ? 0.4 : 1 },
             ]}
           >
-            <Typography variant="small" family="sans" color={colors.text}>
+            <Typography variant="small" family="sans" color={colors.text} numberOfLines={2} style={styles.chipText}>
               {starter}
             </Typography>
           </Pressable>
@@ -58,13 +70,15 @@ export function CoachStarterChips({ starters, disabled, onPick }: Props) {
 const styles = StyleSheet.create({
   container: { paddingTop: spacing.sm + 4 },
   label: { letterSpacing: 1.5, marginBottom: spacing.sm },
-  chips: { flexDirection: 'row', gap: spacing.sm, paddingRight: spacing.lg },
+  chips: { flexDirection: 'row', alignItems: 'stretch', gap: spacing.sm },
   chip: {
+    maxWidth: 240,
     borderWidth: 1,
     borderRadius: 2,
     paddingHorizontal: spacing.sm + 4,
-    paddingVertical: spacing.sm + 2,
+    paddingVertical: spacing.sm,
     minHeight: 44,
     justifyContent: 'center',
   },
+  chipText: { fontSize: 14, lineHeight: 19 },
 });

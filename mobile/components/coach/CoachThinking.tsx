@@ -36,8 +36,12 @@ function Dot({ delay }: { delay: number }) {
 /**
  * What the coach is doing while it is not yet talking, in the student's
  * words — "Reading your portrait", not a spinner.
+ *
+ * Self-contained on purpose: no coach state, no API types, only the theme.
+ * It renders with no props at all, so it and any other typing indicator
+ * are interchangeable at the one place the coach screen draws one.
  */
-export function CoachThinking({ label }: { label: string }) {
+export function CoachThinking({ label = 'Thinking it through' }: { label?: string }) {
   const { colors } = useTheme();
 
   return (
