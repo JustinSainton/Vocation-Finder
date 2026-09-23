@@ -3,6 +3,7 @@
 ## Project Structure & Module Organization
 This repository combines a Laravel backend/web app with a separate Expo mobile app.
 - `app/`, `routes/`, `config/`, `database/`: Laravel domain logic, HTTP/API routes, app config, migrations/seeders.
+- `app/Data/`: `spatie/laravel-data` objects for API and Inertia payloads shared with the clients; the source of the generated TypeScript types.
 - `resources/js/`: Inertia React frontend (`Pages/`, `Layouts/`, `app.tsx`).
 - `resources/css/`, `public/`: web styling and static assets.
 - `tests/Feature` and `tests/Unit`: PHPUnit coverage for API, flow, and unit behavior.
@@ -15,6 +16,7 @@ This repository combines a Laravel backend/web app with a separate Expo mobile a
 - `npm run dev` / `npm run build`: start Vite dev server or build web assets.
 - `composer test`: clear config and run PHPUnit suite.
 - `php artisan migrate --seed`: apply schema and seed local data.
+- `php artisan typescript:transform`: regenerate `resources/js/types/generated.ts` from the Laravel Data objects in `app/Data`. Run it after changing a Data object and commit the result; the web app and `mobile/services/api.ts` import their API payload types from it, and `GeneratedTypeScriptTest` fails while it is stale.
 - `cd mobile && npm start`: start Expo dev tools.
 - `cd mobile && npm run ios|android|web`: run mobile targets locally.
 

@@ -1,6 +1,18 @@
 import Constants from 'expo-constants';
 import { AssessmentLocale } from '../constants/assessmentLocale';
 import { useAuthStore } from '../stores/authStore';
+// Generated from app/Data by `php artisan typescript:transform`; type-only, so Metro never bundles it.
+import type {
+  CoachActionData,
+  CoachSettledData,
+  CoachStateData,
+  CoachThreadMessageData,
+  CoachThreadStepData,
+  CrisisSupportData,
+  HabitData,
+  ReadinessData,
+  ReadinessFactorData,
+} from '../../resources/js/types/generated';
 
 function normalizeApiBaseUrl(url: string): string {
   const trimmed = url.trim().replace(/\/+$/, '');
@@ -488,74 +500,19 @@ export const assessmentApi = {
     api.post<ConversationSpeechResponse>('/conversations/speech', { text, locale }),
 };
 
-export interface CoachAction {
-  id: string;
-  title: string;
-  rationale: string | null;
-}
-
-export interface CoachReadinessFactor {
-  label: string;
-  standing: string;
-  move: string;
-}
-
-export interface CoachReadiness {
-  level: string;
-  level_label: string;
-  level_description: string;
-  what_moves_it: string;
-  factors: Record<string, CoachReadinessFactor>;
-  history: { on: string; level: string; because?: string }[];
-}
-
-export interface CoachHabit {
-  id: string;
-  title: string;
-  why: string | null;
-  cadence: string;
-  standing: string;
-  meaning: string;
-  next_move: string;
-  answered_today: boolean;
-}
-
-export type CoachOpening = 'first' | 'returning' | null;
-
-export interface CoachState {
-  current_action: CoachAction | null;
-  readiness: CoachReadiness;
-  habits: CoachHabit[];
-  invitation: { prompt: string; opens_with: unknown } | null;
-  /** One-tap ways in, drawn from the student's own portrait */
-  starters?: string[];
-  /** Set when the coach should speak before the student does */
-  opening?: CoachOpening;
-}
-
-export interface CoachMessage {
-  id?: string;
-  role: string;
-  content: string;
-  at?: string;
-}
-
-export type CoachThreadItem =
-  | { type: 'message'; id: string; role: 'user' | 'assistant'; content: string; at: string }
-  | { type: 'step'; id: string; title: string; rationale: string | null; status: 'active' | 'completed' | 'skipped'; at: string };
-
+export type CoachAction = CoachActionData;
+export type CoachReadinessFactor = ReadinessFactorData;
+export type CoachReadiness = ReadinessData;
+export type CoachHabit = HabitData;
+export type CoachState = CoachStateData;
+export type CoachOpening = CoachStateData['opening'];
+export type CoachThreadItem = CoachThreadMessageData | CoachThreadStepData;
 /** What the server returns once a turn is persisted */
-export interface CoachSettled {
-  items: CoachThreadItem[];
-  current_action: CoachAction | null;
-  starters: string[];
-}
+export type CoachSettled = CoachSettledData;
+export type CoachSupport = CrisisSupportData;
 
-export interface CoachSupport {
-  heading: string;
-  body: string[];
-  resources: { name: string; contact: string; note?: string }[];
-}
+/** The `messages` shape `/coach/history` keeps for clients that predate `items` */
+export type CoachMessage = Omit<CoachThreadMessageData, 'type'>;
 
 /** Student pathway coach — the front door, not a feature tab */
 export const coachApi = {

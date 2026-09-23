@@ -3,6 +3,8 @@
 namespace App\Support;
 
 use App\Ai\Agents\PathwayCoachAgent;
+use App\Data\Coach\CoachThreadMessageData;
+use App\Data\Coach\CoachThreadStepData;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -29,7 +31,7 @@ class CoachThread
     public const LIMIT = 100;
 
     /**
-     * @return list<array{type: 'message', id: string, role: 'user'|'assistant', content: string, at: string}|array{type: 'step', id: string, title: string, rationale: ?string, status: string, at: string}>
+     * @return list<CoachThreadMessageData|CoachThreadStepData>
      */
     public function items(User $user): array
     {
@@ -39,30 +41,29 @@ class CoachThread
             return [];
         }
 
-        $since = CarbonImmutable::parse($messages->first()['at']);
+        $since = CarbonImmutable::parse($messages->first()->at);
 
         $steps = $user->actions()
             ->where('assigned_at', '>=', $since)
             ->orderBy('assigned_at')
             ->get(['id', 'title', 'rationale', 'status', 'assigned_at'])
-            ->map(fn ($action) => [
-                'type' => 'step',
-                'id' => (string) $action->id,
-                'title' => $action->title,
-                'rationale' => $action->rationale,
-                'status' => $action->status->value,
-                'at' => $action->assigned_at->toIso8601String(),
-            ]);
+            ->map(fn ($action) => new CoachThreadStepData(
+                id: (string) $action->id,
+                title: $action->title,
+                rationale: $action->rationale,
+                status: $action->status->value,
+                at: $action->assigned_at->toIso8601String(),
+            ));
 
         return $messages
             ->concat($steps)
-            ->sortBy(fn (array $item) => $item['at'].($item['type'] === 'step' ? '~' : ''))
+            ->sortBy(fn (CoachThreadMessageData|CoachThreadStepData $item) => $item->at.($item instanceof CoachThreadStepData ? '~' : ''))
             ->values()
             ->all();
     }
 
     /**
-     * @return Collection<int, array{type: 'message', id: string, role: 'user'|'assistant', content: string, at: string}>
+     * @return Collection<int, CoachThreadMessageData>
      */
     public function messages(User $user): Collection
     {
@@ -80,13 +81,12 @@ class CoachThread
             ->get(['id', 'role', 'content', 'created_at'])
             ->reverse()
             ->reject(fn ($row) => static::isInternal($row->role, $row->content) || trim((string) $row->content) === '')
-            ->map(fn ($row) => [
-                'type' => 'message',
-                'id' => (string) $row->id,
-                'role' => $row->role,
-                'content' => (string) $row->content,
-                'at' => CarbonImmutable::parse($row->created_at)->toIso8601String(),
-            ])
+            ->map(fn ($row) => new CoachThreadMessageData(
+                id: (string) $row->id,
+                role: $row->role,
+                content: (string) $row->content,
+                at: CarbonImmutable::parse($row->created_at)->toIso8601String(),
+            ))
             ->values();
     }
 

@@ -1,38 +1,24 @@
 import type { Support } from '@/Components/SupportBlock';
+import type {
+    CoachActionData,
+    CoachSettledData,
+    CoachStateData,
+    CoachThreadMessageData,
+    CoachThreadStepData,
+} from '@/types/generated';
 
-export interface CoachAction {
-    id: string;
-    title: string;
-    rationale: string | null;
-}
+export type CoachAction = CoachActionData;
 
-export interface ThreadMessage {
-    type: 'message';
-    id: string;
-    role: 'user' | 'assistant';
-    content: string;
-    at: string;
-}
+export type ThreadMessage = CoachThreadMessageData;
 
-export interface ThreadStep {
-    type: 'step';
-    id: string;
-    title: string;
-    rationale: string | null;
-    status: 'active' | 'completed' | 'skipped';
-    at: string;
-}
+export type ThreadStep = CoachThreadStepData;
 
 export type ThreadItem = ThreadMessage | ThreadStep;
 
-export type Opening = 'first' | 'returning' | null;
+export type Opening = CoachStateData['opening'];
 
 /** What the server returns once a turn is persisted, streamed or not. */
-export interface Settled {
-    items: ThreadItem[];
-    current_action: CoachAction | null;
-    starters: string[];
-}
+export type Settled = CoachSettledData;
 
 export type StreamEvent =
     | { type: 'status'; label: string }
