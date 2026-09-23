@@ -1,5 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { ReactNode } from 'react';
+import DemoBadge from '../Components/DemoBadge';
 import PlaceNav from '../Components/PlaceNav';
 
 interface Props {
@@ -28,6 +29,7 @@ export default function AppLayout({ title, surface = 'light', children }: Props)
                       * page can keep using this layout unchanged.
                       */}
                     <PlaceNav />
+                    <DemoBadge />
                     {children}
                 </main>
             </div>
