@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, TextInput as RNTextInput, ScrollView } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,6 +6,7 @@ import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
 import { SingleLineInput } from '../../components/ui/SingleLineInput';
 import { useAuthStore } from '../../stores/authStore';
+import { authApi } from '../../services/auth';
 import { spacing } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 
@@ -13,7 +14,8 @@ export default function LoginScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = getStyles(colors);
-  const { login, isLoading, error, clearError } = useAuthStore();
+  const { login, demoLogin, isLoading, error, clearError } = useAuthStore();
+  const [demoAvailable, setDemoAvailable] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const passwordRef = useRef<RNTextInput>(null);
@@ -22,6 +24,23 @@ export default function LoginScreen() {
     try {
       await login(email, password);
       router.replace('/');
+    } catch {
+      // Error is set in store
+    }
+  };
+
+  // The server only offers this while demo mode is on and a demo account exists.
+  useEffect(() => {
+    authApi
+      .demoAvailable()
+      .then((data) => setDemoAvailable(data.available))
+      .catch(() => setDemoAvailable(false));
+  }, []);
+
+  const handleDemoLogin = async () => {
+    try {
+      await demoLogin();
+      router.replace('/(assessment)');
     } catch {
       // Error is set in store
     }
@@ -124,6 +143,23 @@ export default function LoginScreen() {
               </Link>
             </View>
           </View>
+
+          {demoAvailable ? (
+            <View style={[styles.demo, { borderTopColor: colors.divider }]}>
+              <Typography variant="eyebrow" color={colors.muted}>
+                Demo mode is on
+              </Typography>
+              <Button
+                title="Continue as demo"
+                variant="secondary"
+                onPress={handleDemoLogin}
+                disabled={isLoading}
+              />
+              <Typography variant="small" family="sans" color={colors.muted}>
+                Signs into the demo account and opens the assessment with its answers pre-filled.
+              </Typography>
+            </View>
+          ) : null}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -162,6 +198,12 @@ const getStyles = (colors: { background: string }) =>
     },
     actions: {
       gap: spacing.md,
+    },
+    demo: {
+      marginTop: spacing.xl,
+      paddingTop: spacing.lg,
+      borderTopWidth: 1,
+      gap: spacing.sm,
     },
     linkRow: {
       flexDirection: 'row',
