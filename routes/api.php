@@ -43,6 +43,8 @@ Route::prefix('v1')->group(function () {
     Route::post('auth/login', [AuthController::class, 'login']);
     Route::post('auth/social/google', [AuthController::class, 'socialGoogle']);
     Route::post('auth/forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::get('auth/demo', [AuthController::class, 'demoAvailability']);
+    Route::post('auth/demo', [AuthController::class, 'demoLogin'])->middleware('throttle:10,1');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('auth/me', [AuthController::class, 'me']);

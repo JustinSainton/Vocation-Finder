@@ -25,6 +25,20 @@ class DemoMode
 {
     public const ROLE = 'demo';
 
+    /**
+     * The account "Continue as demo" signs into: the demo account most
+     * recently set up with `demo:user`. Null whenever demo mode is off, so the
+     * shortcut does not exist in an environment that has not asked for it.
+     */
+    public static function account(): ?User
+    {
+        if (! config('vocation.demo.enabled')) {
+            return null;
+        }
+
+        return User::where('role', self::ROLE)->latest('updated_at')->first();
+    }
+
     public static function isActiveFor(?User $user): bool
     {
         return (bool) config('vocation.demo.enabled')

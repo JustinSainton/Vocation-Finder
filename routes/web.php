@@ -17,6 +17,7 @@ use App\Http\Controllers\Web\Admin\AdminValidationController;
 use App\Http\Controllers\Web\Admin\AdminVocationalCategoryController;
 use App\Http\Controllers\Web\ApplicationController;
 use App\Http\Controllers\Web\AssessmentController;
+use App\Http\Controllers\Web\Auth\DemoLoginController;
 use App\Http\Controllers\Web\Auth\ForgotPasswordController;
 use App\Http\Controllers\Web\Auth\LoginController;
 use App\Http\Controllers\Web\Auth\RegisterController;
@@ -103,6 +104,9 @@ Route::post('/assessment/{assessment}/clarity', [ClarityCheckController::class, 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'create'])->name('login');
     Route::post('/login', [LoginController::class, 'store']);
+    Route::post('/demo-login', [DemoLoginController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('demo-login');
 
     Route::get('/register', [RegisterController::class, 'create'])->name('register');
     Route::post('/register', [RegisterController::class, 'store']);

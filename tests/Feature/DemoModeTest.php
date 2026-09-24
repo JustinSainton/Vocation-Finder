@@ -223,6 +223,70 @@ class DemoModeTest extends TestCase
         );
     }
 
+    public function test_continue_as_demo_does_not_exist_while_demo_mode_is_off(): void
+    {
+        $this->demoUser();
+
+        $this->get('/login')->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('demo_login_available', false));
+        $this->post('/demo-login')->assertNotFound();
+        $this->getJson('/api/v1/auth/demo')->assertJson(['available' => false]);
+        $this->postJson('/api/v1/auth/demo')->assertNotFound();
+        $this->assertGuest();
+    }
+
+    public function test_continue_as_demo_needs_a_demo_account(): void
+    {
+        config(['vocation.demo.enabled' => true]);
+        User::factory()->create();
+
+        $this->get('/login')->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('demo_login_available', false));
+        $this->post('/demo-login')->assertNotFound();
+        $this->postJson('/api/v1/auth/demo')->assertNotFound();
+    }
+
+    public function test_continue_as_demo_signs_in_on_the_web_and_opens_the_assessment(): void
+    {
+        config(['vocation.demo.enabled' => true]);
+        $demo = $this->demoUser();
+
+        $this->get('/login')->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('demo_login_available', true));
+
+        $this->post('/demo-login')->assertRedirect('/assessment/written');
+        $this->assertAuthenticatedAs($demo);
+    }
+
+    public function test_continue_as_demo_hands_the_app_a_demo_token(): void
+    {
+        config(['vocation.demo.enabled' => true]);
+        $demo = $this->demoUser();
+
+        $this->getJson('/api/v1/auth/demo')->assertJson(['available' => true]);
+
+        $token = $this->postJson('/api/v1/auth/demo')
+            ->assertOk()
+            ->assertJsonPath('user.id', $demo->id)
+            ->assertJsonPath('user.demo.persona', DemoPersona::NAME)
+            ->json('token');
+
+        $this->app['auth']->forgetGuards();
+
+        $this->withToken($token)
+            ->getJson('/api/v1/questions')
+            ->assertJsonPath('data.0.demo_answer', DemoPersona::STANDARD[1]);
+    }
+
+    public function test_continue_as_demo_uses_the_most_recently_set_up_demo_account(): void
+    {
+        config(['vocation.demo.enabled' => true]);
+        $this->demoUser()->forceFill(['updated_at' => now()->subDay()])->save();
+        $latest = $this->demoUser();
+
+        $this->assertTrue(DemoMode::account()->is($latest));
+    }
+
     public function test_an_admin_can_give_an_account_the_demo_role(): void
     {
         $admin = User::factory()->create();

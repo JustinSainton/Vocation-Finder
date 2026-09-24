@@ -1,8 +1,12 @@
 import { FormEvent } from 'react';
-import { Link, useForm, usePage } from '@inertiajs/react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
 import AppLayout from '../../Layouts/AppLayout';
 
-export default function Login() {
+interface Props {
+    demo_login_available?: boolean;
+}
+
+export default function Login({ demo_login_available = false }: Props) {
     const { flash } = usePage<{ flash: { error?: string } }>().props;
     const { data, setData, post, processing, errors } = useForm({
         email: '',
@@ -98,6 +102,22 @@ export default function Login() {
                             Continue with Google
                         </a>
                     </form>
+
+                    {demo_login_available && (
+                        <div className="mt-10 border-t border-[var(--color-divider)] pt-8">
+                            <p className="type-eyebrow text-[var(--color-muted)]">Demo mode is on</p>
+                            <button
+                                type="button"
+                                onClick={() => router.post('/demo-login')}
+                                className="mt-4 w-full border border-[var(--color-text)] bg-transparent py-4 font-sans text-sm tracking-wide text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface)]"
+                            >
+                                Continue as demo &rarr;
+                            </button>
+                            <p className="mt-2 font-sans text-xs text-[var(--color-muted)]">
+                                Signs into the demo account and opens the assessment with its answers pre-filled.
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 <div className="mt-16 text-center">

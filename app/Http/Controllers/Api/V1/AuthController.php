@@ -118,6 +118,23 @@ class AuthController extends Controller
         ]);
     }
 
+    public function demoAvailability(): JsonResponse
+    {
+        return response()->json(['available' => DemoMode::account() !== null]);
+    }
+
+    /**
+     * The mobile "Continue as demo". Same rule as the web one: it exists only
+     * while demo mode is on, because it hands out a token without a password.
+     */
+    public function demoLogin(): JsonResponse
+    {
+        $account = DemoMode::account();
+        abort_if($account === null, 404);
+
+        return $this->respondWithToken($account);
+    }
+
     private function respondWithToken(User $user, int $status = 200): JsonResponse
     {
         $token = $user->createToken('mobile')->plainTextToken;
