@@ -14,6 +14,7 @@ import {
   VocationalProfile,
   ConversationTurnResponse,
 } from '../services/api';
+import { shouldSurfaceResultsFetchError } from '../lib/resultsPolling';
 
 type AssessmentMode = 'conversation' | 'written' | null;
 type AssessmentStatus =
@@ -324,9 +325,20 @@ export const useAssessmentStore = create<AssessmentState>()(
           });
           return null;
         } catch (err: any) {
+          const assessmentStatus = get().status;
+          const apiError = {
+            message: err?.message as string | undefined,
+            status: err?.status as number | undefined,
+          };
+
+          if (!shouldSurfaceResultsFetchError(assessmentStatus, apiError)) {
+            set({ resultsLoading: false });
+            return null;
+          }
+
           set({
             resultsLoading: false,
-            resultsError: err?.message ?? 'Failed to load results',
+            resultsError: apiError.message ?? 'Failed to load results',
           });
           return null;
         }

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,14 +13,12 @@ import { useAssessmentStore } from '../../stores/assessmentStore';
 import { useAuthStore } from '../../stores/authStore';
 import { assessmentApi, coachApi } from '../../services/api';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
+import { useAnalysisResultsPolling } from '../../hooks/useAnalysisResultsPolling';
 import { authApi } from '../../services/auth';
 import { spacing, radius, layout, palettes } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 
 type ThemeColors = (typeof palettes)['light'];
-
-const POLL_INTERVAL = 5000;
-const POLL_TIMEOUT_MS = 120000;
 
 function formatElapsed(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60);
@@ -32,11 +30,8 @@ export default function ResultsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = getStyles(colors);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const {
     results,
-    fetchResults,
     assessmentId,
     guestToken,
     tier,
@@ -46,6 +41,7 @@ export default function ResultsScreen() {
     locale,
     reset,
   } = useAssessmentStore();
+  const { isTakingLong, retryResults } = useAnalysisResultsPolling();
   const copy = getAssessmentCopy(locale);
 
   const [emailValue, setEmailValue] = useState('');
@@ -55,7 +51,6 @@ export default function ResultsScreen() {
   const [creatingAccount, setCreatingAccount] = useState(false);
   const [accountCreated, setAccountCreated] = useState(false);
   const [accountError, setAccountError] = useState<string | null>(null);
-  const [isTakingLong, setIsTakingLong] = useState(false);
 
   const isLoggedIn = !!useAuthStore((s) => s.token);
   const guestName = useAssessmentStore((s) => s.guestName);
@@ -92,47 +87,6 @@ export default function ResultsScreen() {
   const openCoach = (say?: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
     router.push(say ? { pathname: '/(dashboard)/coach', params: { say } } : '/(dashboard)/coach');
-  };
-
-  // Poll for results until they arrive
-  useEffect(() => {
-    if (results || resultsError) return;
-
-    setIsTakingLong(false);
-    fetchResults();
-
-    timeoutRef.current = setTimeout(() => {
-      setIsTakingLong(true);
-    }, POLL_TIMEOUT_MS);
-
-    pollRef.current = setInterval(async () => {
-      const profile = await fetchResults();
-      if (profile && pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-          timeoutRef.current = null;
-        }
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-    }, POLL_INTERVAL);
-
-    return () => {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-    };
-  }, [fetchResults, results, resultsError]);
-
-  const handleRetryResults = async () => {
-    setIsTakingLong(false);
-    await fetchResults();
   };
 
   const handleEmailResults = useCallback(async () => {
@@ -226,7 +180,7 @@ export default function ResultsScreen() {
                 {resultsError}
               </Typography>
               <View style={styles.waitingActions}>
-                <Button title={copy.common.tryAgain} onPress={handleRetryResults} />
+                <Button title={copy.common.tryAgain} onPress={retryResults} />
                 <Button
                   title={copy.common.startOver}
                   variant="secondary"
@@ -255,7 +209,7 @@ export default function ResultsScreen() {
                 color={colors.textSecondary}
                 style={styles.waitingSub}
               >
-                {copy.results.notReadyBody}
+                {resultsStatusMessage ?? copy.results.notReadyBody}
               </Typography>
               <Typography
                 variant="small"
@@ -276,7 +230,7 @@ export default function ResultsScreen() {
                     {copy.results.takingLong}
                   </Typography>
                   <View style={styles.waitingActions}>
-                    <Button title={copy.results.checkAgain} onPress={handleRetryResults} />
+                    <Button title={copy.results.checkAgain} onPress={retryResults} />
                   </View>
                 </>
               ) : null}

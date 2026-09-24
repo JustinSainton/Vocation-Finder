@@ -64,7 +64,7 @@ export default function AssessmentsScreen() {
         assessmentId: destination.assessmentId,
         guestToken: null,
         mode: assessment.mode === 'conversation' ? 'conversation' : 'written',
-        status: 'completed',
+        status: assessment.status === 'analyzing' ? 'analyzing' : 'completed',
         results: null,
         resultsError: null,
         resultsLoading: false,

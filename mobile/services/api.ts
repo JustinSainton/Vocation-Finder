@@ -365,7 +365,15 @@ export const assessmentApi = {
     };
     if (guestToken) headers['X-Guest-Token'] = guestToken;
 
-    const response = await fetch(url, { method: 'GET', headers });
+    let response: Response;
+    try {
+      response = await fetch(url, { method: 'GET', headers });
+    } catch {
+      throw {
+        message: `Network request failed. Check API URL: ${BASE_URL}`,
+        status: 0,
+      };
+    }
 
     if (response.status === 202) {
       const data = await response.json().catch(() => ({}));

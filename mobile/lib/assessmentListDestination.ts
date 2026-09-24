@@ -22,7 +22,7 @@ export function destinationForAssessmentListItem(
   item: { id: string; status: string; mode: string },
   local: { assessmentId: string | null },
 ): AssessmentListDestination {
-  if (item.status === 'completed') {
+  if (item.status === 'completed' || item.status === 'analyzing') {
     return { kind: 'results', assessmentId: item.id };
   }
 
