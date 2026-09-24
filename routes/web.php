@@ -55,10 +55,16 @@ use App\Http\Controllers\Web\PlanController;
 use App\Http\Controllers\Web\ResumeController;
 use App\Http\Controllers\Web\WorkController;
 use App\Http\Controllers\Webhooks\StripeWebhookController;
+use App\Support\DemoMode;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', fn () => Inertia::render('Welcome'));
+// The front door is where a signed-out visitor lands, so "Continue as demo"
+// has to be offered here and not only on /login, which nothing links to.
+Route::get('/', fn (Request $request) => Inertia::render('Welcome', [
+    'demo_login_available' => $request->user() === null && DemoMode::account() !== null,
+]));
 
 // A parent says yes on their own token link. Deliberately outside auth:
 // requiring a parent to create an account adds a step that loses exactly the
