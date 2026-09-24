@@ -9,6 +9,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { useAuthStore } from '../../stores/authStore';
 import { api } from '../../services/api';
+import { useAssessmentStore } from '../../stores/assessmentStore';
 
 interface DashboardData {
   profile_summary: {
@@ -135,14 +136,37 @@ export default function DashboardScreen() {
           <View style={styles.section}>
             <View style={styles.ctaCard}>
               <Typography variant="eyebrow" color={colors.accent} style={styles.sectionLabel}>
-                Continue your assessment
+                {data.in_progress_assessment.status === 'analyzing'
+                  ? 'Your portrait is being prepared'
+                  : 'Continue your assessment'}
               </Typography>
               <Typography variant="displaySm" style={styles.ctaStatement}>
-                You have an assessment in progress.
+                {data.in_progress_assessment.status === 'analyzing'
+                  ? 'Analysis is still running. Return to the waiting screen to check for results.'
+                  : 'You have an assessment in progress.'}
               </Typography>
               <Button
-                title="Continue"
-                onPress={() => router.push('/(assessment)')}
+                title={data.in_progress_assessment.status === 'analyzing' ? 'View progress' : 'Continue'}
+                onPress={() => {
+                  if (data.in_progress_assessment?.status === 'analyzing') {
+                    useAssessmentStore.setState({
+                      assessmentId: data.in_progress_assessment.id,
+                      mode:
+                        data.in_progress_assessment.mode === 'conversation'
+                          ? 'conversation'
+                          : 'written',
+                      status: 'analyzing',
+                      results: null,
+                      resultsError: null,
+                      resultsLoading: false,
+                      resultsStatusMessage: null,
+                    });
+                    router.push('/(assessment)/results');
+                    return;
+                  }
+
+                  router.push('/(assessment)');
+                }}
               />
             </View>
           </View>
