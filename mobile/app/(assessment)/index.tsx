@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, ScrollView, StyleSheet, Pressable } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { getAssessmentCopy } from '../../constants/assessmentLocale';
@@ -10,6 +10,8 @@ import { spacing, layout } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { useAssessmentStore } from '../../stores/assessmentStore';
 import { DemoBadge } from '../../components/DemoBadge';
+import { DemoSignIn } from '../../components/DemoSignIn';
+import { useAuthStore } from '../../stores/authStore';
 
 export default function AssessmentLandingScreen() {
   const router = useRouter();
@@ -18,6 +20,7 @@ export default function AssessmentLandingScreen() {
   const [checked, setChecked] = useState(false);
   const locale = useAssessmentStore((state) => state.locale);
   const copy = getAssessmentCopy(locale);
+  const signedIn = useAuthStore((state) => state.user !== null);
 
   useEffect(() => {
     const prefetch = async () => {
@@ -69,6 +72,22 @@ export default function AssessmentLandingScreen() {
         <Typography variant="body" style={styles.paragraph}>
           {copy.orientation.introTwo}
         </Typography>
+
+        {/* The app opens here, so this is the only sign-in a new install sees. */}
+        {!signedIn ? (
+          <View style={styles.signInRow}>
+            <Typography variant="small" color={colors.textSecondary}>
+              Already have an account?{' '}
+            </Typography>
+            <Link href="/(auth)/login">
+              <Typography variant="small" color={colors.text}>
+                Sign in
+              </Typography>
+            </Link>
+          </View>
+        ) : null}
+
+        <DemoSignIn />
       </ScrollView>
 
       <View style={styles.footer}>
@@ -184,5 +203,9 @@ const getStyles = (colors: {
     },
     checkboxLabel: {
       flex: 1,
+    },
+    signInRow: {
+      flexDirection: 'row',
+      marginTop: spacing.sm,
     },
   });
