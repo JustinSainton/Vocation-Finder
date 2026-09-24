@@ -11,7 +11,8 @@ interface UserData {
   id: string;
   email: string;
   name: string;
-  role: 'individual' | 'admin' | 'org_admin';
+  role: 'individual' | 'admin' | 'org_admin' | 'demo';
+  demo?: { persona: string; clarity: { before: string; after: string } } | null;
   organizations: UserOrganization[];
 }
 
@@ -46,6 +47,10 @@ export const authApi = {
 
   forgotPassword: (email: string) =>
     api.post<{ message: string }>('/auth/forgot-password', { email }),
+
+  demoAvailable: () => api.get<{ available: boolean }>('/auth/demo'),
+
+  demoLogin: () => api.post<AuthResponse>('/auth/demo'),
 
   me: () =>
     api.get<{ user: UserData }>('/auth/me'),

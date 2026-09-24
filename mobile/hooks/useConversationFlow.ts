@@ -17,7 +17,7 @@ import {
   getExpoSpeechLanguage,
   normalizeAssessmentLocale,
 } from '../constants/assessmentLocale';
-import { assessmentApi } from '../services/api';
+import { assessmentApi, ConversationTurnResponse } from '../services/api';
 import {
   isLocalSttEnabled,
   releaseLocalStt,
@@ -432,6 +432,20 @@ export function useConversationFlow() {
     stopAmbientBed,
   ]);
 
+  const speakResponse = useCallback(
+    async (response: ConversationTurnResponse) => {
+      const onFinished = () => {
+        setConversationState('idle');
+        if (response.is_complete) {
+          completeConversationSession();
+        }
+      };
+
+      await speakText(response.response, { onDone: onFinished, onError: onFinished });
+    },
+    [completeConversationSession, setConversationState, speakText]
+  );
+
   const stopRecording = useCallback(async () => {
     audioLevel.value = 0;
 
@@ -512,27 +526,7 @@ export function useConversationFlow() {
       }
 
       if (response) {
-        if (response.is_complete) {
-          await speakText(response.response, {
-            onDone: () => {
-              setConversationState('idle');
-              completeConversationSession();
-            },
-            onError: () => {
-              setConversationState('idle');
-              completeConversationSession();
-            },
-          });
-        } else {
-          await speakText(response.response, {
-            onDone: () => {
-              setConversationState('idle');
-            },
-            onError: () => {
-              setConversationState('idle');
-            },
-          });
-        }
+        await speakResponse(response);
       }
     } catch {
       setConversationState('error');
@@ -545,9 +539,47 @@ export function useConversationFlow() {
     recorderState.isRecording,
     setConversationState,
     handleConversationTurn,
-    completeConversationSession,
-    speakText,
+    speakResponse,
   ]);
+
+  /**
+   * A typed answer sent as the transcript, for demo mode: the server already
+   * accepts a transcript without audio, which is how on-device STT arrives.
+   */
+  const submitTypedAnswer = useCallback(
+    async (text: string) => {
+      const transcript = text.trim();
+      if (!transcript || conversationState === 'processing') {
+        return;
+      }
+
+      if (conversationState === 'speaking') {
+        stopSpeaking();
+      }
+
+      if (!useAssessmentStore.getState().sessionId) {
+        await startConversationSession();
+      }
+
+      const response = await handleConversationTurn({
+        transcript,
+        transcriptLocale: normalizedSpeechLocale,
+        clientProcessing: { stt_engine: 'demo-typed' },
+      });
+
+      if (response) {
+        await speakResponse(response);
+      }
+    },
+    [
+      conversationState,
+      handleConversationTurn,
+      normalizedSpeechLocale,
+      speakResponse,
+      startConversationSession,
+      stopSpeaking,
+    ]
+  );
 
   const playIntroAndFirstQuestion = useCallback(() => {
     if (!currentQuestionText || introPlayed) {
@@ -612,6 +644,7 @@ export function useConversationFlow() {
     stopRecording,
     playIntroAndFirstQuestion,
     stopSpeaking,
+    submitTypedAnswer,
     introPlayed,
     conversationState,
     conversationError,

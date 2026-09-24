@@ -3,8 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\Assessment;
+use App\Models\Question;
+use App\Models\User;
 use App\Models\VocationalProfile;
+use App\Services\GuestUpgradeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -44,6 +48,34 @@ class WebAssessmentTest extends TestCase
 
         // Should have created an assessment
         $this->assertDatabaseCount('assessments', 1);
+    }
+
+    public function test_a_signed_in_student_can_save_and_complete_the_written_assessment(): void
+    {
+        Queue::fake();
+        $student = User::factory()->create();
+
+        $this->actingAs($student)->get('/assessment/written')->assertOk();
+
+        $assessment = Assessment::sole();
+        $this->assertTrue($assessment->user->is($student));
+        $this->assertNotNull($assessment->guest_token);
+
+        // The page talks to the stateless API, which never sees the session.
+        $this->app['auth']->forgetGuards();
+        $headers = ['X-Guest-Token' => $assessment->guest_token];
+
+        $this->postJson("/api/v1/assessments/{$assessment->id}/answers", [
+            'question_id' => Question::first()->id,
+            'response_text' => 'I tutor my little brother in reading most nights.',
+        ], $headers)->assertOk();
+
+        $this->postJson("/api/v1/assessments/{$assessment->id}/complete", [], $headers)
+            ->assertOk()
+            ->assertJson(['status' => 'analyzing']);
+
+        $this->assertSame(0, app(GuestUpgradeService::class)->upgrade(User::factory()->create(), $assessment->guest_token));
+        $this->assertTrue($assessment->fresh()->user->is($student));
     }
 
     public function test_written_page_loads_beta_questions_when_flag_enabled(): void

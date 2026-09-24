@@ -4,12 +4,11 @@ namespace Tests\Feature;
 
 use App\Enums\ConfidenceLevel;
 use App\Models\Assessment;
-use App\Models\FeatureFlag;
 use App\Models\ParentConsent;
 use App\Models\User;
 use App\Services\FeatureFlagService;
+use Database\Seeders\FeatureFlagSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
 use PHPUnit\Framework\Attributes\Test;
@@ -27,15 +26,14 @@ class ResultsToCoachTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * The coach ships dark; every case here is about what happens once an
-     * operator has switched it on.
+     * The coach ships on, so every case starts from the seeded flags rather
+     * than an operator switching it on.
      */
     protected function setUp(): void
     {
         parent::setUp();
 
-        FeatureFlag::updateOrCreate(['key' => 'pathway_coach'], ['name' => 'Pathway Coach', 'is_enabled' => true]);
-        Cache::forget('feature_flag:pathway_coach');
+        $this->seed(FeatureFlagSeeder::class);
     }
 
     protected function assessmentFor(?User $user): Assessment

@@ -10,11 +10,17 @@ interface UserOrganization {
   role: 'admin' | 'mentor' | 'member';
 }
 
+export interface DemoMode {
+  persona: string;
+  clarity: { before: string; after: string };
+}
+
 interface User {
   id: string;
   email: string;
   name?: string;
-  role?: 'individual' | 'admin' | 'org_admin';
+  role?: 'individual' | 'admin' | 'org_admin' | 'demo';
+  demo?: DemoMode | null;
   organizations?: UserOrganization[];
 }
 
@@ -37,6 +43,7 @@ interface AuthState {
     guest_token?: string
   ) => Promise<void>;
   socialLogin: (provider: string, token: string) => Promise<void>;
+  demoLogin: () => Promise<void>;
   checkAuth: () => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
@@ -72,6 +79,17 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
             error: err?.message ?? 'Login failed',
           });
+          throw err;
+        }
+      },
+
+      demoLogin: async () => {
+        set({ isLoading: true, error: null });
+        try {
+          const data = await authApi.demoLogin();
+          set({ token: data.token, user: data.user, isGuest: false, isLoading: false });
+        } catch (err: any) {
+          set({ isLoading: false, error: err?.message ?? 'Demo sign-in failed' });
           throw err;
         }
       },

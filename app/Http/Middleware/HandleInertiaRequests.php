@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Enums\StudentPlace;
 use App\Services\FeatureFlagService;
+use App\Support\DemoMode;
 use App\Support\StudentNavigation;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -66,6 +67,7 @@ class HandleInertiaRequests extends Middleware
              */
             'places' => fn () => (new StudentNavigation)->for($request->user()),
             'features' => fn () => app(FeatureFlagService::class)->allFlags(),
+            'demo' => fn () => DemoMode::payloadFor($request->user()),
             'flash' => [
                 'status' => $request->session()->get('status'),
                 'success' => $request->session()->get('success'),

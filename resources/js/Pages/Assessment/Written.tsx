@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { router } from '@inertiajs/react';
 import AppLayout from '../../Layouts/AppLayout';
 import ClarityCheck from '../../Components/ClarityCheck';
+import { useDemoMode } from '../../Components/DemoBadge';
 
 interface Question {
     id: string;
@@ -10,6 +11,7 @@ interface Question {
     category_name: string;
     category_slug: string | null;
     sort_order: number;
+    demo_answer?: string | null;
 }
 
 /*
@@ -64,18 +66,69 @@ export default function Written({ questions, assessment_id, guest_token }: Props
      | the student edits the sentence away.
      */
     const [support, setSupport] = useState<Support | null>(null);
-    const [answers, setAnswers] = useState<Record<number, string>>({});
+    const demo = useDemoMode();
+    const [answers, setAnswers] = useState<Record<number, string>>(() =>
+        Object.fromEntries(
+            questions.flatMap((q, index) => (q.demo_answer ? [[index, q.demo_answer]] : [])),
+        ),
+    );
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    /*
+     | What the server last accepted per question, so Continue can send a
+     | pre-filled answer nobody typed into. Without it a demo answer would sit
+     | in the textarea and never be saved.
+     */
+    const savedRef = useRef<Record<number, string>>({});
+    const pendingSavesRef = useRef<Promise<void>[]>([]);
 
     const question = questions[currentIndex];
     const currentAnswer = answers[currentIndex] ?? '';
     const isLast = currentIndex === questions.length - 1;
+    const isUntouchedDemoAnswer = Boolean(question?.demo_answer) && currentAnswer === question?.demo_answer;
 
     // Auto-focus textarea on question change
     useEffect(() => {
         textareaRef.current?.focus();
     }, [currentIndex]);
+
+    const saveAnswer = useCallback(
+        (index: number, value: string) => {
+            const target = questions[index];
+            if (!target) return;
+
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+            };
+            if (guest_token) {
+                headers['X-Guest-Token'] = guest_token;
+            }
+
+            const save = fetch(`/api/v1/assessments/${assessment_id}/answers`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                    question_id: target.id,
+                    response_text: value,
+                }),
+            })
+                .then((response) => (response.ok ? response.json() : null))
+                .then((data) => {
+                    if (data) {
+                        savedRef.current[index] = value;
+                    }
+                    if (data?.support) {
+                        setSupport(data.support);
+                    }
+                })
+                .catch(() => {
+                    // Silently fail — answer is saved locally
+                });
+
+            pendingSavesRef.current.push(save);
+        },
+        [questions, assessment_id, guest_token]
+    );
 
     const handleChange = useCallback(
         (value: string) => {
@@ -83,37 +136,20 @@ export default function Written({ questions, assessment_id, guest_token }: Props
 
             // Debounced save
             if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-            saveTimerRef.current = setTimeout(() => {
-                const headers: Record<string, string> = {
-                    'Content-Type': 'application/json',
-                };
-                if (guest_token) {
-                    headers['X-Guest-Token'] = guest_token;
-                }
-
-                fetch(`/api/v1/assessments/${assessment_id}/answers`, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({
-                        question_id: question.id,
-                        response_text: value,
-                    }),
-                })
-                    .then((response) => (response.ok ? response.json() : null))
-                    .then((data) => {
-                        if (data?.support) {
-                            setSupport(data.support);
-                        }
-                    })
-                    .catch(() => {
-                        // Silently fail — answer is saved locally
-                    });
-            }, 500);
+            saveTimerRef.current = setTimeout(() => saveAnswer(currentIndex, value), 500);
         },
-        [currentIndex, assessment_id, guest_token, question?.id]
+        [currentIndex, saveAnswer]
     );
 
+    const flushCurrentAnswer = () => {
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        if (currentAnswer.trim() && savedRef.current[currentIndex] !== currentAnswer) {
+            saveAnswer(currentIndex, currentAnswer);
+        }
+    };
+
     const handleContinue = () => {
+        flushCurrentAnswer();
         if (isLast) {
             // Pause before the results — the synthesis page (spec Page 4).
             setPausing(true);
@@ -131,22 +167,27 @@ export default function Written({ questions, assessment_id, guest_token }: Props
                 headers['X-Guest-Token'] = guest_token;
             }
 
-            fetch(`/api/v1/assessments/${assessment_id}/complete`, {
-                method: 'POST',
-                headers,
-            }).then(() => {
-                // Carry the token in the URL rather than relying on the
-                // session. This is the link a student bookmarks, and it has to
-                // still open in March when the session is long gone.
-                router.visit(
-                    guest_token
-                        ? `/assessment/${assessment_id}/results?t=${encodeURIComponent(guest_token)}`
-                        : `/assessment/${assessment_id}/results`,
-                );
-            });
+            Promise.all(pendingSavesRef.current)
+                .then(() =>
+                    fetch(`/api/v1/assessments/${assessment_id}/complete`, {
+                        method: 'POST',
+                        headers,
+                    }),
+                )
+                .then(() => {
+                    // Carry the token in the URL rather than relying on the
+                    // session. This is the link a student bookmarks, and it has to
+                    // still open in March when the session is long gone.
+                    router.visit(
+                        guest_token
+                            ? `/assessment/${assessment_id}/results?t=${encodeURIComponent(guest_token)}`
+                            : `/assessment/${assessment_id}/results`,
+                    );
+                });
     };
 
     const handleBack = () => {
+        flushCurrentAnswer();
         if (currentIndex > 0) {
             setCurrentIndex((i) => i - 1);
         }
@@ -160,6 +201,7 @@ export default function Written({ questions, assessment_id, guest_token }: Props
                     guestToken={guest_token}
                     moment="before"
                     onAnswered={() => setBaselineTaken(true)}
+                    suggested={demo?.clarity.before}
                 />
                 <button
                     type="button"
@@ -244,6 +286,11 @@ export default function Written({ questions, assessment_id, guest_token }: Props
                 placeholder="Take your time. Write freely."
                 className="min-h-[200px] w-full resize-y border-0 bg-transparent font-serif text-lg leading-relaxed text-[var(--color-text)] outline-none placeholder:text-[var(--color-stone-400)]"
             />
+            {isUntouchedDemoAnswer && (
+                <p className="mt-2 font-sans text-xs text-[var(--color-muted)]">
+                    Pre-filled for the demo. Edit it freely.
+                </p>
+            )}
 
             {/* Bottom area */}
             <div className="mt-12">

@@ -220,6 +220,7 @@ export interface Question {
   question_text: string;
   conversation_prompt: string | null;
   follow_up_prompts: string[];
+  demo_answer?: string | null;
 }
 
 export interface Assessment {

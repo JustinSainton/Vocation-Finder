@@ -3,15 +3,14 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
 use App\Services\FeatureFlagService;
 use App\Services\GuestUpgradeService;
+use App\Support\DemoMode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Facades\Socialite;
@@ -119,6 +118,23 @@ class AuthController extends Controller
         ]);
     }
 
+    public function demoAvailability(): JsonResponse
+    {
+        return response()->json(['available' => DemoMode::account() !== null]);
+    }
+
+    /**
+     * The mobile "Continue as demo". Same rule as the web one: it exists only
+     * while demo mode is on, because it hands out a token without a password.
+     */
+    public function demoLogin(): JsonResponse
+    {
+        $account = DemoMode::account();
+        abort_if($account === null, 404);
+
+        return $this->respondWithToken($account);
+    }
+
     private function respondWithToken(User $user, int $status = 200): JsonResponse
     {
         $token = $user->createToken('mobile')->plainTextToken;
@@ -136,6 +152,7 @@ class AuthController extends Controller
             'name' => $user->name,
             'email' => $user->email,
             'role' => $user->role,
+            'demo' => DemoMode::payloadFor($user),
             'organizations' => $user->organizations()
                 ->withPivot('role')
                 ->get()

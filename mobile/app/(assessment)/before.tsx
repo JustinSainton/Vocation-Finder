@@ -7,6 +7,8 @@ import { getAssessmentCopy } from '../../constants/assessmentLocale';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
 import { useAssessmentStore } from '../../stores/assessmentStore';
+import { DemoBadge } from '../../components/DemoBadge';
+import { useDemoMode } from '../../hooks/useDemoMode';
 import { spacing } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 
@@ -23,7 +25,8 @@ export default function BeforeSurveyScreen() {
   const { locale, createAssessment, submitClarity } = useAssessmentStore();
   const copy = getAssessmentCopy(locale);
 
-  const [standing, setStanding] = useState<string | null>(null);
+  const demo = useDemoMode();
+  const [standing, setStanding] = useState<string | null>(demo?.clarity.before ?? null);
   const [submitting, setSubmitting] = useState(false);
 
   const choose = (value: string) => {
@@ -63,6 +66,8 @@ export default function BeforeSurveyScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        <DemoBadge />
+
         <Typography variant="heading" style={styles.title}>
           {copy.beforeSurvey.title}
         </Typography>
@@ -99,6 +104,17 @@ export default function BeforeSurveyScreen() {
             </Pressable>
           ))}
         </View>
+
+        {demo ? (
+          <Typography
+            variant="small"
+            family="sans"
+            color={colors.muted}
+            style={styles.demoHint}
+          >
+            Demo pick selected. Choose another if you like.
+          </Typography>
+        ) : null}
 
         <View style={styles.actions}>
           <Button
@@ -144,6 +160,10 @@ const getStyles = (colors: { background: string; text: string; divider: string }
     options: {
       gap: spacing.sm,
       marginBottom: spacing.xxl,
+    },
+    demoHint: {
+      marginTop: -spacing.xl,
+      marginBottom: spacing.xl,
     },
     option: {
       borderWidth: 1,

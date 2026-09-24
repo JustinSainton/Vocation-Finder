@@ -7,6 +7,7 @@ use App\Models\Assessment;
 use App\Models\Question;
 use App\Support\AssessmentAccess;
 use App\Support\CoachHandoff;
+use App\Support\DemoMode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -34,14 +35,22 @@ class AssessmentController extends Controller
                 'category_name' => $q->category?->name,
                 'category_slug' => $q->category?->slug,
                 'sort_order' => $q->sort_order,
+                'demo_answer' => DemoMode::answerFor($request->user(), $q),
             ]);
 
-        // Create a guest assessment for web users
+        /*
+         | Every web assessment carries a token, signed in or not. The page
+         | saves answers through the stateless API, which cannot see the web
+         | session, so without one a signed-in student's saves are refused and
+         | the assessment can never complete. The token cannot move an owned
+         | assessment to another account: GuestUpgradeService only claims
+         | assessments that have no owner.
+         */
         $assessment = Assessment::create([
             'user_id' => $request->user()?->id,
             'mode' => 'written',
             'status' => 'in_progress',
-            'guest_token' => $request->user() ? null : Str::random(64),
+            'guest_token' => Str::random(64),
             'started_at' => now(),
         ]);
 

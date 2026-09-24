@@ -21,9 +21,11 @@ interface Props {
     guestToken: string | null;
     moment: 'before' | 'after';
     onAnswered?: () => void;
+    /** Demo mode's pick, marked but not submitted: the reading is still a tap. */
+    suggested?: string;
 }
 
-export default function ClarityCheck({ assessmentId, guestToken, moment, onAnswered }: Props) {
+export default function ClarityCheck({ assessmentId, guestToken, moment, onAnswered, suggested }: Props) {
     const [chosen, setChosen] = useState<string | null>(null);
 
     const answer = (standing: string) => {
@@ -61,7 +63,9 @@ export default function ClarityCheck({ assessmentId, guestToken, moment, onAnswe
                             'border px-4 py-2 font-sans text-sm tracking-wide transition-opacity',
                             chosen === standing.value
                                 ? 'border-[var(--color-text)] bg-[var(--color-text)] text-[var(--color-background)]'
-                                : 'border-[var(--color-divider)] text-[var(--color-text)]',
+                                : !chosen && suggested === standing.value
+                                  ? 'border-[var(--color-accent)] bg-[var(--color-accent-wash)] text-[var(--color-text)]'
+                                  : 'border-[var(--color-divider)] text-[var(--color-text)]',
                             chosen && chosen !== standing.value ? 'opacity-30' : '',
                         ].join(' ')}
                     >
@@ -69,6 +73,11 @@ export default function ClarityCheck({ assessmentId, guestToken, moment, onAnswe
                     </button>
                 ))}
             </div>
+            {suggested && !chosen && (
+                <p className="mt-3 font-sans text-xs text-[var(--color-muted)]">
+                    Demo pick highlighted. Tap it, or choose another.
+                </p>
+            )}
         </section>
     );
 }

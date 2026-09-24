@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from '@inertiajs/react';
 import AppLayout from '../../Layouts/AppLayout';
 import ClarityCheck from '../../Components/ClarityCheck';
+import { useDemoMode } from '../../Components/DemoBadge';
 import ResultFeedback from '../../Components/ResultFeedback';
 import type { CoachHandoffData } from '@/types/generated';
 
@@ -44,6 +45,7 @@ export default function Results({
     pathway,
     coach,
 }: Props) {
+    const demo = useDemoMode();
     const [profile, setProfile] = useState<VocationalProfile | null>(initialProfile);
     const [polling, setPolling] = useState(initialStatus === 'analyzing');
     const [email, setEmail] = useState('');
@@ -324,7 +326,12 @@ export default function Results({
               a grade for them.
             */}
             <div className="mt-12 border-t border-[var(--color-divider)] pt-8">
-                <ClarityCheck assessmentId={assessment_id} guestToken={guest_token} moment="after" />
+                <ClarityCheck
+                    assessmentId={assessment_id}
+                    guestToken={guest_token}
+                    moment="after"
+                    suggested={demo?.clarity.after}
+                />
             </div>
 
             {/* Actions */}

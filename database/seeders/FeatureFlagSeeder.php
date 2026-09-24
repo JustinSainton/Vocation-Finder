@@ -59,14 +59,26 @@ class FeatureFlagSeeder extends Seeder
                 'key' => 'pathway_coach',
                 'name' => 'Pathway Coach (students)',
                 'description' => 'The student-facing coach and vocational brain. Separate from career_coach, which is the adult product — the two must be able to ship independently.',
+                'is_enabled' => true,
             ],
         ];
 
+        /*
+         | `is_enabled` is the default for a new install only. Reseeding must
+         | not switch back on a flag an admin has turned off.
+         */
         foreach ($flags as $flag) {
-            FeatureFlag::updateOrCreate(
-                ['key' => $flag['key']],
-                $flag
-            );
+            $featureFlag = FeatureFlag::firstOrNew(['key' => $flag['key']]);
+            $featureFlag->fill([
+                'name' => $flag['name'],
+                'description' => $flag['description'],
+            ]);
+
+            if (! $featureFlag->exists) {
+                $featureFlag->is_enabled = $flag['is_enabled'] ?? false;
+            }
+
+            $featureFlag->save();
         }
     }
 }

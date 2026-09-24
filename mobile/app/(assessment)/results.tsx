@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { AudioOrb } from '../../components/AudioOrb';
+import { DemoBadge } from '../../components/DemoBadge';
 import { getAssessmentCopy } from '../../constants/assessmentLocale';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
@@ -292,6 +293,8 @@ export default function ResultsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <DemoBadge />
+
         {/* Document head: mono eyebrow + confidence badge + opening lead */}
         <Typography variant="eyebrow" color={colors.accent} style={styles.eyebrowGap}>
           Your vocational articulation

@@ -9,6 +9,7 @@ import { Button } from '../../components/ui/Button';
 import { spacing, layout } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { useAssessmentStore } from '../../stores/assessmentStore';
+import { DemoBadge } from '../../components/DemoBadge';
 
 export default function AssessmentLandingScreen() {
   const router = useRouter();
@@ -47,6 +48,7 @@ export default function AssessmentLandingScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        <DemoBadge />
         <Typography
           variant="caption"
           family="sans"
