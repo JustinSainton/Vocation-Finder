@@ -258,6 +258,34 @@ class DemoModeTest extends TestCase
         $this->assertAuthenticatedAs($demo);
     }
 
+    public function test_the_front_door_offers_continue_as_demo_to_a_signed_out_visitor(): void
+    {
+        $this->get('/')->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Welcome')
+            ->where('demo_login_available', false));
+
+        config(['vocation.demo.enabled' => true]);
+
+        $this->get('/')->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('demo_login_available', false));
+
+        $this->demoUser();
+
+        $this->get('/')->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('demo_login_available', true));
+    }
+
+    public function test_the_front_door_does_not_offer_continue_as_demo_to_someone_signed_in(): void
+    {
+        config(['vocation.demo.enabled' => true]);
+        $this->demoUser();
+
+        $this->actingAs(User::factory()->create())
+            ->get('/')
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('demo_login_available', false));
+    }
+
     public function test_continue_as_demo_hands_the_app_a_demo_token(): void
     {
         config(['vocation.demo.enabled' => true]);

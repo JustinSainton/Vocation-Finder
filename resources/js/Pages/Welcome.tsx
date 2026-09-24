@@ -1,8 +1,14 @@
 import { useState } from 'react';
-import { router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
+import DemoSignIn from '../Components/DemoSignIn';
 import AppLayout from '../Layouts/AppLayout';
 
-export default function Welcome() {
+interface Props {
+    demo_login_available?: boolean;
+}
+
+export default function Welcome({ demo_login_available = false }: Props) {
+    const { auth } = usePage<{ auth: { user: { id: string } | null } }>().props;
     const [checked, setChecked] = useState(false);
 
     return (
@@ -66,6 +72,17 @@ export default function Welcome() {
                     >
                         Begin discernment &rarr;
                     </button>
+
+                    {!auth.user && (
+                        <p className="mt-6 text-center font-sans text-sm text-[var(--color-text-secondary)]">
+                            Already have an account?{' '}
+                            <Link href="/login" className="link">
+                                Sign in
+                            </Link>
+                        </p>
+                    )}
+
+                    {demo_login_available && <DemoSignIn />}
                 </div>
             </div>
         </AppLayout>
