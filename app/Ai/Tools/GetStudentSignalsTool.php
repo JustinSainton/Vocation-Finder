@@ -4,6 +4,7 @@ namespace App\Ai\Tools;
 
 use App\Models\SignalExtraction;
 use App\Models\User;
+use App\Support\PathwayProfileReadiness;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -38,10 +39,9 @@ class GetStudentSignalsTool implements Tool
 
     public function handle(Request $request): string
     {
-        $assessment = $this->user->assessments()
-            ->where('status', 'completed')
-            ->latest()
-            ->first();
+        $readiness = new PathwayProfileReadiness;
+        $assessment = $readiness->latestPortraitAssessment($this->user)
+            ?? $this->user->assessments()->where('status', 'analyzing')->latest()->first();
 
         $signals = $assessment?->signalExtractions ?? collect();
 

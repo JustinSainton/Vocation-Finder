@@ -84,6 +84,8 @@ class CoachPayloadShapeTest extends TestCase
         $student->readinessSnapshots()->create(['level' => ReadinessLevel::Exploring, 'factors' => [], 'reason' => 'Finished the assessment', 'captured_at' => now()->subDay()]);
         $student->readinessSnapshots()->create(['level' => ReadinessLevel::Exploring, 'factors' => [], 'reason' => null, 'captured_at' => now()]);
 
+        $readiness = new \App\Support\PathwayProfileReadiness;
+
         $legacy = [
             'current_action' => (new ActionQueue)->current($student)?->only(['id', 'title', 'rationale']),
             'readiness' => (new ReadinessCalculator)->explain($student),
@@ -91,6 +93,9 @@ class CoachPayloadShapeTest extends TestCase
             'invitation' => (new BrainstormSchedule)->invitation($student),
             'starters' => (new CoachStarters)->for($student),
             'opening' => (new CoachOpening)->due($student),
+            'portrait_status' => $readiness->portraitStatus($student),
+            'assessment_id' => $readiness->assessmentId($student),
+            'awaiting_portrait_message' => $readiness->awaitingMessage(),
         ];
 
         $this->assertCount(2, $legacy['readiness']['history']);
@@ -186,7 +191,7 @@ class CoachPayloadShapeTest extends TestCase
         $coach = $this->actingAs($student)->get("/assessment/{$assessment->id}/results")->assertOk()
             ->viewData('page')['props']['coach'];
 
-        $this->assertSame(['state', 'eyebrow', 'headline', 'body', 'href', 'cta', 'starters'], array_keys($coach));
+        $this->assertSame(['state', 'eyebrow', 'headline', 'body', 'href', 'cta', 'starters', 'assessment_id'], array_keys($coach));
         $this->assertSame('open', $coach['state']);
     }
 }

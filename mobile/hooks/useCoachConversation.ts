@@ -50,6 +50,7 @@ export function useCoachConversation(enabled: boolean) {
   const [thinking, setThinking] = useState<string | null>(null);
   const [settlingAction, setSettlingAction] = useState(false);
   const [checkingHabit, setCheckingHabit] = useState<string | null>(null);
+  const [awaitingPortrait, setAwaitingPortrait] = useState(false);
 
   const applySettled = useCallback((settled: CoachSettled) => {
     setItems(settled.items);
@@ -61,6 +62,12 @@ export function useCoachConversation(enabled: boolean) {
     setThinking(kind === 'returning' ? 'Catching up on where you left off' : 'Reading your portrait');
     try {
       const res = await coachApi.open();
+      if (res.awaiting_portrait) {
+        setAwaitingPortrait(true);
+        applySettled(res);
+        return;
+      }
+      setAwaitingPortrait(false);
       applySettled(res);
       if (res.message) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
@@ -89,6 +96,7 @@ export function useCoachConversation(enabled: boolean) {
             at: m.at ?? new Date().toISOString(),
           }))
       );
+      setAwaitingPortrait(coachState.portrait_status === 'analyzing' && !coachState.opening);
       setLoading(false);
       if (coachState.opening) {
         await open(coachState.opening);
@@ -107,6 +115,29 @@ export function useCoachConversation(enabled: boolean) {
       load();
     }
   }, [enabled, load]);
+
+  useEffect(() => {
+    if (!enabled || !awaitingPortrait || state?.portrait_status !== 'analyzing') {
+      return;
+    }
+
+    const timer = setInterval(async () => {
+      try {
+        const next = await coachApi.state();
+        setState(next);
+        if (next.opening) {
+          setAwaitingPortrait(false);
+          await open(next.opening);
+        } else if (next.portrait_status === 'ready') {
+          setAwaitingPortrait(false);
+        }
+      } catch {
+        // Keep polling until the portrait lands or the student leaves.
+      }
+    }, 5000);
+
+    return () => clearInterval(timer);
+  }, [awaitingPortrait, enabled, open, state?.portrait_status]);
 
   const send = useCallback(async (raw: string): Promise<boolean> => {
     const text = raw.trim();
@@ -197,6 +228,7 @@ export function useCoachConversation(enabled: boolean) {
     coachSpokeLast,
     settlingAction,
     checkingHabit,
+    awaitingPortrait,
     load,
     send,
     retry,

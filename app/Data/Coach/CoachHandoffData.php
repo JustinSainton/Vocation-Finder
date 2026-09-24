@@ -23,5 +23,6 @@ class CoachHandoffData extends Data
         public ?string $href,
         public ?string $cta,
         public array $starters,
+        public ?string $assessment_id = null,
     ) {}
 }

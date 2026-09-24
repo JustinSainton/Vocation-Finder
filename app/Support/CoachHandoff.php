@@ -57,6 +57,7 @@ class CoachHandoff
                 href: '/coach',
                 cta: 'Start with your coach',
                 starters: (new CoachStarters)->for($viewer),
+                assessment_id: (string) $assessment->id,
             );
         }
 

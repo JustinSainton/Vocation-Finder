@@ -8,6 +8,7 @@ use App\Support\BrainstormSchedule;
 use App\Support\CoachOpening;
 use App\Support\CoachStarters;
 use App\Support\HabitTracker;
+use App\Support\PathwayProfileReadiness;
 use App\Support\ReadinessCalculator;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\LiteralTypeScriptType;
@@ -31,10 +32,16 @@ class CoachStateData extends Data
         public array $starters,
         #[LiteralTypeScriptType("'first' | 'returning' | null")]
         public ?string $opening,
+        #[LiteralTypeScriptType("'ready' | 'analyzing' | 'none'")]
+        public string $portrait_status,
+        public ?string $assessment_id,
+        public string $awaiting_portrait_message,
     ) {}
 
     public static function for(User $user): self
     {
+        $readiness = new PathwayProfileReadiness;
+
         return new self(
             current_action: CoachActionData::optional((new ActionQueue)->current($user)),
             readiness: ReadinessData::from((new ReadinessCalculator)->explain($user)),
@@ -42,6 +49,9 @@ class CoachStateData extends Data
             invitation: BrainstormInvitationData::optional((new BrainstormSchedule)->invitation($user)),
             starters: (new CoachStarters)->for($user),
             opening: (new CoachOpening)->due($user),
+            portrait_status: $readiness->portraitStatus($user),
+            assessment_id: $readiness->assessmentId($user),
+            awaiting_portrait_message: $readiness->awaitingMessage(),
         );
     }
 }
