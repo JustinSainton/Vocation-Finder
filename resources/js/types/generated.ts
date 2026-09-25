@@ -15,6 +15,7 @@ body: string,
 href: string | null,
 cta: string | null,
 starters: string[],
+assessment_id: string | null,
 };
 export type CoachSettledData = {
 items: (CoachThreadMessageData| CoachThreadStepData)[],
@@ -28,6 +29,9 @@ habits: HabitData[],
 invitation: BrainstormInvitationData | null,
 starters: string[],
 opening: 'first' | 'returning' | null,
+portrait_status: 'ready' | 'analyzing' | 'none',
+assessment_id: string | null,
+awaiting_portrait_message: string,
 };
 export type CoachThreadMessageData = {
 type: 'message',

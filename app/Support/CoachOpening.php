@@ -45,8 +45,14 @@ class CoachOpening
 
     public function due(User $user): ?string
     {
+        $readiness = new PathwayProfileReadiness;
+
+        if ($this->shouldRegeneratePrematureOpener($user, $readiness)) {
+            $this->discardPrematureOpener($user);
+        }
+
         if ($this->thread->messages($user)->isEmpty()) {
-            return self::FIRST;
+            return $readiness->hasPortrait($user) ? self::FIRST : null;
         }
 
         $rhythm = $this->thread->rhythm($user);
@@ -145,11 +151,53 @@ class CoachOpening
 
     protected function profile(User $user): ?VocationalProfile
     {
-        return $user->assessments()
-            ->where('status', 'completed')
-            ->whereHas('vocationalProfile')
-            ->latest()
-            ->first()
-            ?->vocationalProfile;
+        return (new PathwayProfileReadiness)->latestPortraitAssessment($user)?->vocationalProfile;
+    }
+
+    /**
+     * A portrait-based opener recorded before a profile existed, or one that
+     * used the no-profile fallback. The student has not answered yet, so it
+     * can be replaced when the portrait lands.
+     */
+    protected function shouldRegeneratePrematureOpener(User $user, PathwayProfileReadiness $readiness): bool
+    {
+        if (! $readiness->hasPortrait($user)) {
+            return false;
+        }
+
+        $rhythm = $this->thread->rhythm($user);
+
+        if ($rhythm['last_student'] !== null) {
+            return false;
+        }
+
+        $messages = $this->thread->messages($user);
+
+        if ($messages->isEmpty()) {
+            return false;
+        }
+
+        if ($messages->count() !== 1 || $messages->first()->role !== 'assistant') {
+            return false;
+        }
+
+        $content = $messages->first()->content;
+
+        return str_starts_with($content, 'I am your coach. Before I can be useful');
+    }
+
+    protected function discardPrematureOpener(User $user): void
+    {
+        $conversationId = $this->thread->conversationId($user);
+
+        if (! $conversationId) {
+            return;
+        }
+
+        DB::table('agent_conversation_messages')
+            ->where('conversation_id', $conversationId)
+            ->delete();
+
+        DB::table('agent_conversations')->where('id', $conversationId)->delete();
     }
 }

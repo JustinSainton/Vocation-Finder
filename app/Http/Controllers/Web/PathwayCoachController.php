@@ -17,6 +17,7 @@ use App\Support\CoachOpening;
 use App\Support\CoachStarters;
 use App\Support\CoachStream;
 use App\Support\CoachThread;
+use App\Support\PathwayProfileReadiness;
 use App\Support\ConversationLocale;
 use App\Support\CrisisCheck;
 use App\Support\FirstRunSequence;
@@ -51,8 +52,13 @@ class PathwayCoachController extends Controller
                 ->with('status', AccessPolicy::coachBlockedReason($user));
         }
 
+        $portrait = new PathwayProfileReadiness;
+
         return Inertia::render('Coach/Index', [
             'firstRun' => FirstRunSequence::toArray($user),
+            'portraitStatus' => $portrait->portraitStatus($user),
+            'assessmentId' => $portrait->assessmentId($user),
+            'awaitingPortraitMessage' => $portrait->awaitingMessage(),
             'currentAction' => CoachActionData::optional((new ActionQueue)->current($user)),
             /**
              * Readiness is shown here rather than being a step in
@@ -110,6 +116,17 @@ class PathwayCoachController extends Controller
             $agent = new PathwayCoachAgent($user);
         } catch (RuntimeException $exception) {
             return response()->json(['message' => $exception->getMessage()], 403);
+        }
+
+        $portrait = new PathwayProfileReadiness;
+
+        if ($kind === CoachOpening::FIRST && ! $portrait->hasPortrait($user)) {
+            return response()->json([
+                'awaiting_portrait' => true,
+                'portrait_status' => $portrait->portraitStatus($user),
+                'message' => $portrait->awaitingMessage(),
+                'assessment_id' => $portrait->assessmentId($user),
+            ] + CoachStream::settled($user)->toArray());
         }
 
         $lock = Cache::lock("coach-opening:{$user->id}", 120);

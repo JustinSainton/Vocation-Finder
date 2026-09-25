@@ -136,6 +136,17 @@ export default function CoachScreen() {
           <View style={styles.centered}>
             <ActivityIndicator size="small" color={colors.accent} />
           </View>
+        ) : coach.awaitingPortrait ? (
+          <View style={styles.centered}>
+            <ActivityIndicator size="small" color={colors.accent} />
+            <Typography variant="bodyLarge" style={styles.centeredText}>
+              Preparing your portrait
+            </Typography>
+            <Typography variant="body" color={colors.textSecondary} style={styles.centeredText}>
+              {state?.awaiting_portrait_message ??
+                'Your coach will open the conversation from your assessment as soon as it is ready.'}
+            </Typography>
+          </View>
         ) : blocked ? (
           <View style={styles.centered}>
             <Typography variant="body" style={styles.centeredText}>{blocked}</Typography>

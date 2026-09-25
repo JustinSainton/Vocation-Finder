@@ -3,6 +3,7 @@
 namespace App\Ai\Tools;
 
 use App\Models\User;
+use App\Support\PathwayProfileReadiness;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -34,11 +35,7 @@ class GetPathwayProfileTool implements Tool
 
     public function handle(Request $request): string
     {
-        $assessment = $this->user->assessments()
-            ->where('status', 'completed')
-            ->whereHas('vocationalProfile')
-            ->latest()
-            ->first();
+        $assessment = (new PathwayProfileReadiness)->latestPortraitAssessment($this->user);
 
         if (! $assessment) {
             return json_encode([

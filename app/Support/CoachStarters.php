@@ -29,12 +29,7 @@ class CoachStarters
             $starters[] = 'Here is how my step went.';
         }
 
-        $profile = $user->assessments()
-            ->where('status', 'completed')
-            ->whereHas('vocationalProfile')
-            ->latest()
-            ->first()
-            ?->vocationalProfile;
+        $profile = (new PathwayProfileReadiness)->latestPortraitAssessment($user)?->vocationalProfile;
 
         if ($profile) {
             $direction = collect($profile->primary_pathways ?? [])

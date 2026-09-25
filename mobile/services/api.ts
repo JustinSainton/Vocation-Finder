@@ -531,7 +531,12 @@ export const coachApi = {
   history: () => api.get<{ messages: CoachMessage[]; items?: CoachThreadItem[] }>('/coach/history'),
 
   /** The coach speaks first. Returns the thread as stored; `message` is null if an opener was already given */
-  open: () => api.post<{ message: string | null } & CoachSettled>('/coach/open'),
+  open: () => api.post<{
+    message?: string | null;
+    awaiting_portrait?: boolean;
+    portrait_status?: CoachState['portrait_status'];
+    assessment_id?: string | null;
+  } & CoachSettled>('/coach/open'),
 
   /** One turn of the conversation; may return support instead of a reply */
   message: (message: string) =>

@@ -18,6 +18,9 @@ interface Props {
     thread: ThreadItem[];
     starters: string[];
     opening: Opening;
+    portraitStatus: 'ready' | 'analyzing' | 'none';
+    assessmentId: string | null;
+    awaitingPortraitMessage: string;
 }
 
 function xsrfToken(): string {
@@ -50,6 +53,9 @@ export default function CoachIndex() {
     const [message, setMessage] = useState(() => new URLSearchParams(page.url.split('?')[1] ?? '').get('say') ?? '');
     const [pending, setPending] = useState<string | null>(null);
     const [settlingAction, setSettlingAction] = useState(false);
+    const [awaitingPortrait, setAwaitingPortrait] = useState(
+        props.portraitStatus === 'analyzing' && !props.opening,
+    );
     const endRef = useRef<HTMLDivElement>(null);
     const opened = useRef(false);
 
@@ -75,9 +81,33 @@ export default function CoachIndex() {
     useEffect(() => {
         if (props.opening && !opened.current) {
             opened.current = true;
-            coach.run('/coach/open');
+            coach.run('/coach/open').then((ok) => {
+                if (!ok && props.portraitStatus === 'analyzing') {
+                    setAwaitingPortrait(true);
+                }
+            });
         }
-    }, [props.opening, coach]);
+    }, [props.opening, props.portraitStatus, coach]);
+
+    useEffect(() => {
+        if (!awaitingPortrait || props.portraitStatus !== 'analyzing') {
+            return;
+        }
+
+        const timer = window.setInterval(async () => {
+            try {
+                const ok = await coach.run('/coach/open');
+                if (ok) {
+                    setAwaitingPortrait(false);
+                    opened.current = true;
+                }
+            } catch {
+                // Keep polling until the portrait lands.
+            }
+        }, 5000);
+
+        return () => window.clearInterval(timer);
+    }, [awaitingPortrait, coach, props.portraitStatus]);
 
     useEffect(() => {
         endRef.current?.scrollIntoView({ behavior: items.length > 0 ? 'smooth' : 'auto', block: 'end' });
@@ -260,7 +290,16 @@ export default function CoachIndex() {
                 )}
             </div>
 
-            <CoachThread items={items} pending={pending} phase={coach.phase} status={coach.status} draft={coach.draft} />
+            {awaitingPortrait ? (
+                <div className="py-16 text-center">
+                    <p className="font-serif text-xl text-[var(--color-on-dark)]">Preparing your portrait</p>
+                    <p className="mx-auto mt-4 max-w-md font-sans text-sm leading-relaxed text-[var(--color-on-dark-muted)]">
+                        {props.awaitingPortraitMessage}
+                    </p>
+                </div>
+            ) : (
+                <CoachThread items={items} pending={pending} phase={coach.phase} status={coach.status} draft={coach.draft} />
+            )}
 
             {notice && (
                 <p role="alert" className="mt-6 border-l-2 border-[var(--color-accent-on-dark)] pl-4 font-sans text-sm text-[var(--color-on-dark-muted)]">
@@ -275,15 +314,17 @@ export default function CoachIndex() {
 
             <div ref={endRef} className="h-8" />
 
-            <CoachComposer
-                value={message}
-                onChange={setMessage}
-                onSend={() => send(message)}
-                busy={coach.busy}
-                starters={starters}
-                onStarter={(starter) => send(starter)}
-                showStarters={!coach.busy && lastIsCoach && !message}
-            />
+            {!awaitingPortrait ? (
+                <CoachComposer
+                    value={message}
+                    onChange={setMessage}
+                    onSend={() => send(message)}
+                    busy={coach.busy}
+                    starters={starters}
+                    onStarter={(starter) => send(starter)}
+                    showStarters={!coach.busy && lastIsCoach && !message}
+                />
+            ) : null}
         </AppLayout>
     );
 }

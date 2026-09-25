@@ -13,6 +13,7 @@ use App\Support\BrainstormSchedule;
 use App\Support\CoachOpening;
 use App\Support\CoachStream;
 use App\Support\CoachThread;
+use App\Support\PathwayProfileReadiness;
 use App\Support\ConversationLocale;
 use App\Support\CrisisCheck;
 use Illuminate\Http\JsonResponse;
@@ -75,6 +76,17 @@ class PathwayCoachController extends Controller
             $agent = new PathwayCoachAgent($user);
         } catch (RuntimeException $exception) {
             return response()->json(['message' => $exception->getMessage()], 403);
+        }
+
+        $portrait = new PathwayProfileReadiness;
+
+        if ($kind === CoachOpening::FIRST && ! $portrait->hasPortrait($user)) {
+            return response()->json([
+                'awaiting_portrait' => true,
+                'portrait_status' => $portrait->portraitStatus($user),
+                'message' => $portrait->awaitingMessage(),
+                'assessment_id' => $portrait->assessmentId($user),
+            ] + CoachStream::settled($user)->toArray());
         }
 
         $lock = Cache::lock("coach-opening:{$user->id}", 120);

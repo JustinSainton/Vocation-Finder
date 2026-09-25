@@ -67,6 +67,7 @@ export function useCoachStream({ onSettled, onSupport, onError }: Handlers) {
                     const json = (await response.json().catch(() => ({}))) as Partial<Settled> & {
                         support?: Support;
                         message?: string;
+                        awaiting_portrait?: boolean;
                         errors?: Record<string, string[]>;
                     };
 
@@ -75,6 +76,9 @@ export function useCoachStream({ onSettled, onSupport, onError }: Handlers) {
                     if (json.support) {
                         onSupport(json.support);
                         return true;
+                    }
+                    if (response.ok && json.awaiting_portrait) {
+                        return false;
                     }
                     if (response.ok && json.items) {
                         onSettled(json as Settled);
