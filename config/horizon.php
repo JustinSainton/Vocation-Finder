@@ -220,7 +220,7 @@ return [
             'maxJobs' => 0,
             'memory' => 256,
             'tries' => 2,
-            'timeout' => 120,
+            'timeout' => 420,
             'nice' => 0,
         ],
         'job-pipeline' => [

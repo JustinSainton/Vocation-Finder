@@ -70,7 +70,10 @@ class AssessmentController extends Controller
                 'question_id' => $validated['question_id'],
             ],
             [
-                'response_text' => $validated['response_text'],
+                // Nullable fields are omitted from $validated when the client
+                // does not send the key at all — coalesce so updateOrCreate
+                // never throws on a missing response_text.
+                'response_text' => $validated['response_text'] ?? null,
                 'response_locale' => ConversationLocale::normalize($validated['response_locale'] ?? $assessment->locale),
             ]
         );
@@ -103,7 +106,9 @@ class AssessmentController extends Controller
             'response_text' => 'nullable|string',
         ]);
 
-        $answer->update($validated);
+        $answer->update([
+            'response_text' => $validated['response_text'] ?? null,
+        ]);
 
         return response()->json(['id' => $answer->id], 200);
     }

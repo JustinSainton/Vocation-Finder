@@ -37,7 +37,12 @@ class AnalyzeAssessmentJob implements ShouldQueue
 
     protected ?float $startedAt = null;
 
-    public int $timeout = 120;
+    /**
+     * The pipeline runs several sequential model calls (signals, mapping,
+     * optional disambiguation, narrative with one retry). Live fixtures take
+     * ~7 minutes end-to-end; 120s caused workers to kill in-flight runs.
+     */
+    public int $timeout = 420;
 
     public int $tries = 3;
 

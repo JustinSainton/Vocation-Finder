@@ -235,6 +235,18 @@ TEXT);
      * well-formatted second draft with the same violation in it.
      */
     #[Test]
+    public function its_timeout_exceeds_the_database_queue_retry_after_default(): void
+    {
+        $job = new AnalyzeAssessmentJob(new Assessment);
+
+        $this->assertGreaterThan(
+            $job->timeout,
+            config('queue.connections.database.retry_after'),
+            'queue retry_after must exceed job timeout or workers may duplicate ai-analysis runs.',
+        );
+    }
+
+    #[Test]
     public function a_violation_carries_the_findings_needed_to_write_a_repair(): void
     {
         $job = new AnalyzeAssessmentJob(new Assessment);

@@ -63,6 +63,34 @@ class AssessmentFlowTest extends TestCase
         $response->assertStatus(422);
     }
 
+    public function test_save_answer_accepts_a_missing_response_text_key(): void
+    {
+        $assessment = Assessment::create([
+            'mode' => 'written',
+            'status' => 'in_progress',
+            'guest_token' => Str::random(64),
+            'started_at' => now(),
+        ]);
+
+        $question = Question::first();
+
+        $response = $this->postJson(
+            "/api/v1/assessments/{$assessment->id}/answers",
+            [
+                'question_id' => $question->id,
+            ],
+            ['X-Guest-Token' => $assessment->guest_token]
+        );
+
+        $response->assertOk();
+
+        $this->assertDatabaseHas('answers', [
+            'assessment_id' => $assessment->id,
+            'question_id' => $question->id,
+            'response_text' => null,
+        ]);
+    }
+
     public function test_guest_can_save_answer(): void
     {
         $assessment = Assessment::create([

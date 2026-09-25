@@ -78,6 +78,7 @@ interface AssessmentState {
   createAssessment: (mode: 'written' | 'conversation') => Promise<string>;
   saveAnswerToApi: (questionIndex: number, answer: string) => Promise<void>;
   flushAnswer: (questionIndex: number, answer: string) => Promise<void>;
+  flushAllAnswers: () => Promise<void>;
   submitClarity: (moment: 'before' | 'after', standing: string) => Promise<void>;
   completeAssessment: () => Promise<void>;
   fetchResults: () => Promise<VocationalProfile | null>;
@@ -261,9 +262,41 @@ export const useAssessmentStore = create<AssessmentState>()(
         }
       },
 
+      // Demo answers sit in the UI without a keystroke, and Continue only
+      // awaited flush on the last question — completing could race ahead of
+      // earlier fire-and-forget saves and leave the analysis with thin evidence.
+      flushAllAnswers: async () => {
+        if (saveTimeout) clearTimeout(saveTimeout);
+        saveTimeout = null;
+
+        const { assessmentId, questions, answers, guestToken, locale } = get();
+        if (!assessmentId) return;
+
+        await Promise.all(
+          questions.map(async (question, index) => {
+            const answer = (answers[index] ?? question.demo_answer ?? '').trim();
+            if (!answer) return;
+
+            try {
+              await assessmentApi.saveAnswer(
+                assessmentId,
+                question.id,
+                answer,
+                guestToken ?? undefined,
+                locale
+              );
+            } catch {
+              // Saved locally, will retry on next flush
+            }
+          })
+        );
+      },
+
       completeAssessment: async () => {
         const { assessmentId, guestToken } = get();
         if (!assessmentId) return;
+
+        await get().flushAllAnswers();
 
         set({ status: 'analyzing' });
         await assessmentApi.completeAssessment(assessmentId, guestToken ?? undefined);
