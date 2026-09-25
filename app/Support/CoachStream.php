@@ -124,7 +124,8 @@ class CoachStream
 
         return match (true) {
             str_contains($name, 'pathwayprofile') => 'Reading your portrait',
-            str_contains($name, 'signals') => 'Rereading your answers',
+            str_contains($name, 'assessmentresponses') => 'Rereading your answers',
+            str_contains($name, 'signals') => 'Pulling out what stood out',
             str_contains($name, 'searchbrain') => 'Looking through what you have said before',
             str_contains($name, 'savetobrain') => 'Keeping that in your brain',
             str_contains($name, 'gap') => 'Naming what is in the way',

@@ -124,7 +124,7 @@ class BrainCapture
         $entries = [];
 
         foreach ($assessment->answers()->with('question')->get() as $answer) {
-            $text = trim((string) $answer->response_text);
+            $text = trim((string) ($answer->response_text ?: $answer->audio_transcript));
 
             if ($text === '' || ! static::isSubstantive($text)) {
                 continue;

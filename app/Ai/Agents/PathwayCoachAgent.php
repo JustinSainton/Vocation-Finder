@@ -4,6 +4,7 @@ namespace App\Ai\Agents;
 
 use App\Ai\Concerns\RunsOnTheConfiguredEngine;
 use App\Ai\Tools\AssignActionTool;
+use App\Ai\Tools\GetAssessmentResponsesTool;
 use App\Ai\Tools\GetCurrentActionTool;
 use App\Ai\Tools\GetGapsTool;
 use App\Ai\Tools\GetHabitsTool;
@@ -21,6 +22,7 @@ use App\Models\User;
 use App\Support\AccessPolicy;
 use App\Support\ActionQueue;
 use App\Support\BrainCapture;
+use App\Support\CoachAssessmentContext;
 use App\Support\CoachOpening;
 use App\Support\CoachThread;
 use Illuminate\Support\Facades\DB;
@@ -128,6 +130,7 @@ class PathwayCoachAgent implements Agent, Conversational, HasProviderOptions, Ha
     {
         return [
             new GetPathwayProfileTool($this->user),
+            new GetAssessmentResponsesTool($this->user),
             new GetStudentSignalsTool($this->user),
             new GetGapsTool($this->user),
             new RecordGapTool($this->user),
@@ -254,12 +257,16 @@ class PathwayCoachAgent implements Agent, Conversational, HasProviderOptions, Ha
             TEXT;
         }
 
-        return static::openingMarker($kind)."\n".<<<'TEXT'
+        $context = (new CoachAssessmentContext)->promptSection($this->user) ?? '';
+
+        return static::openingMarker($kind)."\n".$context."\n".<<<'TEXT'
         The student has just finished their assessment and opened the coach for
         the first time. They have not written anything yet — you speak first.
 
-        Call GetPathwayProfileTool, then GetStudentSignalsTool. Then open in no
-        more than three short paragraphs:
+        Their assessment context is already in your instructions. Call
+        GetPathwayProfileTool, GetAssessmentResponsesTool, and
+        GetStudentSignalsTool to confirm it, then open in no more than three
+        short paragraphs:
 
         1. One specific thing you noticed in their assessment, quoting their
            own words only from the signals tool, and framed at exactly the
@@ -361,10 +368,15 @@ class PathwayCoachAgent implements Agent, Conversational, HasProviderOptions, Ha
             ? "They already have a step in progress: \"{$current->title}\". Ask how that went before anything else, and do not stack another on top of it."
             : 'They have no step in progress right now.';
 
+        $assessmentContext = $exchange <= 2
+            ? ((new CoachAssessmentContext)->promptSection($this->user) ?? '')
+            : '';
+
         return <<<TEXT
         ## Where you are in this session
 
         This is exchange {$exchange} with this student. {$standing}
+        {$assessmentContext}
 
         Refinement is how a session opens, not what it consists of. Asking one
         question at a time is right; the failure you are actually at risk of is
@@ -429,8 +441,9 @@ class PathwayCoachAgent implements Agent, Conversational, HasProviderOptions, Ha
         ## Start by reading, then by asking
 
         1. Call GetPathwayProfileTool. Read the confidence before the content.
-        2. Call GetStudentSignalsTool so you can be specific in their words.
-        3. Then ask them something you could not have known from the
+        2. Call GetAssessmentResponsesTool when you need the full answers.
+        3. Call GetStudentSignalsTool so you can quote them in their words.
+        4. Then ask them something you could not have known from the
            assessment.
 
         Your first job is not to coach. It is to fill in what the assessment

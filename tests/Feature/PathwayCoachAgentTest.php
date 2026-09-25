@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Ai\Agents\PathwayCoachAgent;
 use App\Ai\Tools\AssignActionTool;
+use App\Ai\Tools\GetAssessmentResponsesTool;
 use App\Ai\Tools\GetCurrentActionTool;
 use App\Ai\Tools\GetGapsTool;
 use App\Ai\Tools\GetHabitsTool;
@@ -258,6 +259,7 @@ class PathwayCoachAgentTest extends TestCase
         $this->assertEqualsCanonicalizing(
             [
                 GetPathwayProfileTool::class,
+                GetAssessmentResponsesTool::class,
                 GetStudentSignalsTool::class,
                 GetGapsTool::class,
                 RecordGapTool::class,
