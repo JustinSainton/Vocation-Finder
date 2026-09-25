@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Ai\Agents\ConversationAgent;
 use App\Http\Controllers\Controller;
-use App\Jobs\AnalyzeAssessmentJob;
 use App\Models\Answer;
 use App\Models\Assessment;
 use App\Models\ConversationSession;
 use App\Models\ConversationTurn;
 use App\Models\Question;
 use App\Services\Ai\ConversationModelSelector;
+use App\Support\AnalysisLogger;
+use App\Support\AssessmentAnalysisDispatcher;
 use App\Support\ConversationLocale;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -487,12 +488,21 @@ class AudioConversationController extends Controller
         $session->update(['status' => 'completed']);
 
         $assessment = $session->assessment;
+        $previousStatus = $assessment->status;
+
         $assessment->update([
             'status' => 'analyzing',
             'completed_at' => now(),
         ]);
 
-        $this->dispatchAnalysisJob($assessment);
+        AnalysisLogger::statusTransition(
+            $assessment->id,
+            $assessment->user_id,
+            $previousStatus,
+            'analyzing',
+        );
+
+        AssessmentAnalysisDispatcher::dispatch($assessment, source: 'audio_conversation');
 
         return response()->json(['status' => 'analyzing']);
     }
@@ -782,33 +792,6 @@ class AudioConversationController extends Controller
         ];
 
         $assessment->update(['metadata' => $metadata]);
-    }
-
-    protected function dispatchAnalysisJob(Assessment $assessment): void
-    {
-        $dispatchMode = (string) config('vocation.assessment.analysis_dispatch', 'queue');
-
-        Log::info('assessment_analysis_dispatch_requested', [
-            'assessment_id' => $assessment->id,
-            'dispatch_mode' => $dispatchMode,
-            'queue_connection' => config('queue.default'),
-            'queue_name' => 'ai-analysis',
-            'source' => 'audio_conversation',
-        ]);
-
-        if ($dispatchMode === 'sync') {
-            AnalyzeAssessmentJob::dispatchSync($assessment);
-
-            return;
-        }
-
-        if ($dispatchMode === 'after_response') {
-            AnalyzeAssessmentJob::dispatchAfterResponse($assessment);
-
-            return;
-        }
-
-        AnalyzeAssessmentJob::dispatch($assessment);
     }
 
     protected function transcriptionLanguageForLocale(string $locale): string

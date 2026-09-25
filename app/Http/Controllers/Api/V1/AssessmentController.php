@@ -4,15 +4,15 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\AssessmentResource;
-use App\Jobs\AnalyzeAssessmentJob;
 use App\Models\Answer;
 use App\Models\Assessment;
+use App\Support\AnalysisLogger;
 use App\Support\AssessmentAccess;
+use App\Support\AssessmentAnalysisDispatcher;
 use App\Support\ConversationLocale;
 use App\Support\CrisisCheck;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class AssessmentController extends Controller
@@ -117,40 +117,23 @@ class AssessmentController extends Controller
             return response()->json(['error' => 'Cannot complete assessment with no answers.'], 422);
         }
 
+        $previousStatus = $assessment->status;
+
         $assessment->update([
             'status' => 'analyzing',
             'completed_at' => now(),
         ]);
 
-        $this->dispatchAnalysisJob($assessment);
+        AnalysisLogger::statusTransition(
+            $assessment->id,
+            $assessment->user_id,
+            $previousStatus,
+            'analyzing',
+        );
+
+        AssessmentAnalysisDispatcher::dispatch($assessment, source: 'assessment_api');
 
         return response()->json(['status' => 'analyzing']);
-    }
-
-    private function dispatchAnalysisJob(Assessment $assessment): void
-    {
-        $dispatchMode = (string) config('vocation.assessment.analysis_dispatch', 'queue');
-
-        Log::info('assessment_analysis_dispatch_requested', [
-            'assessment_id' => $assessment->id,
-            'dispatch_mode' => $dispatchMode,
-            'queue_connection' => config('queue.default'),
-            'queue_name' => 'ai-analysis',
-        ]);
-
-        if ($dispatchMode === 'sync') {
-            AnalyzeAssessmentJob::dispatchSync($assessment);
-
-            return;
-        }
-
-        if ($dispatchMode === 'after_response') {
-            AnalyzeAssessmentJob::dispatchAfterResponse($assessment);
-
-            return;
-        }
-
-        AnalyzeAssessmentJob::dispatch($assessment);
     }
 
     private function authorizeAccess(Request $request, Assessment $assessment): void

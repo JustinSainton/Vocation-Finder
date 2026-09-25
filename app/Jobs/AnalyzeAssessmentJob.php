@@ -11,6 +11,7 @@ use App\Models\Assessment;
 use App\Models\Course;
 use App\Models\EvaluationLog;
 use App\Models\SignalExtraction;
+use App\Support\AnalysisLogger;
 use App\Support\BrainCapture;
 use App\Support\CompetingPathways;
 use App\Support\ConfidenceCalculator;
@@ -63,12 +64,13 @@ class AnalyzeAssessmentJob implements ShouldQueue
     public function handle(): void
     {
         $this->startedAt = microtime(true);
-        $startedAt = $this->startedAt;
 
-        Log::info('assessment_analysis_started', [
+        AnalysisLogger::info('job_started', [
             'assessment_id' => $this->assessment->id,
+            'user_id' => $this->assessment->user_id,
             'attempt' => $this->attempts(),
             'queue' => $this->queue,
+            'queue_connection' => config('queue.default'),
         ]);
 
         $model = $this->resolveModel();
@@ -77,22 +79,26 @@ class AnalyzeAssessmentJob implements ShouldQueue
         // Layer 4: Signal detection. Runs before mapping because mapping
         // consumes signals; every stored signal has been proven to trace back
         // to a span the respondent actually wrote.
-        $this->detectSignals($locale);
+        $this->logStep('signals', fn () => $this->detectSignals($locale));
 
         // Phase A: Structured pattern analysis (Layer 5, taxonomy mapping)
-        $agent = new VocationalAnalysis($this->assessment->fresh(), $locale);
-        $analysisResponse = $this->retryOnOverload(fn () => $agent->prompt(
-            $agent->buildPrompt(),
-            model: $model,
-        ));
+        $analysisData = $this->logStep('vocational_analysis', function () use ($model, $locale) {
+            $agent = new VocationalAnalysis($this->assessment->fresh(), $locale);
+            $analysisResponse = $this->retryOnOverload(fn () => $agent->prompt(
+                $agent->buildPrompt(),
+                model: $model,
+            ));
 
-        $analysisData = $analysisResponse->structured;
+            $analysisData = $analysisResponse->structured;
 
-        // Validate Phase A output
-        $this->validateAnalysis($analysisData, $analysisResponse->text ?? '');
+            // Validate Phase A output
+            $this->validateAnalysis($analysisData, $analysisResponse->text ?? '');
+
+            return $analysisData;
+        });
 
         // Phase A2: Disambiguation — only when pathways genuinely compete
-        $analysisData = $this->disambiguateCompetingPathways($analysisData, $model);
+        $analysisData = $this->logStep('disambiguation', fn () => $this->disambiguateCompetingPathways($analysisData, $model));
 
         // Phase A2.5: Score each answer's evidentiary richness. Runs after
         // Layer 4 because it counts verified signals, not words.
@@ -141,32 +147,44 @@ class AnalyzeAssessmentJob implements ShouldQueue
         $evidenceGap = DualTrack::gap($analysisData['category_scores']);
 
         // Phase B: Narrative synthesis
-        [$narrative, $sections] = $this->synthesizeNarrative($analysisData, $model, $locale, $confidence);
-
-        // Save vocational profile
-        $this->assessment->vocationalProfile()->updateOrCreate(
-            ['assessment_id' => $this->assessment->id],
-            [
-                'opening_synthesis' => $sections['opening_synthesis'],
-                'vocational_orientation' => $sections['vocational_orientation'],
-                'primary_pathways' => $sections['primary_pathways'],
-                'specific_considerations' => $sections['specific_considerations'],
-                'next_steps' => $sections['next_steps'],
-                'ministry_integration' => $sections['ministry_integration'],
-                'primary_domain' => $analysisData['primary_domain'],
-                'mode_of_work' => $analysisData['mode_of_work'],
-                'secondary_orientation' => $analysisData['secondary_orientation'],
-                'category_scores' => $analysisData['category_scores'],
-                'confidence_level' => $confidence['level'],
-                'confidence_rationale' => $confidence['rationale'],
-                'missing_evidence' => $confidence['missing_evidence'],
-                'evidence_gap' => $evidenceGap,
-                'ai_analysis_raw' => $analysisData,
-                ...EngineVersion::all(),
-            ],
+        [$narrative, $sections] = $this->logStep(
+            'narrative_synthesis',
+            fn () => $this->synthesizeNarrative($analysisData, $model, $locale, $confidence),
         );
 
-        $this->assessment->update(['status' => 'completed']);
+        // Save vocational profile
+        $this->logStep('persist', function () use ($analysisData, $sections, $confidence, $evidenceGap): void {
+            $this->assessment->vocationalProfile()->updateOrCreate(
+                ['assessment_id' => $this->assessment->id],
+                [
+                    'opening_synthesis' => $sections['opening_synthesis'],
+                    'vocational_orientation' => $sections['vocational_orientation'],
+                    'primary_pathways' => $sections['primary_pathways'],
+                    'specific_considerations' => $sections['specific_considerations'],
+                    'next_steps' => $sections['next_steps'],
+                    'ministry_integration' => $sections['ministry_integration'],
+                    'primary_domain' => $analysisData['primary_domain'],
+                    'mode_of_work' => $analysisData['mode_of_work'],
+                    'secondary_orientation' => $analysisData['secondary_orientation'],
+                    'category_scores' => $analysisData['category_scores'],
+                    'confidence_level' => $confidence['level'],
+                    'confidence_rationale' => $confidence['rationale'],
+                    'missing_evidence' => $confidence['missing_evidence'],
+                    'evidence_gap' => $evidenceGap,
+                    'ai_analysis_raw' => $analysisData,
+                    ...EngineVersion::all(),
+                ],
+            );
+
+            $previousStatus = $this->assessment->status;
+            $this->assessment->update(['status' => 'completed']);
+            AnalysisLogger::statusTransition(
+                $this->assessment->id,
+                $this->assessment->user_id,
+                $previousStatus,
+                'completed',
+            );
+        });
 
         $this->seedBrain();
 
@@ -174,11 +192,38 @@ class AnalyzeAssessmentJob implements ShouldQueue
 
         $this->dispatchCurriculum();
 
-        Log::info('assessment_analysis_completed', [
+        AnalysisLogger::info('job_completed', [
             'assessment_id' => $this->assessment->id,
+            'user_id' => $this->assessment->user_id,
             'confidence_level' => $confidence['level']->value,
-            'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
+            'duration_seconds' => round(microtime(true) - $this->startedAt, 3),
         ]);
+    }
+
+    /**
+     * @template T
+     *
+     * @param  callable(): T  $callback
+     * @return T
+     */
+    protected function logStep(string $step, callable $callback): mixed
+    {
+        $startedAt = microtime(true);
+
+        AnalysisLogger::info('step_start', [
+            'assessment_id' => $this->assessment->id,
+            'step' => $step,
+        ]);
+
+        try {
+            return $callback();
+        } finally {
+            AnalysisLogger::info('step_end', [
+                'assessment_id' => $this->assessment->id,
+                'step' => $step,
+                'elapsed_seconds' => round(microtime(true) - $startedAt, 3),
+            ]);
+        }
     }
 
     /**
@@ -515,7 +560,7 @@ class AnalyzeAssessmentJob implements ShouldQueue
                     throw $e;
                 }
 
-                Log::warning('ai_provider_overloaded_retrying', [
+                AnalysisLogger::warning('provider_overloaded_retry', [
                     'assessment_id' => $this->assessment->id,
                     'attempt' => $attempt + 1,
                     'delay_seconds' => $delays[$attempt],
@@ -819,13 +864,25 @@ TEXT;
 
     public function failed(\Throwable $exception): void
     {
-        Log::error('Assessment analysis failed', [
+        AnalysisLogger::error('job_failed', [
             'assessment_id' => $this->assessment->id,
+            'user_id' => $this->assessment->user_id,
+            'attempt' => $this->attempts(),
             'error' => $exception->getMessage(),
+            'duration_seconds' => $this->startedAt
+                ? round(microtime(true) - $this->startedAt, 3)
+                : null,
         ]);
 
         $this->recordEvaluation(EvaluationOutcome::Failed, failureReason: $exception->getMessage());
 
+        $previousStatus = $this->assessment->status;
         $this->assessment->update(['status' => 'failed']);
+        AnalysisLogger::statusTransition(
+            $this->assessment->id,
+            $this->assessment->user_id,
+            $previousStatus,
+            'failed',
+        );
     }
 }
